@@ -1,0 +1,39 @@
+{
+    "name": "Embraer 195",
+    "icao": "E195",
+    "engines": {
+        "number": 2,
+        "type": "J"
+    },
+    "weightClass": "M",
+    "category": {
+        "srs": 3,
+        "lahso": 7,
+        "recat": "D",
+        "recatEu": "E",
+        "wakeFaa": "LARGE"
+    },
+    "ceiling": 41000,
+    "rate": {
+        "climb":      3000,
+        "descent":    3000,
+        "accelerate": 7,
+        "decelerate": 4
+    },
+    "runway": {
+        "takeoff": 2.179,
+        "landing": 1.400
+    },
+    "speed":{
+        "min":     115,
+        "landing": 130,
+        "cruise":  447,
+        "cruiseM": 0.78,
+        "max":     481,
+        "maxM":    0.82
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

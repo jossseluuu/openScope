@@ -22,8 +22,8 @@
         "angle": 330,
         "speed": 4
     },
-    "arrivalRunway": "36R",
-    "departureRunway": "36L",
+    "arrivalRunway": "35R",
+    "departureRunway": "35L",
     "defaultMaps": ["Base Map"],
     "airspace": [
         {
@@ -662,7 +662,7 @@
                 ["eny", 1],
                 ["fft", 2],
                 ["n/fastGA", 2],
-                ["nks", 4],
+                ["fft", 4],
                 ["skw", 5],
                 ["swa", 3],
                 ["ual/short", 1],

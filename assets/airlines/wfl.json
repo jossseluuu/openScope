@@ -1,0 +1,17 @@
+{
+    "icao": "wfl",
+    "name": "World2fly",
+    "callsign": {
+        "name": "Blue World",
+        "callsignFormats": [
+            "####",
+            "###"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A333", 2],
+            ["A359", 3]
+        ]
+    }
+}

@@ -44,6 +44,16 @@ export const AIRCRAFT_COMMAND_MAP = {
         functionName: '',
         isSystemCommand: true
     },
+    audit: {
+        aliases: ['audit'],
+        functionName: '',
+        isSystemCommand: true
+    },
+    bot: {
+        aliases: ['bot'],
+        functionName: '',
+        isSystemCommand: true
+    },
     clear: {
         aliases: ['clear'],
         functionName: '',
@@ -97,6 +107,11 @@ export const AIRCRAFT_COMMAND_MAP = {
     flyPresentHeading: {
         aliases: ['fph'],
         functionName: 'runFlyPresentHeading',
+        isSystemCommand: false
+    },
+    goAround: {
+        aliases: ['ga', 'goaround'],
+        functionName: 'runGoAround',
         isSystemCommand: false
     },
     heading: {

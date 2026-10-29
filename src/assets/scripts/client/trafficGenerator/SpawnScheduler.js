@@ -1,8 +1,64 @@
 import _forEach from 'lodash/forEach';
+import _random from 'lodash/random';
 import SpawnPatternCollection from './SpawnPatternCollection';
+import { distanceFromRouteEndToRunway } from './buildPreSpawnAircraft';
+import AirportController from '../airport/AirportController';
 import TimeKeeper from '../engine/TimeKeeper';
 import GameController from '../game/GameController';
 import { INVALID_NUMBER } from '../constants/globalConstants';
+
+/**
+ * An arrival that would wait longer than this for its turn is not spawned at all,
+ * so the queue cannot grow without limit when the routes ask for more traffic
+ * than the minimum interval allows
+ *
+ * @property MAX_ARRIVAL_QUEUE_SECONDS
+ * @type {number}
+ * @final
+ */
+const MAX_ARRIVAL_QUEUE_SECONDS = 600;
+
+/**
+ * At an airport that spaces its arrivals, the game starts with the arrivals of about this many
+ * minutes of traffic already inside the airspace (at least one), so the scope is not empty
+ *
+ * @property INITIAL_TRAFFIC_MINUTES
+ * @type {number}
+ * @final
+ */
+const INITIAL_TRAFFIC_MINUTES = 10;
+
+/**
+ * Distance to its runway (along the rest of its route, then straight to the threshold) of the
+ * first initial arrival, and between the following ones, in nm. Staggering it staggers their
+ * landing times, so none of them starts with a delay to absorb.
+ *
+ * @property INITIAL_ARRIVAL_TO_RUNWAY_NM
+ * @type {object}
+ * @final
+ */
+const INITIAL_ARRIVAL_TO_RUNWAY_NM = { FIRST: 25, STEP: 15, MINIMUM_ROUTE_LEFT: 15 };
+
+const ONE_HOUR_IN_SECONDS = 3600;
+
+/**
+ * At an airport that spaces its arrivals, a new arrival appears on its route this far
+ * before the airspace boundary (about two minutes of flight)
+ *
+ * @property ARRIVAL_SPAWN_LEAD_NM
+ * @type {number}
+ * @final
+ */
+const ARRIVAL_SPAWN_LEAD_NM = 10;
+
+/**
+ * A spawn refused by the safety check is tried again this often, up to this many times
+ *
+ * @property SPAWN_RETRY
+ * @type {object}
+ * @final
+ */
+const SPAWN_RETRY = { SECONDS: 30, ATTEMPTS: 10 };
 
 /**
  * Used to create a game_timer for a `SpawnPatternModel` and provide
@@ -26,6 +82,17 @@ class SpawnScheduler {
          * @private
          */
         this._aircraftController = null;
+
+        /**
+         * Earliest game time the next arrival may be spawned, when the airport spaces them
+         * (see `AirportModel#arrivalSpawn`)
+         *
+         * @property _nextArrivalTime
+         * @type {number}
+         * @default 0
+         * @private
+         */
+        this._nextArrivalTime = 0;
     }
 
     /**
@@ -53,6 +120,7 @@ class SpawnScheduler {
      * @method startScheduler
      */
     startScheduler() {
+        this._nextArrivalTime = 0;
         // TODO: rename to createSchedulesWithTimer
         this.createSchedulesFromList();
         // TODO: create getter on collection to get all preSpawn including departures
@@ -67,12 +135,88 @@ class SpawnScheduler {
      * @method createSchedulesFromList
      */
     createSchedulesFromList() {
+        const isSpaced = this._getArrivalIntervalSeconds() > 0;
+
         _forEach(SpawnPatternCollection.spawnPatternModels, (spawnPatternModel) => {
             // set the #cycleStartTime for this `spawnPatternModel` with current game time
             spawnPatternModel.cycleStart(TimeKeeper.accumulatedDeltaTime);
-            spawnPatternModel.scheduleId = this.createNextSchedule(spawnPatternModel);
+            spawnPatternModel.scheduleId = isSpaced && this._isRandomArrival(spawnPatternModel) ?
+                // spaced arrivals start flowing at once instead of after up to twice their mean interval
+                this._createTimeout(spawnPatternModel, _random(0, ONE_HOUR_IN_SECONDS / spawnPatternModel.rate, true)) :
+                this.createNextSchedule(spawnPatternModel);
             spawnPatternModel.createPreSpawnAircraft(this._aircraftController);
         });
+
+        if (isSpaced) {
+            this._createInitialArrivals();
+        }
+    }
+
+    /**
+     * Instead of filling every route (pre-spawn), start with the arrivals of the first
+     * `INITIAL_TRAFFIC_MINUTES` already on their way: one per route, routes picked in proportion to
+     * their traffic, each one `INITIAL_ARRIVAL_FROM_ROUTE_END_NM.STEP` further from the end of its route
+     *
+     * @for SpawnScheduler
+     * @method _createInitialArrivals
+     * @private
+     */
+    _createInitialArrivals() {
+        const airport = AirportController.airport_get();
+        let candidates = SpawnPatternCollection.spawnPatternModels.filter((model) => this._isRandomArrival(model));
+        const totalRate = candidates.reduce((sum, model) => sum + model.rate, 0);
+        const count = Math.min(candidates.length, Math.max(1, Math.round(totalRate * INITIAL_TRAFFIC_MINUTES / 60)));
+        const chosen = [];
+
+        for (let i = 0; i < count; i++) {
+            const total = candidates.reduce((sum, model) => sum + model.rate, 0);
+            let pick = _random(0, total, true);
+            const model = candidates.find((candidate) => {
+                pick -= candidate.rate;
+
+                return pick <= 0;
+            }) || candidates[candidates.length - 1];
+
+            candidates = candidates.filter((candidate) => candidate !== model);
+            chosen.push({ model, endToRunway: distanceFromRouteEndToRunway(model, airport) });
+        }
+
+        // the route that ends closest to its runway gets the first landing
+        chosen.sort((a, b) => a.endToRunway - b.endToRunway).forEach(({ model, endToRunway }, i) => {
+            const toRunway = INITIAL_ARRIVAL_TO_RUNWAY_NM.FIRST + i * INITIAL_ARRIVAL_TO_RUNWAY_NM.STEP;
+            const fromRouteEndNm = Math.max(INITIAL_ARRIVAL_TO_RUNWAY_NM.MINIMUM_ROUTE_LEFT, toRunway - endToRunway);
+
+            // an initial arrival that would not be safe is simply left out
+            this._aircraftController.tryCreateAirborneAircraft(model, 0, fromRouteEndNm);
+        });
+
+        // the regular flow continues one interval later
+        this._nextArrivalTime = TimeKeeper.accumulatedDeltaTime + this._getArrivalIntervalSeconds();
+    }
+
+    /**
+     * @for SpawnScheduler
+     * @method _isRandomArrival
+     * @param spawnPatternModel {SpawnPatternModel}
+     * @return {boolean}
+     * @private
+     */
+    _isRandomArrival(spawnPatternModel) {
+        return spawnPatternModel.isAirborneAtSpawn() && spawnPatternModel.method === 'random' && spawnPatternModel.rate > 0;
+    }
+
+    /**
+     * Minimum interval between arrivals at the current airport, 0 when they are not spaced
+     *
+     * @for SpawnScheduler
+     * @method _getArrivalIntervalSeconds
+     * @return {number}
+     * @private
+     */
+    _getArrivalIntervalSeconds() {
+        const airport = AirportController.airport_get();
+
+        return airport && airport.arrivalSpawn ? airport.arrivalSpawn.minimumIntervalSeconds : 0;
     }
 
     /**
@@ -155,7 +299,7 @@ class SpawnScheduler {
         if (timePassed < nextDelay) {
             nextDelay -= timePassed;
         } else {
-            this._aircraftController.createAircraftWithSpawnPatternModel(spawnPatternModel);
+            this._spawn(spawnPatternModel, this._aircraftController);
         }
 
         spawnPatternModel.scheduleId = this._createTimeout(spawnPatternModel, nextDelay);
@@ -199,10 +343,85 @@ class SpawnScheduler {
         const spawnPatternModel = args[0][0];
         const aircraftController = args[0][1];
 
-        aircraftController.createAircraftWithSpawnPatternModel(spawnPatternModel);
+        this._spawn(spawnPatternModel, aircraftController);
 
         spawnPatternModel.scheduleId = this.createNextSchedule(spawnPatternModel);
     };
+
+    /**
+     * Create the aircraft of a spawn pattern, now or, for an arrival at an airport that
+     * spaces its arrivals, at the next free slot
+     *
+     * @for SpawnScheduler
+     * @method _spawn
+     * @param spawnPatternModel {SpawnPatternModel}
+     * @param aircraftController {AircraftController}
+     * @private
+     */
+    _spawn(spawnPatternModel, aircraftController) {
+        if (!spawnPatternModel.isAirborneAtSpawn()) {
+            aircraftController.createAircraftWithSpawnPatternModel(spawnPatternModel);
+
+            return;
+        }
+
+        const interval = this._getArrivalIntervalSeconds();
+
+        if (!(interval > 0)) {
+            this._trySpawnAirborne(spawnPatternModel, aircraftController, null, 0);
+
+            return;
+        }
+
+        const now = TimeKeeper.accumulatedDeltaTime;
+        const slot = Math.max(now, this._nextArrivalTime);
+
+        if (slot - now > MAX_ARRIVAL_QUEUE_SECONDS) {
+            return;
+        }
+
+        this._nextArrivalTime = slot + interval;
+
+        if (slot === now) {
+            this._trySpawnAirborne(spawnPatternModel, aircraftController, ARRIVAL_SPAWN_LEAD_NM, 0);
+
+            return;
+        }
+
+        GameController.game_timeout(
+            ([model, controller]) => this._trySpawnAirborne(model, controller, ARRIVAL_SPAWN_LEAD_NM, 0),
+            slot - now,
+            null,
+            [spawnPatternModel, aircraftController]
+        );
+    }
+
+    /**
+     * Create an airborne aircraft if the spawn safety check allows it, otherwise try again
+     * `SPAWN_RETRY.SECONDS` later, up to `SPAWN_RETRY.ATTEMPTS` times
+     *
+     * @for SpawnScheduler
+     * @method _trySpawnAirborne
+     * @param spawnPatternModel {SpawnPatternModel}
+     * @param aircraftController {AircraftController}
+     * @param leadDistanceNm {number|null}
+     * @param attempt {number}
+     * @private
+     */
+    _trySpawnAirborne(spawnPatternModel, aircraftController, leadDistanceNm, attempt) {
+        const { created } = aircraftController.tryCreateAirborneAircraft(spawnPatternModel, leadDistanceNm);
+
+        if (created || attempt + 1 >= SPAWN_RETRY.ATTEMPTS) {
+            return;
+        }
+
+        GameController.game_timeout(
+            ([model, controller]) => this._trySpawnAirborne(model, controller, leadDistanceNm, attempt + 1),
+            SPAWN_RETRY.SECONDS,
+            null,
+            [spawnPatternModel, aircraftController]
+        );
+    }
 }
 
 

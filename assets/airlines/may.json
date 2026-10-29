@@ -1,0 +1,18 @@
+{
+    "icao": "may",
+    "name": "Malta Air",
+    "callsign": {
+        "name": "Blue Med",
+        "callsignFormats": [
+            "####",
+            "###@",
+            "##@@"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["B38M", 80],
+            ["B738", 70]
+        ]
+    }
+}

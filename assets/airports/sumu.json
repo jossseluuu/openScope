@@ -3036,7 +3036,7 @@
             "rate": 2.94,
             "airlines": [
                 ["arg/short", 11],
-                ["aut", 53],
+                ["arg", 53],
                 ["auz", 12],
                 ["gec", 1],
                 ["gti", 1],
@@ -3111,7 +3111,7 @@
             "airlines": [
                 ["aal/b763", 2],
                 ["arg/short", 11],
-                ["aut", 53],
+                ["arg", 53],
                 ["auz", 12],
                 ["gec", 1],
                 ["gti", 2],

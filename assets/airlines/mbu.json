@@ -1,0 +1,17 @@
+{
+    "icao": "mbu",
+    "name": "Marabu",
+    "callsign": {
+        "name": "Marabu",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A20N", 4],
+            ["B38M", 3]
+        ]
+    }
+}

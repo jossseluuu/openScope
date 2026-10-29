@@ -9,7 +9,11 @@
     "category": {
         "srs": 3,
         "lahso": 9,
-        "recat": "C"
+        "recat": "C",
+
+        "recatEu": "C",
+
+        "wakeFaa": "HEAVY"
     },
     "ceiling": 41000,
     "rate": {
@@ -23,8 +27,8 @@
         "landing": 2.000
     },
     "speed":{
-        "min":     160,
-        "landing": 145,
+        "min":     135,
+        "landing": 150,
         "cruise":  433,
         "cruiseM": null,
         "max":     480,

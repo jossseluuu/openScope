@@ -1,15 +1,19 @@
 {
-    "name": "CRJ 1000",
+    "name": "Bombardier CRJ1000",
     "icao": "CRJX",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 8,
-        "recat": "E"
+        "recat": "E",
+
+        "recatEu": "E",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 41000,
     "rate": {

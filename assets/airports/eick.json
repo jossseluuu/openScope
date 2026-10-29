@@ -2384,7 +2384,7 @@
             "method": "random",
             "rate": 0.51,
             "airlines": [
-                ["stk/einRegional", 42]
+                ["eai", 42]
             ]
         },
         {
@@ -2443,7 +2443,7 @@
             "method": "random",
             "rate": 0.16,
             "airlines": [
-                ["stk/einRegional", 13]
+                ["eai", 13]
             ]
         },
         {
@@ -2473,7 +2473,7 @@
                 ["bbd", 1],
                 ["ein/short", 30],
                 ["ryr", 48],
-                ["stk/einRegional", 11],
+                ["eai", 11],
                 ["swr/short", 1],
                 ["tay/b737", 1],
                 ["tom/short", 1],
@@ -2495,7 +2495,7 @@
                 ["ein/short", 11],
                 ["klm/embraers", 5],
                 ["ryr", 12],
-                ["stk/einRegional", 42],
+                ["eai", 42],
                 ["tay/b737", 1]
             ]
         },
@@ -2527,7 +2527,7 @@
                 ["ein/short", 29],
                 ["hop/e170", 7],
                 ["ryr", 31],
-                ["stk/einRegional", 2],
+                ["eai", 2],
                 ["tom/short", 1]
             ]
         }

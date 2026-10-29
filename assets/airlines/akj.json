@@ -1,0 +1,16 @@
+{
+    "icao": "akj",
+    "name": "Akasa Air",
+    "callsign": {
+        "name": "Akasa Air",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["B38M", 30]
+        ]
+    }
+}

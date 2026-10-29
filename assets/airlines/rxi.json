@@ -1,0 +1,16 @@
+{
+    "icao": "rxi",
+    "name": "Riyadh Air",
+    "callsign": {
+        "name": "Riyadh Air",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["B789", 8]
+        ]
+    }
+}

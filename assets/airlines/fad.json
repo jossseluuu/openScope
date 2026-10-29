@@ -1,0 +1,16 @@
+{
+    "icao": "fad",
+    "name": "Flyadeal",
+    "callsign": {
+        "name": "Adeal",
+        "callsignFormats": [
+            "###"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A20N", 15],
+            ["A320", 25]
+        ]
+    }
+}

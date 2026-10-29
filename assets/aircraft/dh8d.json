@@ -1,5 +1,5 @@
 {
-    "name": "Bombardier Dash 8 Q400",
+    "name": "De Havilland Canada Dash 8-400",
     "icao": "DH8D",
     "engines": {
         "number": 2,
@@ -9,7 +9,11 @@
     "category": {
         "srs": 3,
         "lahso": 6,
-        "recat": "D"
+        "recat": "D",
+
+        "recatEu": "E",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 27000,
     "rate": {

@@ -1,15 +1,19 @@
 {
-    "name": "Embraer Legacy 500",
+    "name": "Embraer Legacy 500/Praetor 600",
     "icao": "E550",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 7,
-        "recat": "E"
+        "recat": "E",
+
+        "recatEu": "E",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 45000,
     "rate": {

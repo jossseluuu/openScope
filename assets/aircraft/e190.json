@@ -1,15 +1,19 @@
 {
-    "name": "Embraer 190/195",
+    "name": "Embraer 190",
     "icao": "E190",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 7,
-        "recat": "D"
+        "recat": "D",
+
+        "recatEu": "E",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 41000,
     "rate": {

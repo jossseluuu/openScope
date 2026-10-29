@@ -2,6 +2,7 @@ import _filter from 'lodash/filter';
 import _forEach from 'lodash/forEach';
 import _isNaN from 'lodash/isNaN';
 import _random from 'lodash/random';
+import AirportController from '../airport/AirportController';
 import BaseCollection from '../base/BaseCollection';
 import SpawnPatternModel from './SpawnPatternModel';
 import { FLIGHT_CATEGORY } from '../constants/aircraftConstants';
@@ -51,7 +52,30 @@ class SpawnPatternCollection extends BaseCollection {
                 `Expected a non-empty object, but received ${typeof airportJson}`);
         }
 
-        this._buildSpawnPatternModels(airportJson.spawnPatterns);
+        this._buildSpawnPatternModels(this._filterByRunwayConfiguration(airportJson));
+    }
+
+    /**
+     * Spawn patterns that belong to the runway configuration in use
+     *
+     * Patterns without a `runwayConfiguration` are used in every configuration.
+     *
+     * @for SpawnPatternCollection
+     * @method _filterByRunwayConfiguration
+     * @param airportJson {object}
+     * @return {array<object>}
+     * @private
+     */
+    _filterByRunwayConfiguration(airportJson) {
+        const airportModel = AirportController.airport_get(airportJson.icao);
+        const configuration = airportModel ? airportModel.runwayConfiguration : null;
+
+        if (!configuration) {
+            return airportJson.spawnPatterns;
+        }
+
+        return _filter(airportJson.spawnPatterns, (spawnPattern) => !spawnPattern.runwayConfiguration ||
+            spawnPattern.runwayConfiguration === configuration.name);
     }
 
     /**

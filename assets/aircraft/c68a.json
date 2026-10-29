@@ -1,0 +1,39 @@
+{
+    "name": "Cessna Citation Latitude",
+    "icao": "C68A",
+    "engines": {
+        "number": 2,
+        "type": "J"
+    },
+    "weightClass": "M",
+    "category": {
+        "srs": 3,
+        "lahso": 6,
+        "recat": "F",
+        "recatEu": "E",
+        "wakeFaa": "SMALL"
+    },
+    "ceiling": 45000,
+    "rate": {
+        "climb":      4000,
+        "descent":    3000,
+        "accelerate": 8,
+        "decelerate": 4
+    },
+    "runway": {
+        "takeoff": 1.090,
+        "landing": 0.770
+    },
+    "speed":{
+        "min":     100,
+        "landing": 115,
+        "cruise":  446,
+        "cruiseM": 0.78,
+        "max":     460,
+        "maxM":    0.8
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

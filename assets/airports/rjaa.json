@@ -1389,7 +1389,7 @@
             "airlines": [
 				["aar", 27],
 				["abl", 19],
-				["abw", 4],
+				["clx", 4],
 				["ana", 53],
 				["apj", 32],
 				["asv", 14],
@@ -1422,7 +1422,7 @@
             "method": "random",
             "rate": 0.82,
             "airlines": [
-				["abw", 4],
+				["clx", 4],
 				["afl/long", 7],
 				["afr/long", 7],
 				["ana/long", 31],
@@ -1571,7 +1571,7 @@
             "airlines": [
 				["aar", 27],
 				["abl", 19],
-				["abw", 8],
+				["clx", 8],
 				["asv", 14],
 				["afl/long", 7],
 				["afr/long", 7],

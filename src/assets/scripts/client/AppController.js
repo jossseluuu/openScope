@@ -1,6 +1,9 @@
 /* eslint-disable max-len */
 import $ from 'jquery';
 import AircraftController from './aircraft/AircraftController';
+import AuditBroadcaster from './audit/AuditBroadcaster';
+import AuditController from './audit/AuditController';
+import BotController from './bot/BotController';
 import AirlineController from './airline/AirlineController';
 import AirportController from './airport/AirportController';
 import AirportGuideViewController from './airportGuide/AirportGuideViewController';
@@ -176,6 +179,8 @@ export default class AppController {
         this.scopeModel = new ScopeModel();
         this.aircraftController = new AircraftController(aircraftTypeDefinitionList, this.airlineController, this.scopeModel);
         this.scoreController = new ScoreController(this.aircraftController);
+        this.botController = new BotController(this.aircraftController);
+        this.auditController = new AuditController(this.aircraftController, this.botController);
 
         SpawnScheduler.init(this.aircraftController);
 
@@ -193,6 +198,7 @@ export default class AppController {
         this.airportInfoController = new AirportInfoController(this.$element);
         this.airportGuideController = new AirportGuideViewController(this.$element, airportGuideData, initialAirportData.icao);
         this.changelogController = new ChangelogController(this.contentQueue);
+        this.auditBroadcaster = new AuditBroadcaster(this.auditController);
 
         this.updateViewControls();
     }
@@ -250,6 +256,8 @@ export default class AppController {
         this.airportInfoController.updateClock();
         GameController.update_pre();
         this.aircraftController.update();
+        this.botController.update();
+        this.auditController.update();
     }
 
     /**

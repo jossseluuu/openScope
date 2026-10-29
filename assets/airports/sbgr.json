@@ -233,7 +233,7 @@
                 ["afr/long", 5],
                 ["amx/long", 2],
                 ["ava/long", 2],
-                ["aza/long", 4],
+                ["ity/long", 4],
                 ["baw/long", 5],
                 ["cca/long", 2],
                 ["dlh/long", 5],
@@ -268,7 +268,7 @@
                 ["afr/long", 1],
                 ["amx/long", 1],
                 ["ava/long", 1],
-                ["aza/long", 1],
+                ["ity/long", 1],
                 ["baw/long", 1],
                 ["cca/long", 1],
                 ["dlh/long", 1],
@@ -294,7 +294,7 @@
                 ["TAM", 3],
                 ["GLO", 3],
                 ["AZU", 3],
-                ["ONE", 3],
+                ["azu", 3],
                 ["FAB", 1]
             ]
         },
@@ -311,7 +311,7 @@
                 ["TAM", 3],
                 ["GLO", 3],
                 ["AZU", 3],
-                ["ONE", 2],
+                ["azu", 2],
                 ["FAB", 1]
             ]
         },
@@ -337,7 +337,7 @@
                 ["afr/long", 1],
                 ["amx/long", 1],
                 ["ava/long", 1],
-                ["aza/long", 1],
+                ["ity/long", 1],
                 ["baw/long", 1],
                 ["cca/long", 1],
                 ["dlh/long", 1],

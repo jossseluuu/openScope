@@ -9,7 +9,11 @@
     "category": {
         "srs": 3,
         "lahso": null,
-        "recat": "E"
+        "recat": "E",
+
+        "recatEu": "C",
+
+        "wakeFaa": "HEAVY"
     },
     "ceiling": 60000,
     "rate": {

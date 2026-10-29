@@ -5,11 +5,15 @@
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 8,
-        "recat": "D"
+        "recat": "D",
+
+        "recatEu": "E",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 37000,
     "rate": {
@@ -23,8 +27,8 @@
         "landing": 1.800
     },
     "speed":{
-        "min":     135,
-        "landing": 127,
+        "min":     115,
+        "landing": 130,
         "cruise":  430,
         "cruiseM": null,
         "max":     490,

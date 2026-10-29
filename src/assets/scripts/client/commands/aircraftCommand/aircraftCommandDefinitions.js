@@ -83,6 +83,14 @@ const ZERO_ARG_AIRCRAFT_COMMANDS = {
         validate: zeroArgumentsValidator,
         parse: noop
     },
+    audit: {
+        validate: zeroArgumentsValidator,
+        parse: noop
+    },
+    bot: {
+        validate: singleArgumentValidator,
+        parse: noop
+    },
 
     // Aircraft commands
     abort: {
@@ -98,6 +106,10 @@ const ZERO_ARG_AIRCRAFT_COMMANDS = {
         parse: noop
     },
     flyPresentHeading: {
+        validate: zeroArgumentsValidator,
+        parse: noop
+    },
+    goAround: {
         validate: zeroArgumentsValidator,
         parse: noop
     },

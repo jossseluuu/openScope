@@ -54,6 +54,7 @@ import {
 } from '../utilities/radioUtilities';
 import {
     degreesToRadians,
+    ft_km,
     nm,
     nm_ft,
     UNIT_CONVERSION_CONSTANTS
@@ -77,6 +78,7 @@ import {
     TIME
 } from '../constants/globalConstants';
 import { ENVIRONMENT } from '../constants/environmentConstants';
+import { calculateTaxiTimeSeconds } from '../realism/taxiTimes';
 
 /**
  * @property FLIGHT_RULES
@@ -168,6 +170,17 @@ export default class AircraftModel {
          * @default false
          */
         this.shouldTakeOffWhenRunwayIsClear = false;
+
+        /**
+         * With `shouldTakeOffWhenRunwayIsClear`, also asked before taking off: `(aircraftModel, runwayModel) => boolean`.
+         * Set by the `AircraftController` so the automatic tower respects the scored runway rules.
+         *
+         * @for AircraftModel
+         * @property isTakeoffReleased
+         * @type {function|null}
+         * @default null
+         */
+        this.isTakeoffReleased = null;
 
         /**
          * Trasponder code
@@ -363,8 +376,8 @@ export default class AircraftModel {
         this.taxi_start = 0;
 
         /**
-         * Time spent taxiing to the runway. *NOTE* this should be INCREASED
-         * to around 60 once the taxi vs LUAW issue is resolved (#406)
+         * Time spent taxiing to the runway, in seconds. Set when the taxi clearance
+         * is given, see `calculateTaxiTimeSeconds()`
          *
          * @for AircraftModel
          * @property taxi_time
@@ -812,12 +825,28 @@ export default class AircraftModel {
      *
      * @for AircraftModel
      * @method cancelLanding
+     * @param [reason] {string}  why the pilot goes around, reported on the radio
      */
-    cancelLanding() {
+    cancelLanding(reason = '') {
         if (this.projected) {
             return;
         }
 
+        const missedApproachReport = this.executeMissedApproach();
+        const radioMessage = reason ? `${reason}, ${missedApproachReport}` : missedApproachReport;
+
+        this.radioCall(radioMessage, AIRPORT_CONTROL_POSITION_NAME.APPROACH, true);
+        EventBus.trigger(AIRCRAFT_EVENT.GO_AROUND, this, this.fms.arrivalRunwayModel);
+    }
+
+    /**
+     * Fly the missed approach: present heading, climbing to the missed approach altitude
+     *
+     * @for AircraftModel
+     * @method executeMissedApproach
+     * @return {string} the pilot's report
+     */
+    executeMissedApproach() {
         const missedApproachAltitude = _ceil(this.fms.arrivalRunwayModel.elevation + 2000, -3);
         const nextIfrAltitudeBelow = _floor(this.altitude, -3);
         let nextAltitudeToMaintain = missedApproachAltitude;
@@ -835,7 +864,8 @@ export default class AircraftModel {
         this.mcp.setHeadingFieldValue(this.heading);
         this.mcp.setHeadingHold();
         this.setFlightPhase(FLIGHT_PHASE.DESCENT);
-        this.radioCall(radioMessage, AIRPORT_CONTROL_POSITION_NAME.APPROACH, true);
+
+        return radioMessage;
     }
 
     /**
@@ -1298,6 +1328,7 @@ export default class AircraftModel {
         this.fms.departureRunwayModel.addAircraftToQueue(this.id);
 
         this.taxi_start = TimeKeeper.accumulatedDeltaTime;
+        this.taxi_time = calculateTaxiTimeSeconds(AirportController.airport_get(), runwayModel);
 
         const readback = {};
         readback.log = `taxi to and hold short of Runway ${runwayModel.name}`;
@@ -1520,6 +1551,10 @@ export default class AircraftModel {
                         if (actualDistance < towerUtilizedDistance || lastDeparture.isOnGround()) {
                             break;
                         }
+                    }
+
+                    if (this.isTakeoffReleased && !this.isTakeoffReleased(this, runwayModel)) {
+                        break;
                     }
 
                     this.fms.departureRunwayModel.removeAircraftFromQueue(this.id);
@@ -2210,8 +2245,11 @@ export default class AircraftModel {
         const runwayModel = this.fms.arrivalRunwayModel;
         const offset = getOffset(this, runwayModel.relativePosition, runwayModel.angle);
         const distanceOnFinal_nm = nm(offset[1]);
-        const stableApproachTimeHours = PERFORMANCE.STABLE_APPROACH_TIME_SECONDS * TIME.ONE_SECOND_IN_HOURS;
-        const stableApproachDistance = this.model.speed.landing * stableApproachTimeHours;
+        // distance from the threshold at which the glidepath crosses the stabilized approach gate
+        const stableApproachGateDistance = nm(ft_km(
+            PERFORMANCE.STABILIZED_APPROACH_HEIGHT_FT / Math.tan(runwayModel.ils.glideslopeGradient)
+        ));
+        const stableApproachDistance = stableApproachGateDistance + PERFORMANCE.STABILIZED_APPROACH_MARGIN_NM;
 
         if (distanceOnFinal_nm <= 0 && this.isOnGround()) {
             return 0;
@@ -2594,7 +2632,7 @@ export default class AircraftModel {
 
                     // ac has just entered the area: .inside is still false, but st is true
                     if (new_inside && !area.inside) {
-                        GameController.events_recordNew(GAME_EVENTS.AIRSPACE_BUST);
+                        GameController.events_recordNew(GAME_EVENTS.AIRSPACE_BUST, { callsigns: [this.callsign], details: 'entered a restricted area' });
                         area.range = this.speed * 1.85 / 3.6 * 50 / 1000; // check in 50 seconds
                         // speed is kts, range is km.
                         // if a plane got into restricted area, don't check it too often
@@ -2654,7 +2692,7 @@ export default class AircraftModel {
                                 this.pilotVoice
                             );
 
-                            GameController.events_recordNew(GAME_EVENTS.COLLISION);
+                            GameController.events_recordNew(GAME_EVENTS.COLLISION, { callsigns: [this.callsign], details: 'hit terrain' });
                         }
                     } else {
                         curr_ranges[id] = Math.max(0.2, status.distance);

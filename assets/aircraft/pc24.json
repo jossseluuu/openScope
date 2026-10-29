@@ -1,0 +1,39 @@
+{
+    "name": "Pilatus PC-24",
+    "icao": "PC24",
+    "engines": {
+        "number": 2,
+        "type": "J"
+    },
+    "weightClass": "M",
+    "category": {
+        "srs": 3,
+        "lahso": 6,
+        "recat": "F",
+        "recatEu": "E",
+        "wakeFaa": "SMALL"
+    },
+    "ceiling": 45000,
+    "rate": {
+        "climb":      4000,
+        "descent":    3000,
+        "accelerate": 8,
+        "decelerate": 5
+    },
+    "runway": {
+        "takeoff": 0.890,
+        "landing": 0.720
+    },
+    "speed":{
+        "min":     90,
+        "landing": 105,
+        "cruise":  440,
+        "cruiseM": 0.74,
+        "max":     450,
+        "maxM":    0.74
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

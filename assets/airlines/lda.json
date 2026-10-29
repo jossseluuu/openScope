@@ -1,0 +1,16 @@
+{
+    "icao": "lda",
+    "name": "Lauda Europe",
+    "callsign": {
+        "name": "Beaufort",
+        "callsignFormats": [
+            "####",
+            "###@"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A320", 30]
+        ]
+    }
+}

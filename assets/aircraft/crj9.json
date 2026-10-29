@@ -1,15 +1,19 @@
 {
-    "name": "CRJ 900",
+    "name": "Bombardier CRJ900",
     "icao": "CRJ9",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 8,
-        "recat": "E"
+        "recat": "E",
+
+        "recatEu": "E",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 41000,
     "rate": {
@@ -23,8 +27,8 @@
         "landing": 1.500
     },
     "speed":{
-        "min":     110,
-        "landing": 100,
+        "min":     120,
+        "landing": 140,
         "cruise":  458,
         "cruiseM": null,
         "max":     470,

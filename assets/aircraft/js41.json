@@ -3,13 +3,17 @@
     "icao": "JS41",
     "engines": {
         "number": 2,
-        "type": "S"
+        "type": "T"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 7,
-        "recat": "F"
+        "recat": "F",
+
+        "recatEu": "E",
+
+        "wakeFaa": "SMALL"
     },
     "ceiling": 26000,
     "rate": {

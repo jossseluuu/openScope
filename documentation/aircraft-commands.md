@@ -13,6 +13,7 @@
 
 - [Expect Runway](#expect-runway)
 - [Descend via STAR](#descend-via-star)
+- [Go Around](#go-around)
 - [ILS](#ils)
 
 [Routing Commands](#routing-commands)
@@ -99,6 +100,11 @@ will climb to the altitude they were previously cleared to, or in accordance
 with a SID if told previously to "climb via the SID". If neither has happened,
 they will ask for an altitude assignment before they agree to take off.
 
+Any aircraft holding short of the runway can be cleared, not only the first
+one in the queue, so departures can be resequenced (e.g. for wake turbulence or
+diverging SIDs). The runway must be clear: taking off while another aircraft
+occupies it is a runway incursion.
+
 _Syntax -_ `AAL123 cto`
 
 ### Taxi
@@ -106,7 +112,8 @@ _Syntax -_ `AAL123 cto`
 _Aliases -_ `taxi`, `wait`, `w`
 
 _Information -_ This command tells the specified plane to taxi to and hold short
-of the specified runway.
+of the specified runway. Taxiing takes several minutes (see `taxiTimes` in the
+airport format).
 
 _Syntax -_ `AAL123 taxi [runway]`
 
@@ -138,6 +145,19 @@ receiving further instructions from ATC. Optionally, an altitude may be
 specified to dictate the altitude to be descended to.
 
 _Syntax -_ `AAL123 dvs` or `AAL123 dvs [alt]`
+
+### Go Around
+
+_Aliases -_ `ga`, `goaround`
+
+_Information -_ Instructs an aircraft on approach to discontinue it. The
+aircraft flies present heading and climbs to the missed approach altitude
+(2000 ft above the airport, rounded up to the next thousand), and will need new
+vectors and a new approach clearance. Pilots also go around on their own when
+the approach is not stable at 1000 ft above the runway or the runway is not
+clear at 200 ft.
+
+_Syntax -_ `AAL123 ga`
 
 ### ILS
 

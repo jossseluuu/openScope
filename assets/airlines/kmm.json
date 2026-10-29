@@ -1,0 +1,16 @@
+{
+    "icao": "kmm",
+    "name": "KM Malta Airlines",
+    "callsign": {
+        "name": "Sky Knight",
+        "callsignFormats": [
+            "###"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A20N", 6],
+            ["A320", 2]
+        ]
+    }
+}

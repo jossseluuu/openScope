@@ -145,7 +145,9 @@ export const MOUSE_EVENT_CODE = {
 export const PARSED_COMMAND_NAME = {
     AIRAC: 'airac',
     AIRPORT: 'airport',
+    AUDIT: 'audit',
     AUTO: 'auto',
+    BOT: 'bot',
     CLEAR: 'clear',
     PAUSE: 'pause',
     RATE: 'rate',

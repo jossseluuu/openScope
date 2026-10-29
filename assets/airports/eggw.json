@@ -2063,8 +2063,8 @@
             "method": "random",
             "rate": 2,
             "airlines": [
-                ["bms/b734", 2],
-                ["bms/b738", 1],
+                ["wzz", 2],
+                ["wzz", 1],
                 ["ely/b738", 1],
                 ["ezy/a20n", 5],
                 ["ezy/a319", 37],

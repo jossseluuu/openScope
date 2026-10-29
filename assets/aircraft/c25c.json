@@ -1,0 +1,39 @@
+{
+    "name": "Cessna Citation CJ4",
+    "icao": "C25C",
+    "engines": {
+        "number": 2,
+        "type": "J"
+    },
+    "weightClass": "M",
+    "category": {
+        "srs": 3,
+        "lahso": 6,
+        "recat": "F",
+        "recatEu": "E",
+        "wakeFaa": "SMALL"
+    },
+    "ceiling": 45000,
+    "rate": {
+        "climb":      4500,
+        "descent":    3000,
+        "accelerate": 9,
+        "decelerate": 5
+    },
+    "runway": {
+        "takeoff": 1.030,
+        "landing": 0.920
+    },
+    "speed":{
+        "min":     100,
+        "landing": 115,
+        "cruise":  451,
+        "cruiseM": 0.77,
+        "max":     460,
+        "maxM":    0.77
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

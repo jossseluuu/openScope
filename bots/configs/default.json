@@ -1,0 +1,66 @@
+{
+    "name": "botB",
+    "seed": 0,
+    "device": "auto",
+    "envs": 8,
+    "env": {
+        "airports": ["lemd", "eddm"],
+        "traffic_scale": [1.0, 1.0],
+        "episode_minutes": 60,
+        "decision_seconds": 10,
+        "random_wind_probability": 0.0,
+        "max_wind_kt": 20,
+        "reward_weights": {}
+    },
+    "model": {
+        "width": 128,
+        "heads": 4,
+        "layers": 3
+    },
+    "imitation": {
+        "episode_minutes": 40,
+        "collect_decisions": 20000,
+        "epochs": 10,
+        "batch_size": 64,
+        "learning_rate": 0.0003,
+        "noop_weight": 0.2,
+        "dagger_iterations": 3,
+        "dagger_decisions": 6000
+    },
+    "ppo": {
+        "rollout_steps": 128,
+        "learning_rate": 0.00025,
+        "gamma": 0.99,
+        "gae_lambda": 0.95,
+        "clip": 0.2,
+        "epochs": 4,
+        "minibatches": 4,
+        "entropy": 0.01,
+        "value": 0.5,
+        "max_grad_norm": 0.5,
+        "checkpoint_every": 10,
+        "evaluate_every": 25
+    },
+    "curriculum": [
+        {
+            "name": "light traffic at LEMD",
+            "updates": 100,
+            "env": { "airports": ["lemd"], "traffic_scale": [0.4, 0.6], "episode_minutes": 30 }
+        },
+        {
+            "name": "both airports, medium traffic, some wind",
+            "updates": 200,
+            "env": { "airports": ["lemd", "eddm"], "traffic_scale": [0.6, 0.9], "episode_minutes": 45, "random_wind_probability": 0.2 }
+        },
+        {
+            "name": "full traffic",
+            "updates": 400,
+            "env": { "airports": ["lemd", "eddm"], "traffic_scale": [0.9, 1.2], "episode_minutes": 60, "random_wind_probability": 0.3 }
+        }
+    ],
+    "evaluation": {
+        "airports": ["lemd", "eddm"],
+        "seeds": [101, 102],
+        "minutes": 45
+    }
+}

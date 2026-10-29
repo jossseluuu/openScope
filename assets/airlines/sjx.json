@@ -1,0 +1,27 @@
+{
+    "icao": "sjx",
+    "name": "Starlux Airlines",
+    "callsign": {
+        "name": "Starwalker",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A21N", 15],
+            ["A339", 10],
+            ["A359", 10],
+            ["A35K", 3]
+        ],
+        "short": [
+            ["A21N", 15]
+        ],
+        "long": [
+            ["A339", 10],
+            ["A359", 10],
+            ["A35K", 3]
+        ]
+    }
+}

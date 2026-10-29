@@ -193,7 +193,7 @@
                 ["afr/long", 5],
                 ["amx/long", 2],
                 ["ava/long", 2],
-                ["aza/long", 4],
+                ["ity/long", 4],
                 ["baw/long", 5],
                 ["cca/long", 2],
                 ["dlh/long", 5],
@@ -218,7 +218,7 @@
             "airlines": [
                 ["aea/long", 2],
                 ["afr/long", 5],
-                ["aza/long", 4],
+                ["ity/long", 4],
                 ["dlh/long", 5],
                 ["ibe/long", 5],
                 ["baw/long", 5],
@@ -229,7 +229,7 @@
                 ["TAM", 60],
                 ["GLO", 60],
                 ["AZU", 30],
-                ["ONE", 30],
+                ["azu", 30],
                 ["emb", 3]
             ]
         },
@@ -246,7 +246,7 @@
                 ["TAM", 60],
                 ["GLO", 60],
                 ["AZU", 30],
-                ["ONE", 30]
+                ["azu", 30]
             ]
         },
         {
@@ -286,7 +286,7 @@
                 ["TAM", 60],
                 ["GLO", 60],
                 ["AZU", 30],
-                ["ONE", 30]
+                ["azu", 30]
             ]
         },
         {

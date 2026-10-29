@@ -1,5 +1,5 @@
 {
-    "name": "McDonnel Douglas MD-11",
+    "name": "McDonnell Douglas MD-11",
     "icao": "MD11",
     "engines": {
         "number": 3,
@@ -9,7 +9,11 @@
     "category": {
         "srs": 3,
         "lahso": 9,
-        "recat": "C"
+        "recat": "C",
+
+        "recatEu": "C",
+
+        "wakeFaa": "HEAVY"
     },
     "ceiling": 43000,
     "rate": {

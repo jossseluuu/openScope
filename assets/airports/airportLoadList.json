@@ -412,6 +412,18 @@
         "disabled": true
     },
     {
+        "icao": "lemd",
+        "level": "hard",
+        "name": "Adolfo Suárez Madrid-Barajas Airport",
+        "premium": false
+    },
+    {
+        "icao": "lemg",
+        "level": "medium",
+        "name": "Málaga-Costa del Sol Airport",
+        "premium": false
+    },
+    {
         "icao": "lipz",
         "level": "easy",
         "name": "Venice Marco Polo Airport",

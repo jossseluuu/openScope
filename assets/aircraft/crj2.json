@@ -1,15 +1,19 @@
 {
-    "name": "CRJ 200",
+    "name": "Bombardier CRJ200",
     "icao": "CRJ2",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 7,
-        "recat": "E"
+        "recat": "E",
+
+        "recatEu": "E",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 41000,
     "rate": {
@@ -23,8 +27,8 @@
         "landing": 1.480
     },
     "speed":{
-        "min":     110,
-        "landing": 100,
+        "min":     115,
+        "landing": 135,
         "cruise":  424,
         "cruiseM": null,
         "max":     470,

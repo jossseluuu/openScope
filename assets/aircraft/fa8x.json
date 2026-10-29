@@ -1,0 +1,39 @@
+{
+    "name": "Dassault Falcon 8X",
+    "icao": "FA8X",
+    "engines": {
+        "number": 3,
+        "type": "J"
+    },
+    "weightClass": "M",
+    "category": {
+        "srs": 3,
+        "lahso": 8,
+        "recat": "E",
+        "recatEu": "E",
+        "wakeFaa": "LARGE"
+    },
+    "ceiling": 51000,
+    "rate": {
+        "climb":      4000,
+        "descent":    3000,
+        "accelerate": 7,
+        "decelerate": 5
+    },
+    "runway": {
+        "takeoff": 1.790,
+        "landing": 0.660
+    },
+    "speed":{
+        "min":     105,
+        "landing": 120,
+        "cruise":  488,
+        "cruiseM": 0.85,
+        "max":     500,
+        "maxM":    0.9
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

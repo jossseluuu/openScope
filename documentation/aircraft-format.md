@@ -14,7 +14,9 @@
     "category": {
         "srs": 3,               - Same Runway Separation Category²
         "lahso": 10,            - LAHSO (land-and-hold-short) Category²
-        "recat": "B"            - Wake Turb Recategorization Category²
+        "recat": "B",           - Wake Turb Recategorization Category²
+        "recatEu": "B",         - RECAT-EU wake category (A to F)⁵
+        "wakeFaa": "HEAVY"      - FAA JO 7110.65 wake class (SUPER, HEAVY, B757, LARGE, SMALL)⁶
     },
     "ceiling": 45000,           - Service Ceiling³
     "rate": {
@@ -51,3 +53,9 @@ Recommended sources:
 1. [https://contentzone.eurocontrol.int/aircraftperformance/default.aspx](https://contentzone.eurocontrol.int/aircraftperformance/default.aspx)
 1. [https://www.easa.europa.eu/document-library/type-certificates](https://www.easa.europa.eu/document-library/type-certificates) or [http://www1.airweb.faa.gov/Regulatory_and_Guidance_Library/rgMakeModel.nsf/MainFrame?OpenFrameSet](http://www1.airweb.faa.gov/Regulatory_and_Guidance_Library/rgMakeModel.nsf/MainFrame?OpenFrameSet)
 (Try to find the correct .pdf file and search for "VMO" or "MMO")
+1. [EUROCONTROL RECAT-EU](https://www.eurocontrol.int/publication/european-wake-turbulence-categorisation-and-separation-minima-approach-and-departure):
+A super heavy, B upper heavy, C lower heavy, D upper medium (wingspan 32 m or more), E lower medium, F light
+1. FAA JO 7110.65 5-5-4: Super (A388, A225), Heavy, B757, Large, Small (maximum takeoff weight of 41,000 lb or less)
+
+`recatEu` and `wakeFaa` are used by the realism layer for wake turbulence separation
+(see [realism.md](realism.md)). When missing, they are derived from `weightClass`.

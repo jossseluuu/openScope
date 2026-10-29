@@ -1,0 +1,17 @@
+{
+    "icao": "wuk",
+    "name": "Wizz Air UK",
+    "callsign": {
+        "name": "Wizz Go",
+        "callsignFormats": [
+            "####",
+            "###@"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A21N", 15],
+            ["A321", 15]
+        ]
+    }
+}

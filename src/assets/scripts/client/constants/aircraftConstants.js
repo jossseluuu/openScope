@@ -206,16 +206,26 @@ export const PERFORMANCE = {
     INSTRUMENT_APPROACH_MINIMUM_DESCENT_ALTITUDE: 200,
 
     /**
-     * Length of time individual aircraft will require themselves to be established at Vref
-     * (their landing speed) before landing. If they cannot reach that speed by that time, they
-     * will not consider themselves on a "stable approach", and will likely go around.
+     * Height above the threshold by which aircraft must be established at their landing
+     * speed (stabilized approach criteria in IMC). If they are not, they go around.
      *
      * @memberof PERFORMANCE
-     * @property STABLE_APPROACH_TIME_SECONDS
+     * @property STABILIZED_APPROACH_HEIGHT_FT
      * @type {number}
      * @final
      */
-    STABLE_APPROACH_TIME_SECONDS: 60,
+    STABILIZED_APPROACH_HEIGHT_FT: 1000,
+
+    /**
+     * Distance before the stabilized approach gate at which aircraft plan to reach
+     * their landing speed, so they are stable when crossing it
+     *
+     * @memberof PERFORMANCE
+     * @property STABILIZED_APPROACH_MARGIN_NM
+     * @type {number}
+     * @final
+     */
+    STABILIZED_APPROACH_MARGIN_NM: 0.5,
 
     /**
      * Altitude above the runway at which aircraft begin their on-course turn, in feet

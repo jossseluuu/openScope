@@ -1,0 +1,39 @@
+{
+    "name": "Airbus A400M Atlas",
+    "icao": "A400",
+    "engines": {
+        "number": 4,
+        "type": "T"
+    },
+    "weightClass": "H",
+    "category": {
+        "srs": 3,
+        "lahso": null,
+        "recat": "C",
+        "recatEu": "C",
+        "wakeFaa": "HEAVY"
+    },
+    "ceiling": 40000,
+    "rate": {
+        "climb":      2000,
+        "descent":    3000,
+        "accelerate": 5,
+        "decelerate": 4
+    },
+    "runway": {
+        "takeoff": 0.980,
+        "landing": 0.770
+    },
+    "speed":{
+        "min":     105,
+        "landing": 120,
+        "cruise":  420,
+        "cruiseM": 0.72,
+        "max":     450,
+        "maxM":    0.72
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

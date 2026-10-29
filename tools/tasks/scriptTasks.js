@@ -12,16 +12,16 @@ module.exports = function(gulp, config, argv) {
     const rename = require('gulp-rename');
     const OPTIONS = config;
 
-    const buildScripts = () => {
+    const bundle = (entry, name) => {
         const b = browserify({
-            entries: OPTIONS.FILE.JS_ENTRY_CLIENT,
+            entries: entry,
             extensions: ['.js'],
             debug: true,
             transform: [babelify]
         });
 
         return b.bundle()
-            .pipe(source('bundle.js'))
+            .pipe(source(name))
             .pipe(buffer())
             .pipe(sourcemaps.init({ loadMaps: true }))
             .pipe(gulpif(
@@ -31,7 +31,12 @@ module.exports = function(gulp, config, argv) {
             .pipe(rename({ suffix: '.min' }))
             .pipe(sourcemaps.write('./'))
             .pipe(gulp.dest(OPTIONS.DIR.DIST_SCRIPTS_CLIENT));
-    }
+    };
+
+    // the game, and the bot audit page (/bot-audit)
+    const buildGame = () => bundle(OPTIONS.FILE.JS_ENTRY_CLIENT, 'bundle.js');
+    const buildAuditPage = () => bundle(OPTIONS.FILE.JS_ENTRY_AUDIT_PAGE, 'auditPage.js');
+    const buildScripts = gulp.parallel(buildGame, buildAuditPage);
 
     const buildServer = () => gulp.src('**/*.js', {cwd: OPTIONS.DIR.SRC_SCRIPTS_SERVER})
         .pipe(gulp.dest(OPTIONS.DIR.DIST_SCRIPTS_SERVER));
@@ -39,6 +44,6 @@ module.exports = function(gulp, config, argv) {
     gulp.task(OPTIONS.TASKS.BUILD.SCRIPTS, gulp.series(buildScripts));
     gulp.task(OPTIONS.TASKS.BUILD.SERVER, gulp.series(buildServer));
     gulp.task(OPTIONS.TASKS.WATCH.SCRIPTS, () => {
-        gulp.watch(OPTIONS.GLOB.JS).on('change', () => buildScripts());
+        gulp.watch(OPTIONS.GLOB.JS).on('change', () => buildScripts(() => {}));
     });
 };

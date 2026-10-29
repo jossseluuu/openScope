@@ -39,11 +39,50 @@ you lose 20 points.)
 ## Collisions
 
 1000 points are lost whenever two aircraft collide (within 50 or so feet
-vertically and 165 feet laterally).
+vertically and 165 feet laterally), or an aircraft flies into terrain.
 
-## ~~Windy takeoffs~~
+## Runway incursions
 
-~~Calculated the same as Windy landings, above.~~
+You lose 500 points whenever an aircraft lands or starts its takeoff roll
+on a runway that is occupied by another aircraft. Landing aircraft occupy the
+runway for their runway occupancy time (45 to 70 seconds depending on their
+size), departures until they are airborne past the runway end.
+
+## Loss of separation
+
+You lose 200 points each time two aircraft under your control lose radar
+separation (3 nm or 1000 ft), or get closer than the minimum on the same final
+approach. Each loss is counted once, however long it lasts. Aircraft that
+enter your airspace already too close are given 60 seconds to be separated.
+
+You also lose 200 points when a departure starts its takeoff roll while an
+arrival is less than 2 nm from the threshold of the same runway.
+
+## Wake turbulence
+
+You lose 100 points when wake turbulence separation is not respected:
+distance between consecutive aircraft on the same final, or time between
+departures from the same runway (or from parallel runways less than 2500 ft
+apart). The minima depend on the airport's regulatory profile: RECAT-EU in
+Europe, FAA JO 7110.65 in the US and ICAO Doc 4444 elsewhere.
+
+## Minimum vectoring altitude
+
+At airports with terrain data, you lose 150 points each time an aircraft
+flying a heading you assigned descends more than 100 ft below the minimum
+vectoring altitude (1000 ft above the terrain within 3 nm).
+
+## Go-arounds
+
+You lose 50 points for each go-around, whether you instructed it or the
+pilot had to: aircraft go around when they are not stable at 1000 ft above
+the runway (not established, or more than 20 kt above their landing speed) or
+when the runway is occupied at 200 ft.
+
+## Windy takeoffs
+
+Takeoffs beyond the tailwind (5 kt) or crosswind (20 kt) limit of the
+regulatory profile cost the same as a high tailwind or crosswind landing.
 
 ## ~~Warning~~
 
@@ -53,13 +92,6 @@ nautical miles or less than 1000 feet of altitude.  However there are
 a number of situations where aircraft can be separated by less, for
 complete details refer to the
 [aircraft separation rules](aircraft-separation.md)~~
-
-## ~~Aborted landing~~
-
-~~5 points are lost for each aircraft that is forced to go around during
-landing. This only applies to aircraft that are closer than about 6
-miles to the runway they're landing at (to roughly approximate short
-final).~~
 
 ## ~~Aborted taxi~~
 

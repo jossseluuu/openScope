@@ -1047,7 +1047,7 @@
             "method": "random",
             "rate": 1,
             "airlines": [
-                ["asq", 7],
+                ["skw", 7],
                 ["eny", 1],
                 ["rpa", 1],
                 ["skw", 2],
@@ -1066,7 +1066,7 @@
             "airlines": [
                 ["aal", 5],
                 ["asa", 1],
-                ["asq", 7],
+                ["skw", 7],
                 ["eny", 1],
                 ["rpa", 1],
                 ["skw", 2],
@@ -1097,7 +1097,7 @@
             "rate": 3,
             "airlines": [
                 ["asa", 1],
-                ["asq", 7],
+                ["skw", 7],
                 ["dal", 3],
                 ["eny", 1],
                 ["fft", 3],
@@ -1130,7 +1130,7 @@
             "method": "random",
             "rate": 2,
             "airlines": [
-                ["asq", 7],
+                ["skw", 7],
                 ["eny", 1],
                 ["fdx", 2],
                 ["fft", 3],
@@ -1150,7 +1150,7 @@
             "rate": 1,
             "airlines": [
                 ["aal", 5],
-                ["asq", 7],
+                ["skw", 7],
                 ["dal", 3],
                 ["eny", 1],
                 ["fft", 3],
@@ -1169,7 +1169,7 @@
             "method": "random",
             "rate": 1,
             "airlines": [
-                ["asq", 7],
+                ["skw", 7],
                 ["dal", 3],
                 ["eny", 1],
                 ["fdx", 2],
@@ -1202,7 +1202,7 @@
             "rate": 2,
             "airlines": [
                 ["aal", 5],
-                ["asq", 7],
+                ["skw", 7],
                 ["eny", 1],
                 ["rpa", 1],
                 ["skw", 2],
@@ -1220,7 +1220,7 @@
             "rate": 5,
             "airlines": [
                 ["aal", 5],
-                ["asq", 7],
+                ["skw", 7],
                 ["dal", 3],
                 ["eny", 1],
                 ["fdx", 2],
@@ -1240,7 +1240,7 @@
             "rate": 1,
             "airlines": [
                 ["aal", 5],
-                ["asq", 7],
+                ["skw", 7],
                 ["eny", 1],
                 ["rpa", 1],
                 ["skw", 2],
@@ -1270,7 +1270,7 @@
             "method": "random",
             "rate": 1,
             "airlines": [
-                ["asq", 7],
+                ["skw", 7],
                 ["eny", 1],
                 ["rpa", 1],
                 ["skw", 2],
@@ -1314,7 +1314,7 @@
             "rate": 2,
             "airlines": [
                 ["aal", 5],
-                ["asq", 7],
+                ["skw", 7],
                 ["eny", 1],
                 ["rpa", 1],
                 ["skw", 2],
@@ -1346,7 +1346,7 @@
             "rate": 1,
             "airlines": [
                 ["asa", 1],
-                ["asq", 7],
+                ["skw", 7],
                 ["eny", 1],
                 ["rpa", 1],
                 ["skw", 2],
@@ -1364,7 +1364,7 @@
             "rate": 7,
             "airlines": [
                 ["aal", 5],
-                ["asq", 7],
+                ["skw", 7],
                 ["eny", 1],
                 ["rpa", 1],
                 ["swa", 22],
@@ -1383,7 +1383,7 @@
             "rate": 7,
             "airlines": [
                 ["aal", 5],
-                ["asq", 7],
+                ["skw", 7],
                 ["dal", 3],
                 ["eny", 1],
                 ["fdx", 2],
@@ -1403,7 +1403,7 @@
             "rate": 4,
             "airlines": [
                 ["aal", 5],
-                ["asq", 7],
+                ["skw", 7],
                 ["dal", 3],
                 ["eny", 1],
                 ["fft", 3],
@@ -1424,7 +1424,7 @@
             "airlines": [
                 ["aal", 5],
                 ["asa", 10],
-                ["asq", 7],
+                ["skw", 7],
                 ["dal", 3],
                 ["skw", 5],
                 ["swa", 10]

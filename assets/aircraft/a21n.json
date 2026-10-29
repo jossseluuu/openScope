@@ -1,19 +1,23 @@
 {
-    "name": "Airbus A321 Neo",
+    "name": "Airbus A321neo (incl. A321LR/XLR)",
     "icao": "A21N",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 7,
-        "recat": "D"
+        "recat": "D",
+
+        "recatEu": "D",
+
+        "wakeFaa": "LARGE"
     },
-    "ceiling": 43000,
+    "ceiling": 39800,
     "rate": {
-        "climb":      3500,
+        "climb":      2800,
         "descent":    3000,
         "accelerate": 6,
         "decelerate": 4

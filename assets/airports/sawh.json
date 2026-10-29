@@ -337,15 +337,15 @@
                 ["arg/long", 10],
                 ["arg/short", 25],
                 ["aua/long", 0.5],
-                ["aut", 22],
+                ["arg", 22],
                 ["dlh/long", 0.5],
-                ["dsm/short", 19],
+                ["arg/short", 19],
                 ["ewg/long", 0.5],
                 ["glo", 0.5],
                 ["jes/a320", 2],
                 ["lde/sf34", 2],
                 ["lv/fastGA", 1],
-                ["naa", 5],
+                ["jes", 5],
                 ["tam/short", 0.5]
             ]
         },
@@ -361,12 +361,12 @@
             "airlines": [
                 ["ans", 2],
                 ["arg/short", 35],
-                ["aut", 22],
-                ["dsm/short", 19],
+                ["arg", 22],
+                ["arg/short", 19],
                 ["jes/a320", 2],
                 ["lde/sf34", 2],
                 ["lv/fastGA", 1],
-                ["naa", 5]
+                ["jes", 5]
             ]
         },
         {
@@ -381,7 +381,7 @@
             "airlines": [
                 ["arg/short", 19],
                 ["cc/fastGA", 1],
-                ["dsm/short", 6],
+                ["arg/short", 6],
                 ["lan/short", 7],
                 ["lde/sf34", 1],
                 ["lv/fastGA", 1]
@@ -458,14 +458,14 @@
                 ["arg/long", 10],
                 ["arg/short", 25],
                 ["aua/long", 0.5],
-                ["aut", 9],
+                ["arg", 9],
                 ["dlh/long", 0.5],
-                ["dsm/short", 19],
+                ["arg/short", 19],
                 ["ewg/long", 0.5],
                 ["glo", 0.5],
                 ["jes/a320", 3],
                 ["lv/fastGA", 1],
-                ["naa", 5],
+                ["jes", 5],
                 ["tam/short", 0.5]
             ]
         },
@@ -480,9 +480,9 @@
             "rate": 1.82,
             "airlines": [
                 ["arg/short", 19],
-                ["aut", 13],
+                ["arg", 13],
                 ["cc/fastGA", 1],
-                ["dsm/short", 6],
+                ["arg/short", 6],
                 ["lan/short", 7],
                 ["lde/sf34", 6],
                 ["lv/fastGA", 2]

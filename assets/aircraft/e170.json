@@ -1,15 +1,19 @@
 {
-    "name": "Embraer 170/175",
+    "name": "Embraer 170",
     "icao": "E170",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 7,
-        "recat": "E"
+        "recat": "E",
+
+        "recatEu": "E",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 41000,
     "rate": {

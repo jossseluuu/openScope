@@ -1,0 +1,19 @@
+{
+    "icao": "tkj",
+    "name": "AJet",
+    "callsign": {
+        "name": "Anatolia",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A20N", 25],
+            ["A21N", 40],
+            ["B38M", 25],
+            ["B738", 30]
+        ]
+    }
+}

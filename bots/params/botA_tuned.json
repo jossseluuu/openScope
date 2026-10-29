@@ -1,0 +1,59 @@
+{
+  "bot": "A",
+  "cost": 13220.207175694675,
+  "baselineCost": 42506.19534781695,
+  "episodes": [
+    {
+      "airport": "eddm",
+      "seed": 1,
+      "minutes": 45.0,
+      "traffic_scale": 1.0
+    },
+    {
+      "airport": "eddm",
+      "seed": 2,
+      "minutes": 45.0,
+      "traffic_scale": 1.0
+    },
+    {
+      "airport": "eddm",
+      "seed": 3,
+      "minutes": 45.0,
+      "traffic_scale": 1.0
+    }
+  ],
+  "parameters": {
+    "decisionIntervalSeconds": 5,
+    "freezeSeconds": 108.345,
+    "maxPositionShift": 2,
+    "sequenceStabilitySeconds": 46.224,
+    "finalSpacingBufferNm": 0.611,
+    "landingOccupancyBufferSeconds": 13.083,
+    "mixedModeGapSeconds": 104.418,
+    "cruiseSpeed": 285.945,
+    "arrivalSpeed": 246.568,
+    "intermediateSpeed": 209.812,
+    "baseSpeed": 172.615,
+    "finalSpeed": 162.634,
+    "minimumSpeedReduction": 0.724,
+    "holdThresholdSeconds": 211.336,
+    "holdExitMarginSeconds": 45.243,
+    "holdMinimumDistanceNm": 35.826,
+    "maximumBaseTurnDistanceNm": 19.317,
+    "interceptDistanceNm": 11.745,
+    "interceptLateralNm": 2.815,
+    "interceptAngle": 30.0,
+    "downwindLateralNm": 5.879,
+    "ilsClearanceDistanceNm": 30.349,
+    "descentGradientFtPerNm": 332.293,
+    "maxDepartureQueue": 5,
+    "sameRouteDepartureSeconds": 119.253,
+    "divergingDepartureSeconds": 63.983,
+    "departureRunwayOccupancySeconds": 73.103,
+    "arrivalDepartureMarginSeconds": 31.069,
+    "conflictHorizonSeconds": 135.481,
+    "conflictBufferNm": 1.304,
+    "resolutionHoldSeconds": 68.612,
+    "resolutionTurnDegrees": 20.0
+  }
+}

@@ -268,6 +268,36 @@ All properties in this section are required
 * **departureRunway** ― The default runway to use for departures.
 * **defaultMaps** ― The names of the maps that should be rendered by default.
 
+The following properties are optional:
+
+* **regulatoryProfile** ― `"EASA"`, `"FAA"` or `"ICAO"`: the air traffic control rules (separation minima, wake turbulence scheme, wind limits) applied at the airport. When missing, it is chosen from the ICAO identifier: US airports use FAA, European airports EASA (RECAT-EU), all others ICAO. See [realism.md](realism.md).
+* **runwayConfigurations** ― Runway configurations in order of preference. The first one whose runways are all within the tailwind and crosswind limits of the regulatory profile is used, and its runways replace `arrivalRunway` and `departureRunway`. Spawn patterns can be restricted to a configuration with `runwayConfiguration`.
+
+```json
+"runwayConfigurations": [
+    { "name": "north", "arrivalRunway": "32L", "departureRunway": "36L", "runways": ["32L", "32R", "36L", "36R"] },
+    { "name": "south", "arrivalRunway": "18R", "departureRunway": "14L", "runways": ["18L", "18R", "14L", "14R"] }
+],
+```
+
+* **taxiTimes** ― Unimpeded taxi time from the apron to each departure runway, in seconds. The actual time varies between 85% and 125% of it. Runways not listed use 300 seconds.
+
+```json
+"taxiTimes": {
+    "36L": 600,
+    "36R": 480
+},
+```
+
+* **arrivalSpawn** ― How arrivals enter the game. With `"preSpawn": false` the airport does not fill every arrival route when it loads: instead it starts with the arrivals of about ten minutes of traffic inside the airspace, one per route at increasing distances, and new arrivals appear on their route 10 nm before the airspace boundary. With `minimumIntervalSeconds`, consecutive arrivals of all patterns are spawned at least that far apart; an arrival that comes too early waits for its turn (and is dropped after 10 minutes of waiting). Only `random` spawn patterns are spaced. Defaults: `"preSpawn": true`, `"minimumIntervalSeconds": 0`.
+
+```json
+"arrivalSpawn": {
+    "preSpawn": false,
+    "minimumIntervalSeconds": 90
+},
+```
+
 ### Airspace
 
 _All properties in this section are required for each airspace section_
@@ -694,6 +724,8 @@ _At least one `spawnPattern` is required to get aircraft populating into the app
 Contains the parameters used to determine how and where aircraft are spawned into the simulation.  At least one `spawnPattern` is required so that aircraft can be added to the simulation.
 
 _see [spawnPatternReadme.md](spawnPatternReadme.md) for more detailed descriptions on data shape and format of a spawnPattern_
+
+A spawn pattern with `"runwayConfiguration": "<name>"` is only used while that runway configuration (see `runwayConfigurations`) is active.
 
 ### Maps
 

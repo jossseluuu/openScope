@@ -1,0 +1,39 @@
+{
+    "name": "Cirrus SF50 Vision Jet",
+    "icao": "SF50",
+    "engines": {
+        "number": 1,
+        "type": "J"
+    },
+    "weightClass": "L",
+    "category": {
+        "srs": 2,
+        "lahso": 2,
+        "recat": "F",
+        "recatEu": "F",
+        "wakeFaa": "SMALL"
+    },
+    "ceiling": 31000,
+    "rate": {
+        "climb":      1600,
+        "descent":    1500,
+        "accelerate": 5,
+        "decelerate": 4
+    },
+    "runway": {
+        "takeoff": 0.620,
+        "landing": 0.520
+    },
+    "speed":{
+        "min":     67,
+        "landing": 85,
+        "cruise":  311,
+        "cruiseM": null,
+        "max":     311,
+        "maxM":    0.53
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

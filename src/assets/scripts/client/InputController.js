@@ -15,7 +15,7 @@ import EventTracker from './EventTracker';
 import MeasureTool from './measurement/MeasureTool';
 import FixCollection from './navigationLibrary/FixCollection';
 import { clamp } from './math/core';
-import { EVENT } from './constants/eventNames';
+import { AUDIT_EVENT, EVENT } from './constants/eventNames';
 import { GAME_OPTION_NAMES } from './constants/gameOptionConstants';
 import { INVALID_NUMBER } from './constants/globalConstants';
 import {
@@ -877,6 +877,16 @@ export default class InputController {
 
                 return true;
 
+            case PARSED_COMMAND_NAME.BOT:
+                EventBus.trigger(EVENT.BOT_COMMAND, parsedCommand.args[0]);
+
+                return true;
+
+            case PARSED_COMMAND_NAME.AUDIT:
+                EventBus.trigger(EVENT.AUDIT_PANEL_TOGGLE);
+
+                return true;
+
             case PARSED_COMMAND_NAME.TIMEWARP:
                 let nextTimewarpValue = 0;
 
@@ -962,8 +972,18 @@ export default class InputController {
         }
 
         const aircraft = this._aircraftController.aircraft.list[match];
+        const result = this._aircraftController.aircraftCommander.runCommands(aircraft, parsedCommand.args);
 
-        return this._aircraftController.aircraftCommander.runCommands(aircraft, parsedCommand.args);
+        EventBus.trigger(AUDIT_EVENT.COMMAND_ISSUED, {
+            source: 'player',
+            callsign: aircraft.callsign,
+            command: parsedCommand.args.map((args) => args.join(' ')).join(' '),
+            reason: '',
+            accepted: result !== false,
+            message: ''
+        });
+
+        return result;
     }
 
     /**

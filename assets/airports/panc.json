@@ -610,7 +610,7 @@
                 ["asa", 5],
                 ["n/fastGA", 8],
                 ["n/lightGA", 8],
-                ["nla", 11],
+                ["asa", 11],
                 ["pac", 8],
                 ["qxe", 5]
             ]
@@ -628,7 +628,7 @@
                 ["asa", 30],
                 ["n/fastGA", 8],
                 ["n/lightGA", 20],
-                ["nla", 11],
+                ["asa", 11],
                 ["pac", 8],
                 ["qxe", 5]
             ]
@@ -687,7 +687,7 @@
             "rate": 2,
             "airlines": [
                 ["n/lightGA", 20],
-                ["nla", 11]
+                ["asa", 11]
             ]
         },
         {
@@ -701,7 +701,7 @@
             "rate": 2.5,
             "airlines": [
                 ["n/lightGA", 20],
-                ["nla", 11]
+                ["asa", 11]
             ]
         },
         {
@@ -716,7 +716,7 @@
             "airlines": [
                 ["n/fastGA", 8],
                 ["n/lightGA", 20],
-                ["nla", 11],
+                ["asa", 11],
                 ["qxe", 5]
             ]
         },
@@ -770,7 +770,7 @@
             "rate": 1.5,
             "airlines": [
                 ["n/lightGA", 20],
-                ["nla", 11]
+                ["asa", 11]
             ]
         },
         {

@@ -1,0 +1,17 @@
+{
+    "icao": "rys",
+    "name": "Buzz",
+    "callsign": {
+        "name": "Magic Sun",
+        "callsignFormats": [
+            "####",
+            "###@"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["B38M", 25],
+            ["B738", 25]
+        ]
+    }
+}

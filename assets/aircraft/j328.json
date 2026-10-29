@@ -9,7 +9,9 @@
     "category": {
         "srs": 3,
         "lahso": 6,
-        "recat": "F"
+        "recat": "F",
+        "recatEu": "E",
+        "wakeFaa": "SMALL"
     },
     "ceiling": 35000,
     "rate": {
@@ -23,11 +25,11 @@
         "landing": 1.200
     },
     "speed":{
-        "min":     132,
-        "landing": 1115,
+        "min":     110,
+        "landing": 125,
         "cruise":  350,
         "cruiseM": 0.66,
-        "max":     300,
+        "max":     405,
         "maxM":    0.66
     },
     "capability": {

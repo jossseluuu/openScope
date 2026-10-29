@@ -1,0 +1,39 @@
+{
+    "name": "Boeing C-17 Globemaster III",
+    "icao": "C17",
+    "engines": {
+        "number": 4,
+        "type": "J"
+    },
+    "weightClass": "H",
+    "category": {
+        "srs": 3,
+        "lahso": null,
+        "recat": "B",
+        "recatEu": "C",
+        "wakeFaa": "HEAVY"
+    },
+    "ceiling": 45000,
+    "rate": {
+        "climb":      2500,
+        "descent":    3000,
+        "accelerate": 5,
+        "decelerate": 4
+    },
+    "runway": {
+        "takeoff": 2.360,
+        "landing": 1.100
+    },
+    "speed":{
+        "min":     110,
+        "landing": 125,
+        "cruise":  450,
+        "cruiseM": 0.76,
+        "max":     490,
+        "maxM":    0.825
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

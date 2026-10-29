@@ -1,5 +1,5 @@
 {
-    "name": "Boeing 747-8i",
+    "name": "Boeing 747-8",
     "icao": "B748",
     "engines": {
         "number": 4,
@@ -9,7 +9,11 @@
     "category": {
         "srs": 3,
         "lahso": 10,
-        "recat": "B"
+        "recat": "B",
+
+        "recatEu": "B",
+
+        "wakeFaa": "HEAVY"
     },
     "ceiling": 45000,
     "rate": {

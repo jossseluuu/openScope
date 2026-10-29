@@ -1,0 +1,17 @@
+{
+    "icao": "plm",
+    "name": "Wamos Air",
+    "callsign": {
+        "name": "Pullman",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A332", 4],
+            ["A333", 3]
+        ]
+    }
+}

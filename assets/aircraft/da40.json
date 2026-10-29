@@ -1,0 +1,39 @@
+{
+    "name": "Diamond DA40 Diamond Star",
+    "icao": "DA40",
+    "engines": {
+        "number": 1,
+        "type": "P"
+    },
+    "weightClass": "L",
+    "category": {
+        "srs": 1,
+        "lahso": 1,
+        "recat": "F",
+        "recatEu": "F",
+        "wakeFaa": "SMALL"
+    },
+    "ceiling": 16400,
+    "rate": {
+        "climb":      1100,
+        "descent":    1000,
+        "accelerate": 4,
+        "decelerate": 3
+    },
+    "runway": {
+        "takeoff": 0.360,
+        "landing": 0.350
+    },
+    "speed":{
+        "min":     49,
+        "landing": 70,
+        "cruise":  147,
+        "cruiseM": null,
+        "max":     178,
+        "maxM":    null
+    },
+    "capability": {
+        "ils": true,
+        "fix": false
+    }
+}

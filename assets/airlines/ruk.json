@@ -1,0 +1,16 @@
+{
+    "icao": "ruk",
+    "name": "Ryanair UK",
+    "callsign": {
+        "name": "Blue Max",
+        "callsignFormats": [
+            "####",
+            "###@"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["B738", 30]
+        ]
+    }
+}

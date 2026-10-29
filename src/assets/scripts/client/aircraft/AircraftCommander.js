@@ -11,7 +11,7 @@ import { MCP_MODE } from './ModeControl/modeControlConstants';
 import {
     FLIGHT_PHASE
 } from '../constants/aircraftConstants';
-import { EVENT } from '../constants/eventNames';
+import { AIRCRAFT_EVENT, EVENT } from '../constants/eventNames';
 import { radians_normalize } from '../math/circle';
 import { round } from '../math/core';
 import { AIRCRAFT_COMMAND_MAP } from '../commands/aircraftCommand/aircraftCommandMap';
@@ -675,7 +675,6 @@ export default class AircraftCommander {
         const runway = aircraft.fms.departureRunwayModel;
         const spotInQueue = runway.getAircraftQueuePosition(aircraft.id);
         const isInQueue = spotInQueue > -1;
-        const aircraftAhead = this._findAircraftById(runway.queue[spotInQueue - 1]);
         const wind = airport.getWindAtAltitude();
         const roundedWindAngleInDegrees = round(radiansToDegrees(wind.angle) / 10) * 10;
         const roundedWindSpeed = round(wind.speed);
@@ -704,13 +703,6 @@ export default class AircraftCommander {
             return [false, 'unable to take off, we\'re not at any runway'];
         }
 
-        if (spotInQueue > 0) {
-            readback.log = `number ${spotInQueue} behind ${aircraftAhead.callsign}`;
-            readback.say = `number ${spotInQueue} behind ${aircraftAhead.getRadioCallsign()}`;
-
-            return [false, readback];
-        }
-
         if (!aircraft.pilot.hasDepartureClearance) {
             return [false, 'unable to take off, we never received an IFR clearance'];
         }
@@ -735,6 +727,30 @@ export default class AircraftCommander {
         readback.say = `winned ${radio_spellOut(roundedWindAngleInDegrees)} at ` +
             `${radio_spellOut(roundedWindSpeed)}, Runway ${radio_runway(runway.name)}, ` +
             'cleared for takeoff';
+
+        return [true, readback];
+    }
+
+    /**
+     * Instruct an aircraft on approach to go around
+     *
+     * @for AircraftCommander
+     * @method runGoAround
+     * @param aircraft {AircraftModel}
+     * @return {array} [success of operation, readback]
+     */
+    runGoAround(aircraft) {
+        const isOnApproach = aircraft.flightPhase === FLIGHT_PHASE.APPROACH ||
+            aircraft.flightPhase === FLIGHT_PHASE.LANDING ||
+            aircraft.pilot.hasApproachClearance;
+
+        if (!aircraft.isArrival() || aircraft.isOnGround() || !isOnApproach) {
+            return [false, 'unable to go around, we\'re not on approach'];
+        }
+
+        const readback = aircraft.executeMissedApproach();
+
+        EventBus.trigger(AIRCRAFT_EVENT.GO_AROUND, aircraft, aircraft.fms.arrivalRunwayModel);
 
         return [true, readback];
     }

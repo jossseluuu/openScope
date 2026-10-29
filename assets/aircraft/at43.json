@@ -5,11 +5,15 @@
         "number": 2,
         "type": "T"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 3,
-        "recat": "F"
+        "recat": "F",
+
+        "recatEu": "E",
+
+        "wakeFaa": "SMALL"
     },
     "ceiling": 25000,
     "rate": {
@@ -23,8 +27,8 @@
         "landing": 1.030
     },
     "speed":{
-        "min":     110,
-        "landing": 100,
+        "min":     95,
+        "landing": 105,
         "cruise":  245,
         "cruiseM": null,
         "max":     265,

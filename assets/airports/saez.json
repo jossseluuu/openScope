@@ -1756,7 +1756,7 @@
                 ["aal/long", 1],
                 ["amx/long", 2],
                 ["arg/short", 3],
-                ["aut", 4],
+                ["arg", 4],
                 ["ual/long", 1]
             ]
         },
@@ -1773,9 +1773,9 @@
                 ["aal/long", 2],
                 ["arg/long", 2],
                 ["arg/short", 2],
-                ["aut", 6],
+                ["arg", 6],
                 ["azp", 2],
-                ["dsm/short", 6],
+                ["arg/short", 6],
                 ["etr/long", 1],
                 ["lap", 2],
                 ["lne", 2],
@@ -1800,8 +1800,8 @@
                 ["cmp", 6],
                 ["cub/long", 1],
                 ["dal/long", 2],
-                ["dsm/long", 4],
-                ["dsm/short", 6],
+                ["arg/long", 4],
+                ["arg/short", 6],
                 ["lap", 2],
                 ["lne", 2],
                 ["lpe", 2]
@@ -1821,11 +1821,11 @@
                 ["afr/long", 2],
                 ["arg/long", 4],
                 ["arg/short", 14],
-                ["aut", 4],
-                ["aza/long", 2],
+                ["arg", 4],
+                ["ity/long", 2],
                 ["azu/a20n", 4],
                 ["dlh/b747", 2],
-                ["dsm/short", 8],
+                ["arg/short", 8],
                 ["edw/long", 2],
                 ["eth/long", 2],
                 ["gec", 1],
@@ -1833,7 +1833,7 @@
                 ["ibe/long", 6],
                 ["klm/b789", 2],
                 ["nax/long", 2],
-                ["nrs", 2],
+                ["nax", 2],
                 ["qtr/long", 2],
                 ["tam/short", 10],
                 ["thy/long", 2],
@@ -1874,7 +1874,7 @@
             "airlines": [
                 ["aca/long", 1],
                 ["arg/short", 4],
-                ["aut", 2],
+                ["arg", 2],
                 ["gti", 1],
                 ["klm/b789", 1],
                 ["lan/long", 2],
@@ -1897,7 +1897,7 @@
             "airlines": [
                 ["anz/long", 1],
                 ["arg/short", 2],
-                ["dsm/short", 2]
+                ["arg/short", 2]
             ]
         },
         {
@@ -1912,8 +1912,8 @@
             "airlines": [
                 ["anz/long", 1],
                 ["arg/short", 4],
-                ["aut", 2],
-                ["dsm/short", 2]
+                ["arg", 2],
+                ["arg/short", 2]
             ]
         },
         {
@@ -1930,14 +1930,14 @@
                 ["amx/long", 2],
                 ["arg/long", 4],
                 ["arg/short", 6],
-                ["aut", 6],
+                ["arg", 6],
                 ["ava/long", 3],
                 ["bov/long", 2],
                 ["cmp", 3],
                 ["cub/long", 1],
                 ["dal/long", 1],
-                ["dsm/long", 3],
-                ["dsm/short", 3],
+                ["arg/long", 3],
+                ["arg/short", 3],
                 ["lne", 1],
                 ["lpe", 1]
             ]
@@ -1953,10 +1953,10 @@
             "rate": 0.95,
             "airlines": [
                 ["aal/long", 2],
-                ["aut", 4],
+                ["arg", 4],
                 ["azp", 2],
                 ["dal/long", 2],
-                ["dsm/short", 2],
+                ["arg/short", 2],
                 ["etr/long", 1],
                 ["lap", 2]
 
@@ -1996,11 +1996,11 @@
                 ["afr/long", 1],
                 ["arg/long", 2],
                 ["arg/short", 14],
-                ["aut", 1],
-                ["aza/b772", 1],
+                ["arg", 1],
+                ["ity/long", 1],
                 ["azu/a20n", 4],
                 ["dlh/b747", 1],
-                ["dsm/short", 4],
+                ["arg/short", 4],
                 ["edw/long", 1],
                 ["eth/long", 1],
                 ["glo", 8],
@@ -2022,14 +2022,14 @@
             "rate": 0.95,
             "airlines": [
                 ["afr/long", 2],
-                ["aut", 2],
+                ["arg", 2],
                 ["baw/long", 2],
-                ["dsm/short", 2],
+                ["arg/short", 2],
                 ["glo", 2],
                 ["klm/b789", 2],
                 ["mph", 1],
                 ["nax/long", 2],
-                ["nrs", 1],
+                ["nax", 1],
                 ["tam/short", 2]
             ]
         },
@@ -2058,8 +2058,8 @@
             "rate": 0.41,
             "airlines": [
                 ["arg/short", 1],
-                ["aut", 1],
-                ["dsm/short", 1]
+                ["arg", 1],
+                ["arg/short", 1]
             ]
         },
         {
@@ -2072,7 +2072,7 @@
             "method": "random",
             "rate": 0.27,
             "airlines": [
-                ["aut", 4],
+                ["arg", 4],
                 ["gec", 1]
             ]
         }

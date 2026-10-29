@@ -1,0 +1,39 @@
+{
+    "name": "Dassault Falcon 900",
+    "icao": "F900",
+    "engines": {
+        "number": 3,
+        "type": "J"
+    },
+    "weightClass": "M",
+    "category": {
+        "srs": 3,
+        "lahso": 8,
+        "recat": "E",
+        "recatEu": "E",
+        "wakeFaa": "LARGE"
+    },
+    "ceiling": 51000,
+    "rate": {
+        "climb":      3500,
+        "descent":    3000,
+        "accelerate": 7,
+        "decelerate": 5
+    },
+    "runway": {
+        "takeoff": 1.600,
+        "landing": 0.700
+    },
+    "speed":{
+        "min":     105,
+        "landing": 120,
+        "cruise":  470,
+        "cruiseM": 0.83,
+        "max":     490,
+        "maxM":    0.87
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

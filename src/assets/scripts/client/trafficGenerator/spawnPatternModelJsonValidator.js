@@ -19,6 +19,7 @@ const ACCEPTED_OPTIONAL_KEYS = [
     'commands',
     'offset',
     'period',
+    'runwayConfiguration',
     'variation'
 ];
 

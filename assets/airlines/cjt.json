@@ -1,0 +1,17 @@
+{
+    "icao": "cjt",
+    "name": "Cargojet",
+    "callsign": {
+        "name": "Cargojet",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["B752", 6],
+            ["B763", 26]
+        ]
+    }
+}

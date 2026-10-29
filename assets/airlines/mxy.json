@@ -1,0 +1,18 @@
+{
+    "icao": "mxy",
+    "name": "Breeze Airways",
+    "callsign": {
+        "name": "Moxy",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["BCS3", 50],
+            ["E190", 10],
+            ["E195", 10]
+        ]
+    }
+}

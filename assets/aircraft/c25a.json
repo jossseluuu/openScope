@@ -1,0 +1,39 @@
+{
+    "name": "Cessna Citation CJ2",
+    "icao": "C25A",
+    "engines": {
+        "number": 2,
+        "type": "J"
+    },
+    "weightClass": "L",
+    "category": {
+        "srs": 3,
+        "lahso": 6,
+        "recat": "F",
+        "recatEu": "F",
+        "wakeFaa": "SMALL"
+    },
+    "ceiling": 45000,
+    "rate": {
+        "climb":      3500,
+        "descent":    3000,
+        "accelerate": 9,
+        "decelerate": 5
+    },
+    "runway": {
+        "takeoff": 1.040,
+        "landing": 0.980
+    },
+    "speed":{
+        "min":     95,
+        "landing": 110,
+        "cruise":  410,
+        "cruiseM": 0.72,
+        "max":     420,
+        "maxM":    0.737
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

@@ -5,11 +5,15 @@
         "number": 2,
         "type": "J"
     },
-    "weightClass": "S+",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 6,
-        "recat": "F"
+        "recat": "F",
+
+        "recatEu": "E",
+
+        "wakeFaa": "SMALL"
     },
     "ceiling": 47000,
     "rate": {

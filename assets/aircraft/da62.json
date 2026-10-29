@@ -1,0 +1,39 @@
+{
+    "name": "Diamond DA62",
+    "icao": "DA62",
+    "engines": {
+        "number": 2,
+        "type": "P"
+    },
+    "weightClass": "L",
+    "category": {
+        "srs": 1,
+        "lahso": 1,
+        "recat": "F",
+        "recatEu": "F",
+        "wakeFaa": "SMALL"
+    },
+    "ceiling": 20000,
+    "rate": {
+        "climb":      1500,
+        "descent":    1500,
+        "accelerate": 4,
+        "decelerate": 3
+    },
+    "runway": {
+        "takeoff": 0.570,
+        "landing": 0.500
+    },
+    "speed":{
+        "min":     70,
+        "landing": 85,
+        "cruise":  192,
+        "cruiseM": null,
+        "max":     202,
+        "maxM":    null
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

@@ -32,6 +32,8 @@
 - [KSEA - Seattle–Tacoma International Airport](ksea.md)
 - [KSTL - St. Louis Lambert International Airport](kstl.md)
 - [KTUS - Tucson International Airport](ktus.md)
+- [LEMD - Adolfo Suárez Madrid-Barajas Airport](lemd.md)
+- [LEMG - Málaga-Costa del Sol Airport](lemg.md)
 - [LKPR - Václav Havel International Airport](lkpr.md)
 - [LOWW - Vienna Schwechat International Airport](loww.md)
 - [LROP - Bucharest Henri Coanda International Airport](lrop.md)

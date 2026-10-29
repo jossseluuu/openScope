@@ -1,0 +1,39 @@
+{
+    "name": "Daher TBM 900/940/960",
+    "icao": "TBM9",
+    "engines": {
+        "number": 1,
+        "type": "T"
+    },
+    "weightClass": "L",
+    "category": {
+        "srs": 1,
+        "lahso": 3,
+        "recat": "F",
+        "recatEu": "F",
+        "wakeFaa": "SMALL"
+    },
+    "ceiling": 31000,
+    "rate": {
+        "climb":      2000,
+        "descent":    1500,
+        "accelerate": 6,
+        "decelerate": 4
+    },
+    "runway": {
+        "takeoff": 0.730,
+        "landing": 0.740
+    },
+    "speed":{
+        "min":     65,
+        "landing": 85,
+        "cruise":  330,
+        "cruiseM": null,
+        "max":     330,
+        "maxM":    null
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

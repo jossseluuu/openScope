@@ -462,7 +462,7 @@
                 ["eja", 4],
                 ["n/fastGA", 1],
                 ["pj/fastGA", 1],
-                ["swg", 2],
+                ["wja", 2],
                 ["wja/b73x", 2]
             ]
         },
@@ -510,7 +510,7 @@
             "method": "random",
             "rate": 0.22,
             "airlines": [
-                ["edr", 4],
+                ["slm", 4],
                 ["pj/fastGA", 1]
             ]
         },
@@ -650,7 +650,7 @@
                 ["n", 2],
                 ["pj", 2],
                 ["rsi/c402", 41],
-                ["swg", 2],
+                ["wja", 2],
                 ["wia", 14],
                 ["wja/b73x", 2]
             ]
@@ -679,7 +679,7 @@
             "method": "random",
             "rate": 0.67,
             "airlines": [
-                ["edr", 4],
+                ["slm", 4],
                 ["guy/at45", 5],
                 ["pj", 2],
                 ["wia", 3]

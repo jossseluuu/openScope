@@ -46,6 +46,7 @@ options.DIR = {
     DIST_AIRCRAFT: path.join(distAssets, 'aircraft'),
     DIST_AIRLINES: path.join(distAssets, 'airlines'),
     DIST_AIRPORTS: path.join(distAssets, 'airports'),
+    DIST_BOTS: path.join(distAssets, 'bots'),
     DIST_GUIDES: path.join(distAssets, 'guides'),
     DIST_FONT: path.join(distAssets, 'fonts'),
     DIST_IMAGES: path.join(distAssets, 'images'),
@@ -59,6 +60,7 @@ options.DIR = {
 // for specific files
 options.FILE = {
     JS_ENTRY_CLIENT: path.join(options.DIR.SRC_SCRIPTS_CLIENT, 'index.js'),
+    JS_ENTRY_AUDIT_PAGE: path.join(options.DIR.SRC_SCRIPTS_CLIENT, 'audit/auditPage.js'),
     JS_ENTRY_SERVER: path.join(options.DIR.SRC_SCRIPTS_SERVER, 'index.js'),
     CSS_MAIN: path.join(options.DIR.SRC_STYLE, 'main.less'),
     PKG_JSON: path.join(options.ROOT, 'package.json'),
@@ -76,6 +78,7 @@ options.GLOB = {
     IMAGES: path.join(options.DIR.BUILD_ASSETS, 'images/**/*'),
     TUTORIAL: path.join(options.DIR.BUILD_ASSETS, 'tutorial/**/*'),
     AUTOCOMPLETE: path.join(options.DIR.BUILD_ASSETS, 'autocomplete/**/*'),
+    BOTS: path.join(options.DIR.BUILD_ASSETS, 'bots/**/*'),
     SRC: path.join(options.DIR.SRC, '**/*'),
     BUILD: path.join(options.DIR.BUILD, '**/*'),
     JS: path.join(options.DIR.SRC_SCRIPTS, '**/*.js'),

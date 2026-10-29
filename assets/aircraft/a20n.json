@@ -1,15 +1,19 @@
 {
-    "name": "Airbus A320 Neo",
+    "name": "Airbus A320neo",
     "icao": "A20N",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 7,
-        "recat": "D"
+        "recat": "D",
+
+        "recatEu": "D",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 39000,
     "rate": {

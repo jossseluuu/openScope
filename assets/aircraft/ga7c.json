@@ -1,0 +1,39 @@
+{
+    "name": "Gulfstream G700",
+    "icao": "GA7C",
+    "engines": {
+        "number": 2,
+        "type": "J"
+    },
+    "weightClass": "M",
+    "category": {
+        "srs": 3,
+        "lahso": 8,
+        "recat": "D",
+        "recatEu": "E",
+        "wakeFaa": "LARGE"
+    },
+    "ceiling": 51000,
+    "rate": {
+        "climb":      4000,
+        "descent":    3000,
+        "accelerate": 7,
+        "decelerate": 5
+    },
+    "runway": {
+        "takeoff": 1.830,
+        "landing": 1.040
+    },
+    "speed":{
+        "min":     110,
+        "landing": 125,
+        "cruise":  488,
+        "cruiseM": 0.85,
+        "max":     516,
+        "maxM":    0.935
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

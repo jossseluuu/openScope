@@ -1,0 +1,16 @@
+{
+    "icao": "dwi",
+    "name": "Arajet",
+    "callsign": {
+        "name": "Dominican",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["B38M", 14]
+        ]
+    }
+}

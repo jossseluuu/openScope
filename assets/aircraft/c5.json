@@ -1,5 +1,5 @@
 {
-    "name": "Lockheed C-5 Galaxy ",
+    "name": "Lockheed C-5 Galaxy",
     "icao": "C5",
     "engines": {
         "number": 4,
@@ -9,7 +9,11 @@
     "category": {
         "srs": 3,
         "lahso": null,
-        "recat": "B"
+        "recat": "B",
+
+        "recatEu": "B",
+
+        "wakeFaa": "HEAVY"
     },
     "ceiling": 37000,
     "rate": {

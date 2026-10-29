@@ -1,0 +1,21 @@
+{
+    "icao": "swt",
+    "name": "Swiftair",
+    "callsign": {
+        "name": "Swift",
+        "callsignFormats": [
+            "###",
+            "####",
+            "##@@"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["AT43", 4],
+            ["AT45", 5],
+            ["AT72", 8],
+            ["B734", 6],
+            ["B738", 4]
+        ]
+    }
+}

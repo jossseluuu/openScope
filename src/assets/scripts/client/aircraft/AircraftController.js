@@ -12,10 +12,12 @@ import AircraftTypeDefinitionCollection from './AircraftTypeDefinitionCollection
 import AircraftModel from './AircraftModel';
 import AircraftCommander from './AircraftCommander';
 import AircraftConflict from './AircraftConflict';
+import RealismController from '../realism/RealismController';
 import StripViewController from './StripView/StripViewController';
 import GameController, { GAME_EVENTS } from '../game/GameController';
 import CommandParser from '../commands/parsers/CommandParser';
 import { airlineNameAndFleetHelper } from '../airline/airlineHelpers';
+import { buildSpawnBeforeAirspace } from '../trafficGenerator/buildPreSpawnAircraft';
 import { convertStaticPositionToDynamic } from '../base/staticPositionToDynamicPositionHelper';
 import { abs } from '../math/core';
 import { distance2d } from '../math/distance';
@@ -24,7 +26,7 @@ import { generateTransponderCode, isDiscreteTransponderCode, isValidTransponderC
 import { km } from '../utilities/unitConverters';
 import { isEmptyOrNotArray } from '../utilities/validatorUtilities';
 import { FLIGHT_CATEGORY, FLIGHT_PHASE } from '../constants/aircraftConstants';
-import { EVENT, AIRCRAFT_EVENT } from '../constants/eventNames';
+import { EVENT, AIRCRAFT_EVENT, AUDIT_EVENT } from '../constants/eventNames';
 import { GAME_OPTION_NAMES } from '../constants/gameOptionConstants';
 import { INVALID_INDEX } from '../constants/globalConstants';
 
@@ -149,6 +151,14 @@ export default class AircraftController {
          */
         this._stripViewController = new StripViewController();
 
+        /**
+         * Runway occupancy, go-arounds, separation monitoring and metrics
+         *
+         * @property realismController
+         * @type {RealismController}
+         */
+        this.realismController = new RealismController(this);
+
         return this.init()
             ._setupHandlers()
             .enable();
@@ -246,6 +256,61 @@ export default class AircraftController {
         const initializationProps = this._buildAircraftProps(spawnPatternModel);
 
         this._createAircraftWithInitializationProps(initializationProps);
+    }
+
+    /**
+     * Create a new airborne aircraft (arrival or overflight) only if it is safe to: see
+     * `RealismController#checkSpawn`. With `leadDistanceNm` it appears on its route that far before
+     * the airspace boundary (negative: inside it, see `buildSpawnBeforeAirspace`), otherwise at the
+     * first fix of its route.
+     *
+     * @for AircraftController
+     * @method tryCreateAirborneAircraft
+     * @param spawnPatternModel {SpawnPatternModel}
+     * @param [leadDistanceNm] {number|null}
+     * @param [fromRouteEndNm] {number|null} instead of the lead, place it this far before the end of its route
+     * @return {object} `{ created, callsign, reason }`
+     */
+    tryCreateAirborneAircraft(spawnPatternModel, leadDistanceNm = null, fromRouteEndNm = null) {
+        let initializationProps = this._buildAircraftProps(spawnPatternModel, leadDistanceNm !== null);
+
+        if (leadDistanceNm !== null) {
+            try {
+                const spawnPoint = buildSpawnBeforeAirspace(
+                    spawnPatternModel,
+                    AirportController.airport_get(),
+                    leadDistanceNm,
+                    fromRouteEndNm
+                );
+
+                initializationProps = Object.assign({}, initializationProps, spawnPoint);
+            } catch (error) {
+                // e.g. a route without altitude restrictions: the aircraft starts at its first fix instead
+                console.warn(`${spawnPatternModel.routeString}: ${error.message}`);
+                initializationProps = this._buildAircraftProps(spawnPatternModel);
+            }
+        }
+
+        const check = this.realismController.checkSpawn(initializationProps.positionModel.relativePosition, initializationProps.altitude);
+        const callsign = `${initializationProps.airline}${initializationProps.callsign}`.toUpperCase();
+
+        if (!check.ok) {
+            this.removeFlightNumberFromList({ airlineId: initializationProps.airline, callsign: initializationProps.callsign });
+            EventBus.trigger(AUDIT_EVENT.SPAWN_DELAYED, { route: spawnPatternModel.routeString, reason: check.reason });
+
+            return { created: false, callsign, reason: check.reason };
+        }
+
+        initializationProps.altitude = check.altitude;
+        this._createAircraftWithInitializationProps(initializationProps);
+        EventBus.trigger(AUDIT_EVENT.SPAWNED, {
+            route: spawnPatternModel.routeString,
+            callsign,
+            altitude: check.altitude,
+            note: check.reason
+        });
+
+        return { created: true, callsign, reason: check.reason };
     }
 
     /**
@@ -359,10 +424,6 @@ export default class AircraftController {
      * @method update
      */
     update() {
-        if (this.aircraft.list.length === 0) {
-            return;
-        }
-
         // TODO: this is getting better, but still needs more simplification
         for (let i = 0; i < this.aircraft.list.length; i++) {
             const aircraftModel = this.aircraft.list[i];
@@ -383,6 +444,8 @@ export default class AircraftController {
                 this.removeStripView(aircraftModel);
             }
         }
+
+        this.realismController.update();
     }
 
     /**
@@ -588,6 +651,7 @@ export default class AircraftController {
             aircraftModel.setFlightPhase(FLIGHT_PHASE.WAITING);
 
             aircraftModel.shouldTakeOffWhenRunwayIsClear = true;
+            aircraftModel.isTakeoffReleased = (model, runwayModel) => this.realismController.canReleaseAutomaticTakeoff(model, runwayModel);
 
             this._runCommandOnPreSpawnAircraft(aircraftModel, runwayCommands, aircraftModel.fms.departureRunwayModel.name);
         }
@@ -897,7 +961,7 @@ export default class AircraftController {
                 aircraftModel.pilotVoice
             );
 
-            GameController.events_recordNew(GAME_EVENTS.ARRIVAL);
+            GameController.events_recordNew(GAME_EVENTS.ARRIVAL, { callsigns: [aircraftModel.callsign], details: 'landed' });
             this.aircraft_remove(aircraftModel);
 
             return;

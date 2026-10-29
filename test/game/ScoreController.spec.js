@@ -29,7 +29,7 @@ ava('._penalizeLocalizerInterceptAltitude() records an event and notifies the us
     scoreController._penalizeLocalizerInterceptAltitude(aircraftModel);
 
     t.true(uiControllerUiLogStub.calledWithExactly(expectedLogMessage, true));
-    t.true(gameControllerRecordEventStub.calledWithExactly(GAME_EVENTS.LOCALIZER_INTERCEPT_ABOVE_GLIDESLOPE));
+    t.true(gameControllerRecordEventStub.calledWith(GAME_EVENTS.LOCALIZER_INTERCEPT_ABOVE_GLIDESLOPE));
 
     uiControllerUiLogStub.restore();
     gameControllerRecordEventStub.restore();
@@ -61,5 +61,5 @@ ava('._penalizeLocalizerInterceptAngle() records an event and notifies the user 
 
     t.true(typeof result === 'undefined');
     t.true(uiControllerUiLogStub.calledWithExactly(expectedLogMessage, true));
-    t.true(gameControllerRecordEventStub.calledWithExactly(GAME_EVENTS.ILLEGAL_APPROACH_CLEARANCE));
+    t.true(gameControllerRecordEventStub.calledWith(GAME_EVENTS.ILLEGAL_APPROACH_CLEARANCE));
 });

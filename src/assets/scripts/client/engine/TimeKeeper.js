@@ -174,6 +174,20 @@ class TimeKeeper {
          */
         this._simulationRate = 1;
 
+        /**
+         * When `true`, time no longer follows the wall clock and only moves forward
+         * through calls to `.advanceFixedStep()`
+         *
+         * Used by the headless simulator, where the sim must run faster than real
+         * time and produce the same result for the same inputs
+         *
+         * @property _isFixedStepMode
+         * @type {boolean}
+         * @default false
+         * @private
+         */
+        this._isFixedStepMode = false;
+
         return this._init();
     }
 
@@ -198,6 +212,10 @@ class TimeKeeper {
      * @return {number}
      */
     get gameTimeMilliseconds() {
+        if (this._isFixedStepMode) {
+            return this._accumulatedDeltaTime * TIME.ONE_SECOND_IN_MILLISECONDS;
+        }
+
         return (new Date()).getTime();
     }
 
@@ -208,6 +226,10 @@ class TimeKeeper {
      * @return {number}
      */
     get gameTimeSeconds() {
+        if (this._isFixedStepMode) {
+            return this._accumulatedDeltaTime;
+        }
+
         return (new Date()).getTime() * TIME.ONE_MILLISECOND_IN_SECONDS;
     }
 
@@ -278,6 +300,7 @@ class TimeKeeper {
         this._previousFrameTimestamp = 0;
         this._startTimestamp = 0;
         this._simulationRate = 1;
+        this._isFixedStepMode = false;
     }
 
     /**
@@ -398,6 +421,38 @@ class TimeKeeper {
     }
 
     /**
+     * Stop following the wall clock; time will only advance via `.advanceFixedStep()`
+     *
+     * @for TimeKeeper
+     * @method enableFixedStepMode
+     */
+    enableFixedStepMode() {
+        this._isFixedStepMode = true;
+        this._simulationRate = 1;
+        this._frameStep = 1;
+    }
+
+    /**
+     * Advance simulated time by exactly `deltaTimeSeconds`
+     *
+     * Equivalent to one rendered frame of the browser game loop, but with a
+     * deterministic duration. Only valid in fixed step mode.
+     *
+     * @for TimeKeeper
+     * @method advanceFixedStep
+     * @param deltaTimeSeconds {number}
+     */
+    advanceFixedStep(deltaTimeSeconds) {
+        if (!this._isFixedStepMode) {
+            throw new Error('TimeKeeper.advanceFixedStep() requires fixed step mode');
+        }
+
+        this._incrementFrame();
+        this._frameDeltaTime = deltaTimeSeconds;
+        this._accumulatedDeltaTime += this.getDeltaTimeForGameStateAndTimewarp();
+    }
+
+    /**
      * Update the value of `#_simulationRate`
      *
      * Calls to this method will happen externally as a result of a user interaction
@@ -480,6 +535,10 @@ class TimeKeeper {
      * @return {boolean}
      */
     _isReturningFromPauseAndNotFutureTrack() {
+        if (this._isFixedStepMode) {
+            return false;
+        }
+
         return this.deltaTime >= 1 && this._simulationRate === 1 && this._futureTrackDeltaTimeCache === -1;
     }
 }

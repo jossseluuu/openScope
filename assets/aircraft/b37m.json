@@ -1,0 +1,39 @@
+{
+    "name": "Boeing 737 MAX 7",
+    "icao": "B37M",
+    "engines": {
+        "number": 2,
+        "type": "J"
+    },
+    "weightClass": "M",
+    "category": {
+        "srs": 3,
+        "lahso": 8,
+        "recat": "D",
+        "recatEu": "D",
+        "wakeFaa": "LARGE"
+    },
+    "ceiling": 41000,
+    "rate": {
+        "climb":      3000,
+        "descent":    3500,
+        "accelerate": 7,
+        "decelerate": 3
+    },
+    "runway": {
+        "takeoff": 2.000,
+        "landing": 1.400
+    },
+    "speed":{
+        "min":     110,
+        "landing": 125,
+        "cruise":  453,
+        "cruiseM": 0.79,
+        "max":     525,
+        "maxM":    0.82
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

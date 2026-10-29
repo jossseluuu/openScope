@@ -14,6 +14,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '/../../../index.html'));
 });
 
+// bot audit page, fed by the game open in another tab of this site
+app.get('/bot-audit', (req, res) => {
+    res.sendFile(path.join(__dirname, '/../../../bot-audit.html'));
+});
+
 server.listen(PORT, () => {
     console.log(colors.green.bold(`\nListening on PORT ${PORT}`));
 });

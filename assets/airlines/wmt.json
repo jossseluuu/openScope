@@ -1,0 +1,17 @@
+{
+    "icao": "wmt",
+    "name": "Wizz Air Malta",
+    "callsign": {
+        "name": "Wizz Malta",
+        "callsignFormats": [
+            "####",
+            "###@"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A21N", 70],
+            ["A321", 10]
+        ]
+    }
+}

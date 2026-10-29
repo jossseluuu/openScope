@@ -1,0 +1,39 @@
+{
+    "name": "Embraer E195-E2",
+    "icao": "E295",
+    "engines": {
+        "number": 2,
+        "type": "J"
+    },
+    "weightClass": "M",
+    "category": {
+        "srs": 3,
+        "lahso": 7,
+        "recat": "D",
+        "recatEu": "D",
+        "wakeFaa": "LARGE"
+    },
+    "ceiling": 41000,
+    "rate": {
+        "climb":      3400,
+        "descent":    3000,
+        "accelerate": 7,
+        "decelerate": 4
+    },
+    "runway": {
+        "takeoff": 1.970,
+        "landing": 1.450
+    },
+    "speed":{
+        "min":     115,
+        "landing": 130,
+        "cruise":  470,
+        "cruiseM": 0.78,
+        "max":     481,
+        "maxM":    0.82
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

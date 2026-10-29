@@ -290,6 +290,86 @@ const _assembleSpawnOffsets = (entrailDistance, totalDistance = 0) => {
 };
 
 /**
+ * Arrivals placed inside the airspace stay at least this far from the end of their route, in nm
+ *
+ * @property MINIMUM_DISTANCE_TO_ROUTE_END_NM
+ * @type {number}
+ * @final
+ */
+const MINIMUM_DISTANCE_TO_ROUTE_END_NM = 15;
+
+/**
+ * Step used to find where a leg enters the airspace, in nm
+ *
+ * @property AIRSPACE_ENTRY_STEP_NM
+ * @type {number}
+ * @final
+ */
+const AIRSPACE_ENTRY_STEP_NM = 0.25;
+
+/**
+ * Distance along a leg until it first enters any polygon of the airspace (null if it never does).
+ * Walking the leg finds the outer boundary even when the airspace is split into sectors, whose
+ * shared boundaries are inside it.
+ *
+ * @function _distanceAlongLegToAirspace
+ * @param fromWaypoint {WaypointModel}
+ * @param toWaypoint {WaypointModel}
+ * @param legDistance {number} nm
+ * @param airport {AirportModel}
+ * @return {number|null} nm
+ */
+const _distanceAlongLegToAirspace = (fromWaypoint, toWaypoint, legDistance, airport) => {
+    const [x0, y0] = fromWaypoint.relativePosition;
+    const [x1, y1] = toWaypoint.relativePosition;
+    const steps = Math.max(1, Math.ceil(legDistance / AIRSPACE_ENTRY_STEP_NM));
+
+    for (let k = 0; k <= steps; k++) {
+        const fraction = k / steps;
+        const point = [x0 + (x1 - x0) * fraction, y0 + (y1 - y0) * fraction];
+
+        if (airport.airspace.some((airspace) => airspace.isPointInside2D(point))) {
+            return legDistance * fraction;
+        }
+    }
+
+    return null;
+};
+
+/**
+ * Distance along the route from its first fix to where it first enters the airspace
+ * (the whole route when it never does)
+ *
+ * @function _distanceAlongRouteToAirspace
+ * @param waypointModelList {array<WaypointModel>}
+ * @param airport {AirportModel}
+ * @return {number} nm
+ */
+const _distanceAlongRouteToAirspace = (waypointModelList, airport) => {
+    let total = 0;
+
+    for (let i = 1; i < waypointModelList.length; i++) {
+        const waypointModel = waypointModelList[i];
+        const previousWaypoint = waypointModelList[i - 1];
+
+        if (waypointModel.isVectorWaypoint || previousWaypoint.isVectorWaypoint) {
+            continue;
+        }
+
+        const legDistance = nm(distance2d(previousWaypoint.relativePosition, waypointModel.relativePosition));
+        const distanceToAirspace = _distanceAlongLegToAirspace(previousWaypoint, waypointModel, legDistance, airport);
+
+        if (distanceToAirspace !== null) {
+            return total + distanceToAirspace;
+        }
+
+        total += legDistance;
+    }
+
+    return total;
+};
+
+/**
  * Returns the total distance from beginning to end of the provided route, along the route's course
  *
  * @function _calculateTotalDistanceAlongRoute
@@ -380,6 +460,66 @@ const _preSpawn = (spawnPatternJson, airport) => {
     );
 
     return spawnPositions;
+};
+
+/**
+ * Where a new arrival enters the game when the airport spaces its arrivals: on its route,
+ * `leadDistanceNm` before the airspace boundary (or at the first fix, if that is closer),
+ * so it is soon handed over instead of flying a long way outside the airspace first.
+ * A negative `leadDistanceNm` places it that far inside the airspace. With `fromRouteEndNm` it is
+ * placed that far before the end of its route instead, as for the arrivals already on their way
+ * when the game starts: staggering that distance staggers their landing times.
+ *
+ * @function buildSpawnBeforeAirspace
+ * @param spawnPatternModel {SpawnPatternModel}
+ * @param airport {AirportModel}
+ * @param leadDistanceNm {number}
+ * @param [fromRouteEndNm] {number|null}
+ * @return {object} `{ altitude, heading, nextFix, positionModel }`
+ */
+export const buildSpawnBeforeAirspace = (spawnPatternModel, airport, leadDistanceNm, fromRouteEndNm = null) => {
+    const routeModel = spawnPatternModel._routeModel ? spawnPatternModel._routeModel : new RouteModel(spawnPatternModel.route);
+    const waypointModelList = routeModel.waypoints;
+    const totalDistance = _distanceAlongRouteToAirspace(waypointModelList, airport);
+    const waypointOffsets = _calculateOffsetsToEachWaypointInRoute(waypointModelList);
+    const routeLength = waypointOffsets[waypointOffsets.length - 1];
+    // a negative lead puts the aircraft inside the airspace, but never on the last leg of the route
+    const lastUsableOffset = Math.max(0, routeLength - MINIMUM_DISTANCE_TO_ROUTE_END_NM);
+    const wantedOffset = fromRouteEndNm === null ? totalDistance - leadDistanceNm : routeLength - fromRouteEndNm;
+    const offset = Math.min(Math.max(0, wantedOffset), lastUsableOffset);
+
+    return _calculateSpawnPositionsAndAltitudes(
+        waypointModelList,
+        [offset],
+        spawnPatternModel.speed,
+        spawnPatternModel.altitude,
+        totalDistance,
+        airport.maxAssignableAltitude
+    )[0];
+};
+
+/**
+ * Straight distance from the last fix of an arrival route to the threshold of its runway
+ * (0 when the route has no runway), used to stagger the arrivals placed when the game starts
+ *
+ * @function distanceFromRouteEndToRunway
+ * @param spawnPatternModel {SpawnPatternModel}
+ * @param airport {AirportModel}
+ * @return {number} nm
+ */
+export const distanceFromRouteEndToRunway = (spawnPatternModel, airport) => {
+    const routeModel = spawnPatternModel._routeModel ? spawnPatternModel._routeModel : new RouteModel(spawnPatternModel.route);
+    const positioned = routeModel.waypoints.filter((waypointModel) => !waypointModel.isVectorWaypoint);
+    const lastFix = positioned[positioned.length - 1];
+    const routeParts = (spawnPatternModel.routeString || '').split('.');
+    const runwayName = routeParts[routeParts.length - 1].replace(airport.icao.toUpperCase(), '');
+    const runwayModel = airport.getRunway(runwayName);
+
+    if (!lastFix || !runwayModel) {
+        return 0;
+    }
+
+    return nm(distance2d(lastFix.relativePosition, runwayModel.relativePosition));
 };
 
 /**

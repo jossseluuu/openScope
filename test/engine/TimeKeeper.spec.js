@@ -206,3 +206,44 @@ ava.serial('._isReturningFromPauseAndNotFutureTrack() returns true only when all
 
     t.true(TimeKeeper._isReturningFromPauseAndNotFutureTrack());
 });
+
+ava.serial('.advanceFixedStep() throws when fixed step mode is not enabled', (t) => {
+    t.throws(() => TimeKeeper.advanceFixedStep(0.25));
+});
+
+ava.serial('.advanceFixedStep() advances #accumulatedDeltaTime by exactly the given amount', (t) => {
+    TimeKeeper.enableFixedStepMode();
+    TimeKeeper.setPause(false);
+
+    for (let i = 0; i < 8; i++) {
+        TimeKeeper.advanceFixedStep(0.25);
+    }
+
+    t.true(TimeKeeper.accumulatedDeltaTime === 2);
+    t.true(TimeKeeper.gameTimeSeconds === 2);
+    t.true(TimeKeeper.gameTimeMilliseconds === 2000);
+});
+
+ava.serial('.advanceFixedStep() does not advance time while paused', (t) => {
+    TimeKeeper.enableFixedStepMode();
+    TimeKeeper.setPause(true);
+    TimeKeeper.advanceFixedStep(0.25);
+
+    t.true(TimeKeeper.accumulatedDeltaTime === 0);
+});
+
+ava.serial('.advanceFixedStep() accepts steps of one second or more in fixed step mode', (t) => {
+    TimeKeeper.enableFixedStepMode();
+    TimeKeeper.setPause(false);
+    TimeKeeper.advanceFixedStep(2);
+
+    t.false(TimeKeeper._isReturningFromPauseAndNotFutureTrack());
+    t.true(TimeKeeper.accumulatedDeltaTime === 2);
+});
+
+ava.serial('.reset() leaves fixed step mode', (t) => {
+    TimeKeeper.enableFixedStepMode();
+    TimeKeeper.reset();
+
+    t.throws(() => TimeKeeper.advanceFixedStep(0.25));
+});

@@ -1,15 +1,19 @@
 {
-    "name": "Tu-204-300",
+    "name": "Tupolev Tu-204",
     "icao": "T204",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": null,
-        "recat": "D"
+        "recat": "D",
+
+        "recatEu": "D",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 41000,
     "rate": {

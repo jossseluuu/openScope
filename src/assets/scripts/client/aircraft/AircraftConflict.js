@@ -158,7 +158,7 @@ export default class AircraftConflict {
                 isWarning
             );
 
-            GameController.events_recordNew(GAME_EVENTS.COLLISION);
+            GameController.events_recordNew(GAME_EVENTS.COLLISION, { callsigns: [this.aircraft[0].callsign, this.aircraft[1].callsign] });
             this.aircraft[0].hit = true;
             this.aircraft[1].hit = true;
         }

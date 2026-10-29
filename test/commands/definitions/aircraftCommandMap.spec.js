@@ -68,6 +68,13 @@ ava('aliases, noop parser and zeroArgumentsValidator used by flyPresentHeading',
 });
 
 
+ava('aliases, noop parser and zeroArgumentsValidator used by goAround', t => {
+    const [parse, validate] = extractParseAndValidate(t, 'goAround');
+    t.true(parse === noopParse() && validate === zeroArgVal());
+    test_aliases(t, AIRCRAFT_COMMAND_MAP, 'goAround', ['ga', 'goaround']);
+});
+
+
 ava('aliases, noop parser and zeroArgumentsValidator used by takeoff', t => {
     const [parse, validate] = extractParseAndValidate(t, 'takeoff');
     t.true(parse === noopParse() && validate === zeroArgVal());
@@ -253,7 +260,7 @@ ava('aliases, optionalAltitudeParser and optionalAltitudeValidator used by climb
     test_aliases(t, AIRCRAFT_COMMAND_MAP, 'climbViaSid', ['climbViaSid', 'cvs']);
 });
 
-ava('make sure we test all 32 aircraft commands', t => {
+ava('make sure we test all 33 aircraft commands', t => {
     t.true(Object.values(AIRCRAFT_COMMAND_MAP)
-        .filter(val => !val.isSystemCommand).length === 32);
+        .filter(val => !val.isSystemCommand).length === 33);
 });

@@ -13,3 +13,8 @@ public/
 assets/style/
 assets/scripts/
 yarn.lock
+__pycache__/
+*.pyc
+.venv/
+bots/runs/
+bots/audits/*.jsonl

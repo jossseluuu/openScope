@@ -1,0 +1,16 @@
+{
+    "icao": "eai",
+    "name": "Emerald Airlines",
+    "callsign": {
+        "name": "Gemstone",
+        "callsignFormats": [
+            "####",
+            "###"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["AT76", 14]
+        ]
+    }
+}

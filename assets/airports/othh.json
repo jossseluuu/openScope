@@ -2599,7 +2599,7 @@
                 ["a7/fastGA", 1],
                 ["axb", 5],
                 ["igo", 6],
-                ["jai/short", 2],
+                ["aic/short", 2],
                 ["oma", 7],
                 ["qtr", 80]
             ]
@@ -2616,8 +2616,8 @@
             "airlines": [
                 ["a7/fastGA", 1],
                 ["igo", 5],
-                ["jai/long", 3],
-                ["jai/short", 5],
+                ["aic/long", 3],
+                ["aic/short", 5],
                 ["pal/long", 2],
                 ["qtr", 85]
             ]
@@ -2650,7 +2650,7 @@
                 ["baw/long", 1],
                 ["clx", 2],
                 ["kac", 14],
-                ["kkk", 2],
+                ["thy", 2],
                 ["mea", 1],
                 ["pgt", 2],
                 ["qtr", 72],
@@ -2675,8 +2675,8 @@
                 ["etd", 23],
                 ["fdb", 16],
                 ["igo", 34],
-                ["jai/long", 9],
-                ["jai/short", 11],
+                ["aic/long", 9],
+                ["aic/short", 11],
                 ["oma", 21],
                 ["pal/long", 6],
                 ["qtr", 829],
@@ -2711,7 +2711,7 @@
                 ["baw/long", 1],
                 ["clx", 2],
                 ["kac", 14],
-                ["kkk", 2],
+                ["thy", 2],
                 ["mea", 1],
                 ["pgt", 2],
                 ["qtr", 71],

@@ -1,15 +1,19 @@
 {
-    "name": "McDonnel Douglas MD-90",
+    "name": "McDonnell Douglas MD-90",
     "icao": "MD90",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 8,
-        "recat": "D"
+        "recat": "D",
+
+        "recatEu": "D",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 37000,
     "rate": {

@@ -1,0 +1,17 @@
+{
+    "icao": "aih",
+    "name": "Air Incheon",
+    "callsign": {
+        "name": "Air Incheon",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A333", 3],
+            ["B738", 4]
+        ]
+    }
+}

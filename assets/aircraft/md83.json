@@ -1,15 +1,19 @@
 {
-    "name": "McDonnel Douglas MD-83",
+    "name": "McDonnell Douglas MD-83",
     "icao": "MD83",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 8,
-        "recat": "D"
+        "recat": "D",
+
+        "recatEu": "D",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 37000,
     "rate": {

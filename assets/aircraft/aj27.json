@@ -1,0 +1,39 @@
+{
+    "name": "COMAC ARJ21 (C909)",
+    "icao": "AJ27",
+    "engines": {
+        "number": 2,
+        "type": "J"
+    },
+    "weightClass": "M",
+    "category": {
+        "srs": 3,
+        "lahso": 7,
+        "recat": "D",
+        "recatEu": "E",
+        "wakeFaa": "LARGE"
+    },
+    "ceiling": 39000,
+    "rate": {
+        "climb":      2500,
+        "descent":    3000,
+        "accelerate": 7,
+        "decelerate": 4
+    },
+    "runway": {
+        "takeoff": 1.900,
+        "landing": 1.600
+    },
+    "speed":{
+        "min":     115,
+        "landing": 130,
+        "cruise":  450,
+        "cruiseM": 0.78,
+        "max":     470,
+        "maxM":    0.82
+    },
+    "capability": {
+        "ils": true,
+        "fix": true
+    }
+}

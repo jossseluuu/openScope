@@ -1,0 +1,17 @@
+{
+    "icao": "seh",
+    "name": "Sky Express",
+    "callsign": {
+        "name": "Air Crete",
+        "callsignFormats": [
+            "###"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A20N", 8],
+            ["A21N", 6],
+            ["AT76", 10]
+        ]
+    }
+}

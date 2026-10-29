@@ -11,6 +11,24 @@
  */
 export const EVENT = {
     /**
+     * The player typed `bot a`, `bot b` or `bot off`
+     *
+     * @memberof EVENT
+     * @property BOT_COMMAND
+     * @type {string}
+     */
+    BOT_COMMAND: 'bot-command',
+
+    /**
+     * The player typed `audit`: open the bot audit page (`/bot-audit`)
+     *
+     * @memberof EVENT
+     * @property AUDIT_PANEL_TOGGLE
+     * @type {string}
+     */
+    AUDIT_PANEL_TOGGLE: 'audit-panel-toggle',
+
+    /**
      * Add an aircraft to the simulation
      *
      * @memberof EVENT
@@ -358,6 +376,16 @@ export const AIRCRAFT_EVENT = {
     LANDING: 'landing',
 
     /**
+     * The aircraft discontinued its approach, either on its own (unstable
+     * approach, runway occupied) or because the controller instructed it
+     *
+     * @memberof AIRCRAFT_EVENT
+     * @property GO_AROUND
+     * @type {string}
+     */
+    GO_AROUND: 'go-around',
+
+    /**
      * The aircraft landed and came to a fullstop.
      *
      * @memberof AIRCRAFT_EVENT
@@ -374,4 +402,67 @@ export const AIRCRAFT_EVENT = {
      * @type {string}
      */
     AIRSPACE_EXIT: 'airspace-exit'
+};
+
+/**
+ * Events recorded by the decision audit (see `DecisionAudit`)
+ *
+ * @property AUDIT_EVENT
+ * @type {Object}
+ * @final
+ */
+export const AUDIT_EVENT = {
+    /**
+     * A new airborne aircraft passed the spawn safety check and was created: `{ route, callsign, altitude, note }`
+     *
+     * @memberof AUDIT_EVENT
+     * @property SPAWNED
+     * @type {string}
+     */
+    SPAWNED: 'audit-spawned',
+
+    /**
+     * A spawn was postponed because it would not be safe: `{ route, reason }`
+     *
+     * @memberof AUDIT_EVENT
+     * @property SPAWN_DELAYED
+     * @type {string}
+     */
+    SPAWN_DELAYED: 'audit-spawn-delayed',
+
+    /**
+     * A rule of the Rulebook was broken: the violation object
+     *
+     * @memberof AUDIT_EVENT
+     * @property RULE_VIOLATION
+     * @type {string}
+     */
+    RULE_VIOLATION: 'audit-rule-violation',
+
+    /**
+     * The score changed: `{ event, points, score }`
+     *
+     * @memberof AUDIT_EVENT
+     * @property SCORE_EVENT
+     * @type {string}
+     */
+    SCORE_EVENT: 'audit-score-event',
+
+    /**
+     * A clearance was issued, by the player or a bot: `{ source, callsign, command, reason, accepted, message }`
+     *
+     * @memberof AUDIT_EVENT
+     * @property COMMAND_ISSUED
+     * @type {string}
+     */
+    COMMAND_ISSUED: 'audit-command-issued',
+
+    /**
+     * A bot took a decision: `{ name, observation, decisions }`
+     *
+     * @memberof AUDIT_EVENT
+     * @property BOT_STEP
+     * @type {string}
+     */
+    BOT_STEP: 'audit-bot-step'
 };

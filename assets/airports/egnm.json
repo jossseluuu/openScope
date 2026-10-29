@@ -574,10 +574,10 @@
             "rate": 3,
             "airlines": [
                 ["exs", 22],
-                ["eze", 4],
+                ["log", 4],
                 ["ryr", 14],
                 ["sht", 2],
-                ["stk/einRegional", 3],
+                ["eai", 3],
                 ["tom", 1]
             ]
         },
@@ -592,7 +592,7 @@
             "rate": 2,
             "airlines": [
                 ["exs", 12],
-                ["eze", 2],
+                ["log", 2],
                 ["ryr", 8],
                 ["sht", 2]
             ]
@@ -607,7 +607,7 @@
             "method": "random",
             "rate": 0.25,
             "airlines": [
-                ["eze", 2]
+                ["log", 2]
             ]
         },
         {
@@ -637,7 +637,7 @@
             "airlines": [
                 ["exs", 4],
                 ["ryr", 5],
-                ["stk/einRegional", 3],
+                ["eai", 3],
                 ["tom", 1]
             ]
         }

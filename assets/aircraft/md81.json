@@ -1,15 +1,19 @@
 {
-    "name": "McDonnel Douglas MD-81",
+    "name": "McDonnell Douglas MD-81",
     "icao": "MD81",
     "engines": {
         "number": 2,
         "type": "J"
     },
-    "weightClass": "L",
+    "weightClass": "M",
     "category": {
         "srs": 3,
         "lahso": 7,
-        "recat": "D"
+        "recat": "D",
+
+        "recatEu": "D",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 37000,
     "rate": {

@@ -23,8 +23,10 @@ module.exports = function(gulp, config) {
         const images = gulp.src(OPTIONS.GLOB.IMAGES).pipe(gulp.dest(OPTIONS.DIR.DIST_IMAGES));
         const tutorial = gulp.src(OPTIONS.GLOB.TUTORIAL).pipe(gulp.dest(OPTIONS.DIR.DIST_TUTORIAL));
         const autocomplete = gulp.src(OPTIONS.GLOB.AUTOCOMPLETE).pipe(gulp.dest(OPTIONS.DIR.DIST_AUTOCOMPLETE));
+        // trained bot models (see bots/python/openscope_bots/export_onnx.py)
+        const bots = gulp.src(OPTIONS.GLOB.BOTS, { allowEmpty: true }).pipe(gulp.dest(OPTIONS.DIR.DIST_BOTS));
 
-        return merge(fonts, images, tutorial, autocomplete);
+        return merge(fonts, images, tutorial, autocomplete, bots);
     };
 
     gulp.task(OPTIONS.TASKS.JSON.MINIFY, gulp.series(jsonMinify));

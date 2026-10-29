@@ -15,6 +15,8 @@ import RunwayCollection from './runway/RunwayCollection';
 import StaticPositionModel from '../base/StaticPositionModel';
 import TimeKeeper from '../engine/TimeKeeper';
 import { isValidGpsCoordinatePair } from '../base/positionModelHelpers';
+import { getRegulatoryProfileForAirport } from '../realism/regulatoryProfiles';
+import { selectRunwayConfiguration } from '../realism/runwayConfiguration';
 import { degreesToRadians, parseElevation } from '../utilities/unitConverters';
 import {
     sin,
@@ -230,6 +232,43 @@ export default class AirportModel {
         };
 
         /**
+         * Air traffic control rules that apply at this airport
+         *
+         * @property regulatoryProfile
+         * @type {object}
+         * @default null
+         */
+        this.regulatoryProfile = null;
+
+        /**
+         * Runway configuration in use, when the airport file defines `runwayConfigurations`
+         *
+         * @property runwayConfiguration
+         * @type {object|null}
+         * @default null
+         */
+        this.runwayConfiguration = null;
+
+        /**
+         * Unimpeded taxi time from the apron to each departure runway, in seconds
+         *
+         * @property taxiTimes
+         * @type {object}
+         * @default {}
+         */
+        this.taxiTimes = {};
+
+        /**
+         * How arrivals enter the game: `preSpawn` fills every arrival route with aircraft when
+         * the airport loads, and consecutive arrivals of all routes are spawned at least
+         * `minimumIntervalSeconds` apart (0: each route on its own timer)
+         *
+         * @property arrivalSpawn
+         * @type {object}
+         */
+        this.arrivalSpawn = { preSpawn: true, minimumIntervalSeconds: 0 };
+
+        /**
          * @for AirportModel
          * @property ctr_radius
          * @type {nunmber}
@@ -380,9 +419,24 @@ export default class AirportModel {
         this._initRangeRings(data.rangeRings);
         this.loadTerrain();
         this.buildAirspace(data.airspace);
-        this.setActiveRunwaysFromNames(data.arrivalRunway, data.departureRunway);
         this.buildRestrictedAreas(data.restricted);
         this.updateCurrentWind(data.wind);
+        this.regulatoryProfile = getRegulatoryProfileForAirport(this.icao, data.regulatoryProfile);
+        this.taxiTimes = _get(data, 'taxiTimes', {});
+        this.arrivalSpawn = {
+            preSpawn: _get(data, 'arrivalSpawn.preSpawn', true),
+            minimumIntervalSeconds: _get(data, 'arrivalSpawn.minimumIntervalSeconds', 0)
+        };
+        this.runwayConfiguration = selectRunwayConfiguration(this, data.runwayConfigurations, data.regulatoryProfile);
+
+        if (this.runwayConfiguration) {
+            this.setActiveRunwaysFromNames(
+                this.runwayConfiguration.arrivalRunway,
+                this.runwayConfiguration.departureRunway
+            );
+        } else {
+            this.setActiveRunwaysFromNames(data.arrivalRunway, data.departureRunway);
+        }
 
         this.eventBus.on(EVENT.WIND_CHANGE, this.updateCurrentWind.bind(this));
     }

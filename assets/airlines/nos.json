@@ -1,0 +1,23 @@
+{
+    "icao": "nos",
+    "name": "Neos",
+    "callsign": {
+        "name": "Moonflower",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["B38M", 15],
+            ["B789", 5]
+        ],
+        "short": [
+            ["B38M", 15]
+        ],
+        "long": [
+            ["B789", 5]
+        ]
+    }
+}

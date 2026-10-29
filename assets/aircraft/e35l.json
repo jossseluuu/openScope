@@ -1,5 +1,5 @@
 {
-    "name": "Embraer EMB-135BJ Legacy 600/650",
+    "name": "Embraer Legacy 600/650",
     "icao": "E35L",
     "engines": {
         "number": 2,
@@ -9,7 +9,11 @@
     "category": {
         "srs": 3,
         "lahso": 7,
-        "recat": "E"
+        "recat": "E",
+
+        "recatEu": "E",
+
+        "wakeFaa": "LARGE"
     },
     "ceiling": 37000,
     "rate": {

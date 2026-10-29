@@ -4,19 +4,20 @@
     "callsign": {
         "name": "Bluescan",
         "callsignFormats": [
-            "###"             
+            "###"
         ]
     },
     "fleets": {
         "default": [
-            ["B738", 1],
-            ["B763", 2]
+            ["B38M", 6],
+            ["B738", 4]
         ],
         "short": [
-            ["B738", 1]
+            ["B738", 4]
         ],
         "long": [
-            ["B763", 2]
+            ["B38M", 6],
+            ["B738", 4]
         ]
     }
 }

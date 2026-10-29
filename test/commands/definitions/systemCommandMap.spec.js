@@ -28,6 +28,18 @@ ava('aliases, noop parser and zeroArgumentsValidator used by airac', t => {
     self_alias(t, AIRCRAFT_COMMAND_MAP, 'airac');
 });
 
+ava('aliases, noop parser and zeroArgumentsValidator used by audit', t => {
+    const [parse, validate] = extractParseAndValidate(t, 'audit');
+    t.true(parse === noopParse() && validate === zeroArgVal());
+    self_alias(t, AIRCRAFT_COMMAND_MAP, 'audit');
+});
+
+ava('aliases, noop parser and singleArgumentValidator used by bot', t => {
+    const [parse, validate] = extractParseAndValidate(t, 'bot');
+    t.true(parse === noopParse() && validate === singleArgVal());
+    self_alias(t, AIRCRAFT_COMMAND_MAP, 'bot');
+});
+
 ava('aliases, noop parser and singleArgumentValidator used by airport', t => {
     const [parse, validate] = extractParseAndValidate(t, 'airport');
     t.true(parse === noopParse() && validate === singleArgVal());
@@ -72,7 +84,7 @@ ava('aliases, timewarp parser and zeroOrOneArgumentValidator used by timewarp', 
     test_aliases(t, AIRCRAFT_COMMAND_MAP, 'timewarp', ['timewarp', 'tw']);
 });
 
-ava('make sure we test all 8 system commands', t => {
+ava('make sure we test all 10 system commands', t => {
     t.true(Object.values(AIRCRAFT_COMMAND_MAP)
-        .filter(val => val.isSystemCommand).length === 8);
+        .filter(val => val.isSystemCommand).length === 10);
 });

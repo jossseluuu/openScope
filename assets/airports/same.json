@@ -2336,9 +2336,9 @@
             "method": "random",
             "rate": 0.17,
             "airlines": [
-                ["dsm/short", 1],
+                ["arg/short", 1],
                 ["lpe/short", 3],
-                ["tpu", 1]
+                ["ava", 1]
             ]
         },
         {
@@ -2364,7 +2364,7 @@
             "method": "random",
             "rate": 0.23,
             "airlines": [
-                ["aut", 4],
+                ["arg", 4],
                 ["jes/a320", 3],
                 ["lv/fastGA", 1]
             ]
@@ -2393,7 +2393,7 @@
             "method": "random",
             "rate": 0.17,
             "airlines": [
-                ["aut", 3],
+                ["arg", 3],
                 ["jes/a320", 2],
                 ["lv/fastGA", 1]
             ]
@@ -2408,7 +2408,7 @@
             "method": "random",
             "rate": 0.47,
             "airlines": [
-                ["aut", 14],
+                ["arg", 14],
                 ["lv/fastGA", 1]
             ]
         },
@@ -2422,7 +2422,7 @@
             "method": "random",
             "rate": 0.23,
             "airlines": [
-                ["aut", 3],
+                ["arg", 3],
                 ["fbz", 2],
                 ["jes/a320", 2],
                 ["lv/fastGA", 1]
@@ -2453,10 +2453,10 @@
             "rate": 2.87,
             "airlines": [
                 ["arg/short", 13],
-                ["aut", 21],
-                ["dsm/short", 21],
+                ["arg", 21],
+                ["arg/short", 21],
                 ["lv/fastGA", 1],
-                ["naa", 31]
+                ["jes", 31]
             ]
         },
         {
@@ -2470,7 +2470,7 @@
             "rate": 0.7,
             "airlines": [
                 ["arg/short", 8],
-                ["aut", 13],
+                ["arg", 13],
                 ["lv/fastGA", 1]
             ]
         },
@@ -2499,7 +2499,7 @@
             "method": "random",
             "rate": 0.13,
             "airlines": [
-                ["aut", 4],
+                ["arg", 4],
                 ["lv/fastGA", 1]
             ]
         },
@@ -2513,7 +2513,7 @@
             "method": "random",
             "rate": 0.23,
             "airlines": [
-                ["aut", 7],
+                ["arg", 7],
                 ["lv/fastGA", 1]
             ]
         },
@@ -2527,7 +2527,7 @@
             "method": "random",
             "rate": 0.3,
             "airlines": [
-                ["aut", 5],
+                ["arg", 5],
                 ["fbz", 2],
                 ["jes/a320", 2],
                 ["lv/fastGA", 1]
@@ -2573,13 +2573,13 @@
             "method": "random",
             "rate": 0.64,
             "airlines": [
-                ["aut", 4],
+                ["arg", 4],
                 ["cmp/b738", 5],
-                ["dsm/short", 1],
+                ["arg/short", 1],
                 ["jes/a320", 5],
                 ["lpe/short", 3],
                 ["lv/fastGA", 1],
-                ["tpu", 1]
+                ["ava", 1]
             ]
         },
         {
@@ -2592,7 +2592,7 @@
             "method": "random",
             "rate": 1.07,
             "airlines": [
-                ["aut", 20],
+                ["arg", 20],
                 ["fbz", 2],
                 ["glo", 3],
                 ["jes/a320", 4],
@@ -2611,12 +2611,12 @@
             "rate": 4,
             "airlines": [
                 ["arg/short", 21],
-                ["aut", 34],
-                ["dsm/short", 21],
+                ["arg", 34],
+                ["arg/short", 21],
                 ["fbz", 5],
                 ["jes/a320", 8],
                 ["lv/fastGA", 1],
-                ["naa", 31]
+                ["jes", 31]
             ]
         },
         {
@@ -2629,7 +2629,7 @@
             "method": "random",
             "rate": 0.13,
             "airlines": [
-                ["aut", 4],
+                ["arg", 4],
                 ["lv/fastGA", 1]
             ]
         },
@@ -2643,7 +2643,7 @@
             "method": "random",
             "rate": 0.6,
             "airlines": [
-                ["aut", 12],
+                ["arg", 12],
                 ["fbz", 2],
                 ["jes/a320", 4],
                 ["lv/fastGA", 1]

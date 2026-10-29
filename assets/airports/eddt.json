@@ -341,7 +341,7 @@
             "rate": 7,
             "airlines": [
                 ["n/fastGA", 5],
-                ["gwi", 15],
+                ["ewg", 15],
                 ["dlh", 10],
                 ["baw", 5],
                 ["ein", 5],
@@ -364,7 +364,7 @@
             "rate": 7,
             "airlines": [
                 ["n/fastGA", 5],
-                ["gwi", 15],
+                ["ewg", 15],
                 ["dlh", 10],
                 ["baw", 5],
                 ["ein", 5],
@@ -387,7 +387,7 @@
             "rate": 7,
             "airlines": [
                 ["n/fastGA", 5],
-                ["gwi", 15],
+                ["ewg", 15],
                 ["dlh", 10],
                 ["baw", 5],
                 ["ein", 5],
@@ -410,7 +410,7 @@
             "rate": 7,
             "airlines": [
                 ["n/fastGA", 5],
-                ["gwi", 15],
+                ["ewg", 15],
                 ["dlh", 10],
                 ["baw", 5],
                 ["ein", 5],
@@ -433,7 +433,7 @@
             "rate": 7,
             "airlines": [
                 ["n/fastGA", 5],
-                ["gwi", 15],
+                ["ewg", 15],
                 ["dlh", 10],
                 ["baw", 5],
                 ["ein", 5],
@@ -455,7 +455,7 @@
             "method": "random",
             "rate": 5,
             "airlines": [
-                ["gwi", 15],
+                ["ewg", 15],
                 ["dlh", 10],
                 ["baw", 5],
                 ["ein", 5],
@@ -472,7 +472,7 @@
             "method": "random",
             "rate": 5,
             "airlines": [
-                ["gwi", 15],
+                ["ewg", 15],
                 ["dlh", 10],
                 ["sas", 5]
             ]
@@ -488,7 +488,7 @@
             "rate": 10,
             "entrail": [10, 35],
             "airlines": [
-                ["gwi", 15],
+                ["ewg", 15],
                 ["dlh", 10]
             ]
         },
@@ -503,7 +503,7 @@
             "rate": 10,
             "entrail": [10, 35],
             "airlines": [
-                ["gwi", 15],
+                ["ewg", 15],
                 ["dlh", 10]
             ]
         },
@@ -518,7 +518,7 @@
             "rate": 10,
             "entrail": [10, 35],
             "airlines": [
-                ["gwi", 15],
+                ["ewg", 15],
                 ["dlh", 10],
                 ["aua", 5],
                 ["thy", 5]

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>openScope · Auditoría de bots</title>
+    <style>
+        :root {
+            --background: #0f191e;
+            --panel: #16242b;
+            --header: #1e2d34;
+            --border: rgba(120, 160, 170, 0.25);
+            --text: #d8e4e8;
+            --dim: #8aa0a6;
+            --good: #7ed29a;
+            --bad: #ff8a7a;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            background: var(--background);
+            color: var(--text);
+            font: 13px/1.4 Consolas, "DejaVu Sans Mono", monospace;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            margin: 0 12px 0 0;
+            font-size: 15px;
+            letter-spacing: 1px;
+        }
+
+        #tabs {
+            display: flex;
+            flex: 1;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        button {
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            background: transparent;
+            color: var(--dim);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        button:hover,
+        .tab.is-active {
+            background: rgba(120, 160, 170, 0.25);
+            color: #ffffff;
+        }
+
+        #status {
+            width: 100%;
+            color: var(--bad);
+        }
+
+        #status.is-connected {
+            color: var(--good);
+        }
+
+        main {
+            flex: 1;
+            overflow: auto;
+            padding: 8px 16px 24px;
+        }
+
+        .audit-caption,
+        .audit-empty {
+            margin: 10px 0 6px;
+            color: var(--dim);
+        }
+
+        .audit-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .audit-table th {
+            position: sticky;
+            top: 0;
+            background: var(--header);
+            color: var(--dim);
+            font-weight: normal;
+            text-align: left;
+        }
+
+        .audit-table th,
+        .audit-table td {
+            padding: 3px 8px;
+            border-bottom: 1px solid rgba(120, 160, 170, 0.12);
+            white-space: nowrap;
+        }
+
+        .audit-table tr.is-uncontrolled td { color: #7f9297; }
+        .audit-table tr.is-warning td { background: rgba(200, 120, 40, 0.18); }
+
+        .audit-dim { color: var(--dim); }
+        .audit-good { color: var(--good); }
+        .audit-bad { color: var(--bad); }
+
+        .audit-outcome {
+            padding: 0 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .audit-outcome.is-ok,
+        .audit-outcome.is-landed,
+        .audit-outcome.is-departed { background: rgba(60, 160, 90, 0.35); }
+
+        .audit-outcome.is-procedure { background: rgba(200, 160, 40, 0.35); }
+
+        .audit-outcome.is-separation,
+        .audit-outcome.is-safety,
+        .audit-outcome.is-lost { background: rgba(210, 70, 60, 0.45); }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Auditoría de bots</h1>
+        <nav id="tabs"></nav>
+        <button id="export" title="Descarga todo lo registrado (JSON lines) para entrenar al Bot B">Exportar</button>
+        <div id="status">Conectando…</div>
+    </header>
+    <main id="body"></main>
+    <script src="assets/scripts/client/auditPage.min.js"></script>
+</body>
+</html>

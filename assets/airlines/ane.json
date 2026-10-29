@@ -1,0 +1,17 @@
+{
+    "icao": "ane",
+    "name": "Air Nostrum",
+    "callsign": {
+        "name": "Nostru Air",
+        "callsignFormats": [
+            "####",
+            "###@"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["AT76", 7],
+            ["CRJX", 31]
+        ]
+    }
+}

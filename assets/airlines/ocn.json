@@ -1,0 +1,23 @@
+{
+    "icao": "ocn",
+    "name": "Discover Airlines",
+    "callsign": {
+        "name": "Ocean",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A320", 22],
+            ["A333", 13]
+        ],
+        "short": [
+            ["A320", 22]
+        ],
+        "long": [
+            ["A333", 13]
+        ]
+    }
+}

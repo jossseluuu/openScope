@@ -681,6 +681,13 @@ export default class SpawnPatternModel extends BaseModel {
      * @param aircraftController {AircraftController}
      */
     createPreSpawnAircraft(aircraftController) {
+        // the airport may start without arrivals already on their routes, see `AirportModel#arrivalSpawn`
+        const { arrivalSpawn } = AirportController.airport_get() || {};
+
+        if (this.isAirborneAtSpawn() && arrivalSpawn && !arrivalSpawn.preSpawn) {
+            return;
+        }
+
         if (this.preSpawnAircraftList.length === 0) {
             this.preSpawnAircraftList = this._buildPreSpawnAircraft(this);
         }

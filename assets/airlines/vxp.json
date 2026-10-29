@@ -1,0 +1,18 @@
+{
+    "icao": "vxp",
+    "name": "Avelo Airlines",
+    "callsign": {
+        "name": "Avelo",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["B737", 15],
+            ["B738", 25],
+            ["E295", 6]
+        ]
+    }
+}

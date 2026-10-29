@@ -2540,7 +2540,7 @@
                 ["baw/short", 7],
                 ["bcy/rj85", 2],
                 ["blx/short", 1],
-                ["bms", 1],
+                ["wzz", 1],
                 ["bti/bcs3", 1],
                 ["cfe/e190", 2],
                 ["ctn/a319", 1],
@@ -2551,11 +2551,11 @@
                 ["fia", 1],
                 ["klm/e190", 2],
                 ["klm/short", 2],
-                ["ldm/short", 1],
+                ["lda", 1],
                 ["log/eidw", 1],
                 ["mld/a32x", 1],
                 ["ryr/b738", 46],
-                ["stk/einRegional", 9],
+                ["eai", 9],
                 ["tui", 1]
             ]
         },
@@ -2573,7 +2573,7 @@
                 ["baw/short", 7],
                 ["bcy/rj85", 2],
                 ["blx/short", 1],
-                ["bms", 1],
+                ["wzz", 1],
                 ["bti/bcs3", 1],
                 ["cfe/e190", 2],
                 ["ctn/a319", 1],
@@ -2584,10 +2584,10 @@
                 ["fia", 1],
                 ["klm/e190", 2],
                 ["klm/short", 2],
-                ["ldm/short", 1],
+                ["lda", 1],
                 ["mld/a32x", 1],
                 ["ryr/b738", 46],
-                ["stk/einRegional", 9],
+                ["eai", 9],
                 ["tui", 1]
             ]
         },
@@ -2603,7 +2603,7 @@
             "airlines": [
                 ["aee", 1],
                 ["bel/short", 1],
-                ["bms", 1],
+                ["wzz", 1],
                 ["dlh/short", 2],
                 ["ein/short", 8],
                 ["qtr/b788", 1],
@@ -2677,7 +2677,7 @@
             "rate": 0.27,
             "airlines": [
                 ["aal/long", 3],
-                ["stk/einRegional", 2],
+                ["eai", 2],
                 ["wja/eidw", 1]
             ]
         },
@@ -2699,7 +2699,7 @@
                 ["ein/long", 6],
                 ["eth/long", 3],
                 ["ice", 1],
-                ["stk/einRegional", 2],
+                ["eai", 2],
                 ["tsc/eidw", 1],
                 ["ual/long", 2],
                 ["wja/eidw", 1]
@@ -2716,7 +2716,7 @@
             "rate": 0.27,
             "airlines": [
                 ["ein/long", 2],
-                ["stk/einRegional", 2],
+                ["eai", 2],
                 ["wja/eidw", 1]
             ]
         },
@@ -2736,7 +2736,7 @@
                 ["nax/short", 2],
                 ["ryr/b738", 8],
                 ["sas/airbusShort", 2],
-                ["stk/einRegional", 6]
+                ["eai", 6]
             ]
         },
         {
@@ -2754,7 +2754,7 @@
                 ["afr/short", 4],
                 ["baw/short", 3],
                 ["bcy/rj85", 2],
-                ["bms", 1],
+                ["wzz", 1],
                 ["cfe/e190", 1],
                 ["dlh/short", 4],
                 ["ein/short", 11],
@@ -2763,10 +2763,10 @@
                 ["fia", 1],
                 ["klm/e190", 2],
                 ["klm/short", 2],
-                ["ldm/short", 1],
+                ["lda", 1],
                 ["mld/a32x", 1],
                 ["ryr/b738", 54],
-                ["stk/einRegional", 7],
+                ["eai", 7],
                 ["thy/short", 2],
                 ["tui", 1],
                 ["uae/b777", 2]
@@ -2785,7 +2785,7 @@
                 ["baw/short", 6],
                 ["bel/short", 1],
                 ["blx/short", 1],
-                ["bms", 1],
+                ["wzz", 1],
                 ["cfe/e190", 2],
                 ["ctn/a319", 1],
                 ["dlh/short", 2],
@@ -2796,7 +2796,7 @@
                 ["mac", 1],
                 ["qtr/b788", 1],
                 ["ryr/b738", 27],
-                ["stk/einRegional", 1],
+                ["eai", 1],
                 ["swr/short", 1],
                 ["tui", 1],
                 ["tvf", 2]
@@ -2815,7 +2815,7 @@
                 ["baw/short", 6],
                 ["bel/short", 1],
                 ["blx/short", 1],
-                ["bms", 1],
+                ["wzz", 1],
                 ["cfe/e190", 2],
                 ["ctn/a319", 1],
                 ["dlh/short", 2],
@@ -2826,7 +2826,7 @@
                 ["mac", 1],
                 ["qtr/b788", 1],
                 ["ryr/b738", 27],
-                ["stk/einRegional", 1],
+                ["eai", 1],
                 ["swr/short", 1],
                 ["tui", 1],
                 ["tvf", 2]
@@ -2861,7 +2861,7 @@
                 ["ein/long", 1],
                 ["ein/short", 4],
                 ["ryr/b738", 5],
-                ["stk/einRegional", 2],
+                ["eai", 2],
                 ["tap/airbusShort", 2],
                 ["tsc/eidw", 1],
                 ["wja/eidw", 1]
@@ -2904,7 +2904,7 @@
                 ["nax/short", 1],
                 ["ryr/b738", 10],
                 ["sas/airbusShort", 2],
-                ["stk/einRegional", 6]
+                ["eai", 6]
             ]
         },
         {
@@ -2918,7 +2918,7 @@
             "rate": 0.26,
             "airlines": [
                 ["log/eidw", 1],
-                ["stk/einRegional", 3]
+                ["eai", 3]
             ]
         },
         {
@@ -2931,7 +2931,7 @@
             "method": "random",
             "rate": 0.18,
             "airlines": [
-                ["stk/einRegional", 2]
+                ["eai", 2]
             ]
         }
     ],

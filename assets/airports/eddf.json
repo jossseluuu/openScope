@@ -2489,23 +2489,23 @@
             "rate": 7.8,
             "airlines": [
                 ["aee", 2],
-                ["amc", 1],
+                ["kmm", 1],
                 ["aua/short", 3],
-                ["aui/short", 1],
+                ["lot/short", 1],
                 ["ctn/a319", 2],
                 ["dlh", 81],
                 ["etd/long", 1],
-                ["fcb", 1],
+                ["aee", 1],
                 ["mea", 1],
                 ["mld", 1],
                 ["msr/short", 1],
                 ["pgt", 1],
-                ["pti", 1],
+                ["dlh", 1],
                 ["qtr/long", 1],
                 ["rja/short", 1],
                 ["rot/jetShort", 1],
                 ["swr/a320", 2],
-                ["sxd/b738", 1],
+                ["sxs/b738", 1],
                 ["uae/a388", 1]
             ]
         },
@@ -2524,7 +2524,7 @@
                 ["jal/long", 1],
                 ["kal/long", 1],
                 ["lot/short", 1],
-                ["mgx/b735", 1]
+                ["asl/short", 1]
             ]
         },
         {
@@ -2537,7 +2537,7 @@
             "method": "random",
             "rate": 10.4,
             "airlines": [
-                ["abw/b747", 5],
+                ["clx", 5],
                 ["afl/short", 2],
                 ["ana/long", 1],
                 ["box", 10],
@@ -2574,7 +2574,7 @@
                 ["aee", 1],
                 ["aic/long", 1],
                 ["aua/short", 1],
-                ["aza/long", 1],
+                ["ity/long", 1],
                 ["box", 16],
                 ["cfg", 4],
                 ["dlh/cityline", 35],
@@ -2582,13 +2582,13 @@
                 ["dlh/eddf25R", 35],
                 ["eth/long", 1],
                 ["ezy", 3],
-                ["fcb", 1],
+                ["aee", 1],
                 ["fdx/eddf25L", 3],
                 ["gec/eddf25L", 3],
                 ["gec/eddf25R", 3],
                 ["gfa", 1],
                 ["kzr", 1],
-                ["mgx/b735", 1],
+                ["asl/short", 1],
                 ["mld", 1],
                 ["msr/short", 1],
                 ["oma", 1],
@@ -2599,7 +2599,7 @@
                 ["sia/a380", 1],
                 ["sia/b777", 1],
                 ["swr/a320", 1],
-                ["sxd/b738", 1],
+                ["sxs/b738", 1],
                 ["thy", 2],
                 ["uae/a388", 1]
             ]

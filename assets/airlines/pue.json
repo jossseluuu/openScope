@@ -1,0 +1,16 @@
+{
+    "icao": "pue",
+    "name": "Plus Ultra Líneas Aéreas",
+    "callsign": {
+        "name": "Spanish",
+        "callsignFormats": [
+            "###"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A332", 3],
+            ["A333", 2]
+        ]
+    }
+}

@@ -1673,10 +1673,10 @@
             "method": "random",
             "rate": 2.9,
             "airlines": [
-                ["asq", 8],
+                ["skw", 8],
                 ["jia", 4],
                 ["uca", 4],
-                ["skv", 2]
+                ["jza", 2]
             ]
         },
         {

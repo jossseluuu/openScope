@@ -6,7 +6,7 @@ import EventTracker from '../EventTracker';
 import GameOptions from './GameOptions';
 import TimeKeeper from '../engine/TimeKeeper';
 import { round } from '../math/core';
-import { EVENT } from '../constants/eventNames';
+import { AUDIT_EVENT, EVENT } from '../constants/eventNames';
 import { GAME_OPTION_NAMES } from '../constants/gameOptionConstants';
 import { TIME } from '../constants/globalConstants';
 import { TRACKABLE_EVENT } from '../constants/trackableEvents';
@@ -18,7 +18,7 @@ import { THEME } from '../constants/themes';
  * Definitions of point values for given game events
  * @type {Object}
  */
-const GAME_EVENTS_POINT_VALUES = {
+export const GAME_EVENTS_POINT_VALUES = {
     AIRSPACE_BUST: -200,
     ARRIVAL: 10,
     COLLISION: -1000,
@@ -32,7 +32,10 @@ const GAME_EVENTS_POINT_VALUES = {
     LOCALIZER_INTERCEPT_ABOVE_GLIDESLOPE: -10,
     NOT_CLEARED_ON_ROUTE: -25,
     SEPARATION_LOSS: -200,
-    NO_TAKEOFF_SEPARATION: -200
+    NO_TAKEOFF_SEPARATION: -200,
+    RUNWAY_INCURSION: -500,
+    WAKE_SEPARATION_LOSS: -100,
+    MINIMUM_ALTITUDE_VIOLATION: -150
 };
 
 /**
@@ -64,7 +67,32 @@ export const GAME_EVENTS = {
     LOCALIZER_INTERCEPT_ABOVE_GLIDESLOPE: 'LOCALIZER_INTERCEPT_ABOVE_GLIDESLOPE',
     NOT_CLEARED_ON_ROUTE: 'NOT_CLEARED_ON_ROUTE',
     SEPARATION_LOSS: 'SEPARATION_LOSS',
-    NO_TAKEOFF_SEPARATION: 'NO_TAKEOFF_SEPARATION'
+    NO_TAKEOFF_SEPARATION: 'NO_TAKEOFF_SEPARATION',
+    /**
+     * Two aircraft used the same runway at the same time: a landing or a takeoff
+     * started while the runway was occupied
+     *
+     * @memberof GAME_EVENTS
+     * @property RUNWAY_INCURSION
+     * @type {string}
+     */
+    RUNWAY_INCURSION: 'RUNWAY_INCURSION',
+    /**
+     * Wake turbulence separation (distance on final, time between departures) was not respected
+     *
+     * @memberof GAME_EVENTS
+     * @property WAKE_SEPARATION_LOSS
+     * @type {string}
+     */
+    WAKE_SEPARATION_LOSS: 'WAKE_SEPARATION_LOSS',
+    /**
+     * An aircraft under radar vectors descended below the minimum vectoring altitude
+     *
+     * @memberof GAME_EVENTS
+     * @property MINIMUM_ALTITUDE_VIOLATION
+     * @type {string}
+     */
+    MINIMUM_ALTITUDE_VIOLATION: 'MINIMUM_ALTITUDE_VIOLATION'
 };
 
 /**
@@ -85,7 +113,10 @@ const GAME_EVENTS_DESCRIPTION = {
     LOCALIZER_INTERCEPT_ABOVE_GLIDESLOPE: 'Aircraft intercepted localizer above glidescope',
     NOT_CLEARED_ON_ROUTE: 'Aircraft left airspace without being on route',
     SEPARATION_LOSS: 'Aircraft violated separation requirements',
-    NO_TAKEOFF_SEPARATION: 'Aircraft violated same runway separation requirements'
+    NO_TAKEOFF_SEPARATION: 'Aircraft violated same runway separation requirements',
+    RUNWAY_INCURSION: 'Aircraft used an occupied runway',
+    WAKE_SEPARATION_LOSS: 'Aircraft violated wake turbulence separation',
+    MINIMUM_ALTITUDE_VIOLATION: 'Aircraft descended below the minimum vectoring altitude'
 };
 
 /**
@@ -234,7 +265,7 @@ class GameController {
      * @method events_recordNew
      * @param gameEvent {String} one of the events listed in GAME_EVENTS
      */
-    events_recordNew(gameEvent) {
+    events_recordNew(gameEvent, context = {}) {
         if (!_has(GAME_EVENTS, gameEvent)) {
             throw new TypeError(`Expected a game event listed in GAME_EVENTS, but instead received ${gameEvent}`);
         }
@@ -244,6 +275,15 @@ class GameController {
 
         this.game_updateScore();
         this.updateScoreHistory(gameEvent);
+        // `context`: `{ callsigns, details }`, so the audit can explain every change of the score
+        EventBus.trigger(AUDIT_EVENT.SCORE_EVENT, {
+            time: TimeKeeper.accumulatedDeltaTime,
+            event: gameEvent,
+            points: GAME_EVENTS_POINT_VALUES[gameEvent],
+            score: this.game.score,
+            callsigns: context.callsigns || [],
+            details: context.details || GAME_EVENTS_DESCRIPTION[gameEvent] || gameEvent
+        });
     }
 
 

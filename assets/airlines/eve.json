@@ -1,0 +1,27 @@
+{
+    "icao": "eve",
+    "name": "Iberojet",
+    "callsign": {
+        "name": "Evelop",
+        "callsignFormats": [
+            "###",
+            "####"
+        ]
+    },
+    "fleets": {
+        "default": [
+            ["A320", 1],
+            ["A333", 1],
+            ["A339", 2],
+            ["A359", 2]
+        ],
+        "short": [
+            ["A320", 1]
+        ],
+        "long": [
+            ["A333", 1],
+            ["A339", 2],
+            ["A359", 2]
+        ]
+    }
+}
