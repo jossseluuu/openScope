@@ -169,3 +169,17 @@
 .overflight {
     border-left: 5px solid @overflight-accent;
 }
+
+// aircraft in emergency (squawk 7700), added by JS
+.mix-stripView_isEmergency {
+    border-left: 5px solid @emergency-accent;
+}
+
+.mix-stripView_isEmergency .stripViewItem-table {
+    background-color: @emergency-background;
+    color: @white;
+}
+
+.mix-stripView_isEmergency .stripView-preplanning {
+    color: @white;
+}

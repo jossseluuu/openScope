@@ -362,7 +362,10 @@ export default class RadarTargetModel {
         const aircraftAltitude = round(this.aircraftModel.altitude / 100);
         const aircraftSpeed = round(this.aircraftModel.groundSpeed / 10);
 
-        return `${leftPad(aircraftAltitude, 3)} ${leftPad(aircraftSpeed, 2)}`;
+        // aircraft in emergency are tagged, besides being drawn in red
+        const emergencyTag = this.aircraftModel.emergency ? ' EM' : '';
+
+        return `${leftPad(aircraftAltitude, 3)} ${leftPad(aircraftSpeed, 2)}${emergencyTag}`;
     }
 
     /**

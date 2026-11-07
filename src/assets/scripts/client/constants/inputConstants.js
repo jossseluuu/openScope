@@ -149,6 +149,7 @@ export const PARSED_COMMAND_NAME = {
     AUTO: 'auto',
     BOT: 'bot',
     CLEAR: 'clear',
+    EMERGENCY: 'emergency',
     PAUSE: 'pause',
     RATE: 'rate',
     TIMEWARP: 'timewarp',

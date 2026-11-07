@@ -345,3 +345,232 @@ export function distanceInsideAirspace(point, airspace) {
 
     return isInside ? minimum : -minimum;
 }
+
+/**
+ * Floor of the controlled airspace at a point: the lowest floor of the sectors over it
+ *
+ * @function airspaceFloorAt
+ * @param point {object}
+ * @param airspace {array<object>}  `observation.airport.airspace`
+ * @return {number|null} ft, null outside the airspace
+ */
+export function airspaceFloorAt(point, airspace) {
+    let lowest = null;
+
+    (airspace || []).forEach(({ floor, polygon }) => {
+        if ((lowest === null || floor < lowest) && isInsidePolygon(point, polygon)) {
+            lowest = floor;
+        }
+    });
+
+    return lowest;
+}
+
+/**
+ * Highest airspace floor along a path, sampled every `stepNm`, over its first `lengthNm`
+ *
+ * @function highestFloorAlongPath
+ * @param points {array<object>}
+ * @param airspace {array<object>}
+ * @param [lengthNm] {number}
+ * @param [stepNm] {number}
+ * @return {number} ft, 0 where the airspace reaches the ground (or outside it)
+ */
+export function highestFloorAlongPath(points, airspace, lengthNm = Infinity, stepNm = 1) {
+    let highest = 0;
+    let travelled = 0;
+
+    for (let i = 1; i < points.length && travelled < lengthNm; i++) {
+        const a = points[i - 1];
+        const b = points[i];
+        const length = distance(a, b);
+
+        for (let s = 0; s < length && travelled + s <= lengthNm; s += stepNm) {
+            const floor = airspaceFloorAt({ x: a.x + (b.x - a.x) * s / length, y: a.y + (b.y - a.y) * s / length }, airspace);
+
+            highest = Math.max(highest, floor || 0);
+        }
+
+        travelled += length;
+    }
+
+    return highest;
+}
+
+/**
+ * Whether a point at an altitude is inside the controlled airspace: inside a sector laterally and
+ * between its floor and its ceiling. Sectors may leave gaps between them in altitude (e.g. the
+ * shelves of a class B airspace like KLAX), so the lowest floor and the highest ceiling are not enough.
+ *
+ * @function isInsideAirspaceAt
+ * @param point {object}
+ * @param altitude {number} ft
+ * @param airspace {array<object>}
+ * @return {boolean}
+ */
+export function isInsideAirspaceAt(point, altitude, airspace) {
+    return (airspace || []).some(({ floor, ceiling, polygon }) => altitude >= floor && altitude <= ceiling &&
+        isInsidePolygon(point, polygon));
+}
+
+/**
+ * Points every `stepNm` along a path, over its first `lengthNm`
+ *
+ * @function samplePath
+ * @param points {array<object>}
+ * @param lengthNm {number}
+ * @param [stepNm] {number}
+ * @return {array<object>}
+ */
+export function samplePath(points, lengthNm, stepNm = 1) {
+    const samples = [];
+    let travelled = 0;
+
+    for (let i = 1; i < points.length && travelled <= lengthNm; i++) {
+        const a = points[i - 1];
+        const b = points[i];
+        const length = distance(a, b);
+
+        for (let s = 0; s < length && travelled + s <= lengthNm; s += stepNm) {
+            samples.push({ x: a.x + (b.x - a.x) * s / length, y: a.y + (b.y - a.y) * s / length });
+        }
+
+        travelled += length;
+    }
+
+    return samples.length > 0 ? samples : points.slice(0, 1);
+}
+
+/**
+ * Levels that stay inside the controlled airspace at every point, `marginFt` above and below
+ *
+ * @function levelsInsideAirspace
+ * @param points {array<object>}
+ * @param airspace {array<object>}
+ * @param levels {array<number>}
+ * @param [marginFt] {number}
+ * @return {array<number>}
+ */
+export function levelsInsideAirspace(points, airspace, levels, marginFt = 400) {
+    return levels.filter((level) => points.every((point) => isInsideAirspaceAt(point, level - marginFt, airspace) &&
+        isInsideAirspaceAt(point, level + marginFt, airspace)));
+}
+
+const gapsCache = new WeakMap();
+
+/**
+ * Whether the airspace has gaps in altitude: two sectors over the same place whose altitude ranges
+ * do not meet, with nothing in between (the shelves of a class B airspace like KLAX). Elsewhere the
+ * lowest floor and the highest ceiling describe it well enough, and the bots use those.
+ *
+ * @function hasAltitudeGaps
+ * @param airspace {array<object>}
+ * @return {boolean}
+ */
+export function hasAltitudeGaps(airspace) {
+    if (!airspace || airspace.length < 2) {
+        return false;
+    }
+
+    if (!gapsCache.has(airspace)) {
+        const overlaps = (a, b) => a.polygon.some((point) => isInsidePolygon(point, b.polygon)) ||
+            b.polygon.some((point) => isInsidePolygon(point, a.polygon));
+        const hasGap = airspace.some((lower) => airspace.some((upper) => lower.ceiling < upper.floor &&
+            overlaps(lower, upper) &&
+            !airspace.some((between) => between.floor <= lower.ceiling && between.ceiling >= upper.floor &&
+                overlaps(between, lower))));
+
+        gapsCache.set(airspace, hasGap);
+    }
+
+    return gapsCache.get(airspace);
+}
+
+/**
+ * Half width of the corridor checked along a track, so a track that only grazes an area counts
+ *
+ * @property RESTRICTED_CORRIDOR_NM
+ * @type {number}
+ * @final
+ */
+const RESTRICTED_CORRIDOR_NM = 1;
+
+const RESTRICTED_STEP_SECONDS = 15;
+
+const areaBoundsCache = new WeakMap();
+
+function areaBounds(area) {
+    if (!areaBoundsCache.has(area)) {
+        const xs = area.polygon.map((point) => point.x);
+        const ys = area.polygon.map((point) => point.y);
+
+        areaBoundsCache.set(area, {
+            minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys)
+        });
+    }
+
+    return areaBoundsCache.get(area);
+}
+
+/**
+ * The restricted area a point at an altitude is in, if any
+ *
+ * @function restrictedAreaAt
+ * @param point {object}
+ * @param altitude {number} ft
+ * @param areas {array<object>}  `observation.airport.restrictedAreas`
+ * @return {object|undefined}
+ */
+export function restrictedAreaAt(point, altitude, areas) {
+    return (areas || []).find((area) => {
+        if (area.height !== null && altitude > area.height) {
+            return false;
+        }
+
+        const bounds = areaBounds(area);
+
+        return point.x >= bounds.minX && point.x <= bounds.maxX && point.y >= bounds.minY && point.y <= bounds.maxY &&
+            isInsidePolygon(point, area.polygon);
+    });
+}
+
+/**
+ * Time until an aircraft enters a restricted area on `track`. An area it is already in does not
+ * count: it only has to get out of it.
+ *
+ * @function secondsToRestrictedArea
+ * @param aircraft {object}
+ * @param areas {array<object>}
+ * @param horizonSeconds {number}
+ * @param [track] {number}
+ * @return {object|null} `{ seconds, area }`
+ */
+export function secondsToRestrictedArea(aircraft, areas, horizonSeconds, track = aircraft.groundTrack) {
+    if (!areas || areas.length === 0) {
+        return null;
+    }
+
+    const clearance = aircraft.clearance || {};
+    const altitude = Number.isFinite(clearance.altitude) ? Math.min(aircraft.altitude, clearance.altitude) : aircraft.altitude;
+    const unit = headingVector(track);
+    const side = { x: unit.y, y: -unit.x };
+    const speed = Math.max(aircraft.groundSpeed, 120);
+    const inside = restrictedAreaAt(aircraft, altitude, areas);
+
+    for (let seconds = RESTRICTED_STEP_SECONDS; seconds <= horizonSeconds; seconds += RESTRICTED_STEP_SECONDS) {
+        const flown = speed * seconds / 3600;
+
+        for (let offset = -RESTRICTED_CORRIDOR_NM; offset <= RESTRICTED_CORRIDOR_NM; offset += RESTRICTED_CORRIDOR_NM) {
+            const area = restrictedAreaAt({
+                x: aircraft.x + unit.x * flown + side.x * offset,
+                y: aircraft.y + unit.y * flown + side.y * offset
+            }, altitude, areas);
+
+            if (area && area !== inside) {
+                return { seconds, area };
+            }
+        }
+    }
+
+    return null;
+}

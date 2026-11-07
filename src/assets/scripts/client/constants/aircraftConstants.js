@@ -53,6 +53,23 @@ export const FLIGHT_PHASE = {
      */
     TAKEOFF: 'TAKEOFF',
     /**
+     * is assigned to an aircraft lined up on the runway, waiting for its takeoff clearance
+     *
+     * @memberof FLIGHT_PHASE
+     * @property LINE_UP
+     * @type {string}
+     */
+    LINE_UP: 'LINE_UP',
+    /**
+     * is assigned to an aircraft stopping on the runway after its takeoff was cancelled there,
+     * until it has vacated the runway
+     *
+     * @memberof FLIGHT_PHASE
+     * @property REJECTED_TAKEOFF
+     * @type {string}
+     */
+    REJECTED_TAKEOFF: 'REJECTED_TAKEOFF',
+    /**
      * Not yet reached requested cruise altitude
      *
      * Aircraft remain in this phase until reaching their requested cruise altitude (CRUISE)

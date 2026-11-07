@@ -1,4 +1,5 @@
 import AirportController from '../airport/AirportController';
+import EmergencyController from './EmergencyController';
 import EventBus from '../lib/EventBus';
 import MetricsCollector from './MetricsCollector';
 import Rulebook, { RULE } from './Rulebook';
@@ -13,6 +14,7 @@ import { AIRCRAFT_EVENT } from '../constants/eventNames';
 import { FLIGHT_PHASE, PERFORMANCE } from '../constants/aircraftConstants';
 import { MCP_MODE } from '../aircraft/ModeControl/modeControlConstants';
 import { getWindComponentsForRunway } from './runwayConfiguration';
+import { TAKEOFF_CANCEL, judgeTakeoffCancel, rejectedTakeoffOccupancySeconds } from './takeoffCancel';
 import {
     LANDING_RUNWAY_OCCUPANCY_SECONDS,
     getArrivalWakeSeparationNm,
@@ -202,9 +204,12 @@ export default class RealismController {
         this._aircraftController = aircraftController;
         this.rulebook = new Rulebook();
         this.metrics = new MetricsCollector();
+        this.emergencies = new EmergencyController(this.rulebook);
 
         this._onTakeoffHandler = this._onTakeoff.bind(this);
         this._onGoAroundHandler = this._onGoAround.bind(this);
+        this._onTakeoffCancelledHandler = this._onTakeoffCancelled.bind(this);
+        this._onLineUpHandler = this._onLineUp.bind(this);
 
         this.reset();
         this.enable();
@@ -217,6 +222,8 @@ export default class RealismController {
     enable() {
         EventBus.on(AIRCRAFT_EVENT.TAKEOFF, this._onTakeoffHandler);
         EventBus.on(AIRCRAFT_EVENT.GO_AROUND, this._onGoAroundHandler);
+        EventBus.on(AIRCRAFT_EVENT.TAKEOFF_CANCELLED, this._onTakeoffCancelledHandler);
+        EventBus.on(AIRCRAFT_EVENT.LINE_UP, this._onLineUpHandler);
     }
 
     /**
@@ -226,6 +233,8 @@ export default class RealismController {
     disable() {
         EventBus.off(AIRCRAFT_EVENT.TAKEOFF, this._onTakeoffHandler);
         EventBus.off(AIRCRAFT_EVENT.GO_AROUND, this._onGoAroundHandler);
+        EventBus.off(AIRCRAFT_EVENT.TAKEOFF_CANCELLED, this._onTakeoffCancelledHandler);
+        EventBus.off(AIRCRAFT_EVENT.LINE_UP, this._onLineUpHandler);
     }
 
     /**
@@ -241,6 +250,8 @@ export default class RealismController {
         this._physicalRunwayByName = {};
         this._occupancy = {};
         this._lastTakeoffByRunway = {};
+        // judged cancellations of this episode, newest last
+        this._takeoffCancellations = [];
         this._touchdownIds = {};
         this._stabilityCheckedIds = {};
         this._radarLosses = {};
@@ -252,6 +263,7 @@ export default class RealismController {
         this._lastUpdateTime = time;
         this.rulebook.reset();
         this.metrics.reset(time);
+        this.emergencies.reset();
     }
 
     /**
@@ -287,6 +299,7 @@ export default class RealismController {
             this._checkRadarSeparation(aircraftList, airportModel, elapsed, time);
             this._checkFinalApproachSeparation(aircraftList, airportModel);
             this._checkTerrain(aircraftList, airportModel);
+            this.emergencies.update(aircraftList, time);
             this.metrics.update(time, aircraftList);
         }
 
@@ -405,6 +418,11 @@ export default class RealismController {
         }
 
         const time = TimeKeeper.accumulatedDeltaTime;
+
+        if (aircraftModel.takeoffNotBefore > time) {
+            return false;
+        }
+
         const { wakeScheme, arrivalDepartureSeparationNm } = airportModel.regulatoryProfile;
         const physicalName = this.getPhysicalRunwayName(runwayModel);
 
@@ -475,7 +493,8 @@ export default class RealismController {
                 finalApproachNm: profile.finalApproachSeparationNm,
                 arrivalDepartureNm: profile.arrivalDepartureSeparationNm,
                 maxTailwindKt: profile.maxTailwindKt,
-                maxCrosswindKt: profile.maxCrosswindKt
+                maxCrosswindKt: profile.maxCrosswindKt,
+                independentParallelApproachFt: profile.independentParallelApproachFt
             } : null,
             runwayConfiguration: configuration ? configuration.name : null,
             runwayOccupancy: Object.keys(this._occupancy).map((runwayName) => ({
@@ -495,7 +514,9 @@ export default class RealismController {
                     secondsAgo: time - takeoffTime
                 };
             }),
+            takeoffCancellations: this._takeoffCancellations,
             violationCounts: { ...this.rulebook.counts },
+            emergencies: this.emergencies.getObservation(time),
             metrics: this.metrics.getSummary()
         };
     }
@@ -555,11 +576,19 @@ export default class RealismController {
 
         Object.keys(this._occupancy).forEach((physicalName) => {
             this._occupancy[physicalName] = this._occupancy[physicalName].filter((occupant) => {
-                if (occupant.until !== null) {
-                    return time < occupant.until;
-                }
-
                 const { aircraftModel, runwayModel } = occupant;
+
+                if (occupant.until !== null) {
+                    if (time < occupant.until) {
+                        return true;
+                    }
+
+                    if (aircraftModel.flightPhase === FLIGHT_PHASE.REJECTED_TAKEOFF) {
+                        aircraftModel.finishRejectedTakeoff();
+                    }
+
+                    return false;
+                }
 
                 if (aircraftList.indexOf(aircraftModel) === -1) {
                     return false;
@@ -716,6 +745,7 @@ export default class RealismController {
         this._occupyRunway(runwayModel, aircraftModel, 'arrival', time, time + occupancyTime);
         this._checkRunwayWind(aircraftModel, runwayModel, airportModel, 'landed', false);
         this.metrics.recordLanding(aircraftModel, time);
+        this.emergencies.onTouchdown(aircraftModel, time);
     }
 
     /**
@@ -755,9 +785,178 @@ export default class RealismController {
         this._checkDepartureWake(aircraftModel, runwayModel, airportModel, time);
         this._checkRunwayWind(aircraftModel, runwayModel, airportModel, 'took off', true);
 
-        this._occupyRunway(runwayModel, aircraftModel, 'departure', time, null);
-        this._lastTakeoffByRunway[this.getPhysicalRunwayName(runwayModel)] = { aircraftModel, time };
+        // an aircraft that lined up is on the runway already
+        if (!this._isOnRunway(runwayModel, aircraftModel)) {
+            this._occupyRunway(runwayModel, aircraftModel, 'departure', time, null);
+        }
+
+        const physicalName = this.getPhysicalRunwayName(runwayModel);
+
+        // a cancelled takeoff gives the previous departure back its place
+        this._lastTakeoffByRunway[physicalName] = { aircraftModel, time, previous: this._lastTakeoffByRunway[physicalName] };
         this.metrics.recordTakeoff(aircraftModel, time);
+    }
+
+    /**
+     * @for RealismController
+     * @method _isOnRunway
+     * @param runwayModel {RunwayModel}
+     * @param aircraftModel {AircraftModel}
+     * @return {boolean}
+     * @private
+     */
+    _isOnRunway(runwayModel, aircraftModel) {
+        const occupants = this._occupancy[this.getPhysicalRunwayName(runwayModel)] || [];
+
+        return occupants.some((occupant) => occupant.aircraftModel === aircraftModel);
+    }
+
+    /**
+     * A departure entered the runway to wait for its takeoff clearance
+     *
+     * @for RealismController
+     * @method _onLineUp
+     * @param aircraftModel {AircraftModel}
+     * @param runwayModel {RunwayModel}
+     * @private
+     */
+    _onLineUp(aircraftModel, runwayModel) {
+        const airportModel = AirportController.airport_get();
+
+        if (aircraftModel.projected || !airportModel) {
+            return;
+        }
+
+        const occupants = this.getRunwayOccupants(runwayModel, aircraftModel);
+
+        if (occupants.length > 0) {
+            this.rulebook.record(
+                RULE.RUNWAY_INCURSION,
+                [aircraftModel.callsign, occupants[0].aircraftModel.callsign],
+                `lined up on Runway ${runwayModel.name} while it was occupied`
+            );
+        }
+
+        this._occupyRunway(runwayModel, aircraftModel, 'departure', TimeKeeper.accumulatedDeltaTime, null);
+    }
+
+    /**
+     * A takeoff was cancelled: on the runway it stays occupied for a time that depends on the speed
+     * of the aircraft, and the cancellation is judged, with a penalty when nothing justified it
+     *
+     * @for RealismController
+     * @method _onTakeoffCancelled
+     * @param aircraftModel {AircraftModel}
+     * @param runwayModel {RunwayModel}
+     * @param cancellation {object}  `{ speedWhenCancelled, phaseWhenCancelled }`
+     * @private
+     */
+    _onTakeoffCancelled(aircraftModel, runwayModel, { speedWhenCancelled, phaseWhenCancelled }) {
+        const airportModel = AirportController.airport_get();
+
+        if (aircraftModel.projected || !airportModel) {
+            return;
+        }
+
+        const time = TimeKeeper.accumulatedDeltaTime;
+        const physicalName = this.getPhysicalRunwayName(runwayModel);
+        const verdict = judgeTakeoffCancel(this._takeoffCancelSituation(aircraftModel, runwayModel, airportModel, time));
+        const wasRolling = phaseWhenCancelled === FLIGHT_PHASE.TAKEOFF;
+        const wasOnRunway = phaseWhenCancelled !== FLIGHT_PHASE.WAITING;
+        const occupiedSeconds = wasOnRunway ? rejectedTakeoffOccupancySeconds(speedWhenCancelled) : 0;
+        const occupant = (this._occupancy[physicalName] || []).find((entry) => entry.aircraftModel === aircraftModel);
+
+        if (occupant) {
+            occupant.until = time + occupiedSeconds;
+        }
+
+        aircraftModel.takeoffNotBefore = time + (wasOnRunway ?
+            occupiedSeconds + TAKEOFF_CANCEL.READY_AGAIN_SECONDS :
+            TAKEOFF_CANCEL.HOLDING_POINT_DELAY_SECONDS);
+
+        const lastTakeoff = this._lastTakeoffByRunway[physicalName];
+
+        if (wasRolling && lastTakeoff && lastTakeoff.aircraftModel === aircraftModel) {
+            if (lastTakeoff.previous) {
+                this._lastTakeoffByRunway[physicalName] = lastTakeoff.previous;
+            } else {
+                delete this._lastTakeoffByRunway[physicalName];
+            }
+        }
+
+        if (wasRolling) {
+            this.metrics.recordRejectedTakeoff();
+        }
+
+        this._takeoffCancellations.push({
+            time,
+            callsign: aircraftModel.callsign,
+            runway: runwayModel.name,
+            phase: phaseWhenCancelled,
+            speed: Math.round(speedWhenCancelled),
+            occupiedSeconds: Math.round(occupiedSeconds),
+            ...verdict
+        });
+
+        if (!verdict.isJustified) {
+            this.rulebook.record(RULE.TAKEOFF_CANCEL_UNJUSTIFIED, [aircraftModel.callsign], verdict.reason);
+        }
+    }
+
+    /**
+     * What surrounds a cancelled takeoff, for `judgeTakeoffCancel`
+     *
+     * @for RealismController
+     * @method _takeoffCancelSituation
+     * @param aircraftModel {AircraftModel}
+     * @param runwayModel {RunwayModel}
+     * @param airportModel {AirportModel}
+     * @param time {number}
+     * @return {object}
+     * @private
+     */
+    _takeoffCancelSituation(aircraftModel, runwayModel, airportModel, time) {
+        const { wakeScheme, arrivalDepartureSeparationNm } = airportModel.regulatoryProfile;
+        const physicalName = this.getPhysicalRunwayName(runwayModel);
+        const arrivals = this._aircraftController.aircraft.list
+            .filter((model) => model.isArrival() && !model.isOnGround() && model.fms.arrivalRunwayModel &&
+                (model.flightPhase === FLIGHT_PHASE.LANDING || model.flightPhase === FLIGHT_PHASE.APPROACH ||
+                    Boolean(model.emergency)) &&
+                this.getPhysicalRunwayName(model.fms.arrivalRunwayModel) === physicalName)
+            .map((model) => {
+                const distance = distanceNm(model.relativePosition, model.fms.arrivalRunwayModel.relativePosition);
+
+                return {
+                    callsign: model.callsign,
+                    distanceNm: distance,
+                    seconds: distance / Math.max(model.groundSpeed, 100) * 3600,
+                    isEmergency: Boolean(model.emergency)
+                };
+            });
+        let wakeLeader = null;
+
+        Object.keys(this._lastTakeoffByRunway).forEach((name) => {
+            const lastTakeoff = this._lastTakeoffByRunway[name];
+            const leader = lastTakeoff.aircraftModel === aircraftModel ? lastTakeoff.previous : lastTakeoff;
+
+            if (!leader || !this._isSameOrDependentRunway(airportModel, runwayModel, leader.aircraftModel.fms.departureRunwayModel)) {
+                return;
+            }
+
+            const required = getDepartureWakeSeparationSeconds(leader.aircraftModel.model, aircraftModel.model, wakeScheme);
+            const elapsed = time - leader.time;
+
+            if (elapsed < required) {
+                wakeLeader = { callsign: leader.aircraftModel.callsign, elapsed, required };
+            }
+        });
+
+        return {
+            occupants: this.getRunwayOccupants(runwayModel, aircraftModel).map((entry) => entry.aircraftModel.callsign),
+            wakeLeader,
+            arrivals,
+            arrivalSeparationNm: arrivalDepartureSeparationNm
+        };
     }
 
     /**
@@ -1142,6 +1341,13 @@ export default class RealismController {
             const relationship = airportModel.getRunwayRelationshipForRunwayNames(firstRunway.name, secondRunway.name);
 
             if (relationship && relationship.parallel) {
+                // independent approaches: both established on their localizers, far enough apart for a
+                // no transgression zone, need no separation from each other
+                if (km_ft(relationship.lateral_dist) >= profile.independentParallelApproachFt) {
+                    return true;
+                }
+
+                // dependent approaches: the diagonal minimum of the runway spacing
                 return distance >= nm(relationship.separationMinimum);
             }
         }

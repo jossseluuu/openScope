@@ -1,6 +1,6 @@
 import { ACTION_COUNT } from '../actionSpace';
 import { minimumAssignableAltitude } from '../botRules';
-import { distanceInsideAirspace, headingDifference } from '../botGeometry';
+import { distanceInsideAirspace, headingDifference, secondsToRestrictedArea } from '../botGeometry';
 
 /**
  * Fixed-size numeric encoding of an observation, used as the input of Bot B's
@@ -8,7 +8,12 @@ import { distanceInsideAirspace, headingDifference } from '../botGeometry';
  * simulator) and the browser use exactly the same features.
  *
  * Each aircraft is a token of `FEATURE_COUNT` numbers. Up to `MAX_AIRCRAFT`
- * tokens are kept: aircraft under control first, nearest first.
+ * tokens are kept: aircraft in emergency first, then those under control, nearest first.
+ *
+ * Version 3 added the emergency features (squawk 7700, time left), version 4 how soon the track
+ * enters a restricted area, version 5 dropped the feature of departures returning in
+ * emergency, because only arrivals declare emergencies, and version 6 added the phases of an
+ * aircraft lined up on the runway and of a rejected takeoff.
  */
 
 /**
@@ -18,7 +23,7 @@ import { distanceInsideAirspace, headingDifference } from '../botGeometry';
  * @type {number}
  * @final
  */
-export const FEATURE_VERSION = 2;
+export const FEATURE_VERSION = 6;
 
 /**
  * @property MAX_AIRCRAFT
@@ -28,7 +33,7 @@ export const FEATURE_VERSION = 2;
 export const MAX_AIRCRAFT = 48;
 
 const CATEGORIES = ['arrival', 'departure', 'overflight'];
-const PHASES = ['APRON', 'TAXI', 'WAITING', 'TAKEOFF', 'CLIMB', 'CRUISE', 'DESCENT', 'APPROACH', 'LANDING'];
+const PHASES = ['APRON', 'TAXI', 'WAITING', 'LINE_UP', 'TAKEOFF', 'REJECTED_TAKEOFF', 'CLIMB', 'CRUISE', 'DESCENT', 'APPROACH', 'LANDING'];
 const WAKE_CATEGORIES = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 /**
@@ -50,7 +55,9 @@ export const FEATURE_NAMES = [
     'runway_along', 'runway_lateral', 'runway_relative_heading_sin', 'runway_relative_heading_cos',
     'runway_distance', 'taxi_remaining', 'vertical_trend',
     'has_next_fix', 'next_fix_dx', 'next_fix_dy',
-    'conflict', 'runway_occupied', 'runway_last_takeoff', 'inside_airspace'
+    'conflict', 'runway_occupied', 'runway_last_takeoff', 'inside_airspace',
+    'emergency', 'emergency_remaining',
+    'restricted_area_ahead'
 ];
 
 /**
@@ -67,7 +74,7 @@ export const FEATURE_COUNT = FEATURE_NAMES.length;
  * @type {array<string>}
  * @final
  */
-export const GLOBAL_FEATURE_NAMES = ['wind_x', 'wind_y', 'aircraft_count', 'controllable_count', 'time'];
+export const GLOBAL_FEATURE_NAMES = ['wind_x', 'wind_y', 'aircraft_count', 'controllable_count', 'time', 'emergency_count'];
 
 /**
  * @property GLOBAL_FEATURE_COUNT
@@ -75,6 +82,8 @@ export const GLOBAL_FEATURE_NAMES = ['wind_x', 'wind_y', 'aircraft_count', 'cont
  * @final
  */
 export const GLOBAL_FEATURE_COUNT = GLOBAL_FEATURE_NAMES.length;
+
+const RESTRICTED_AREA_HORIZON_SECONDS = 120;
 
 const clip = (value, limit = 5) => (Number.isFinite(value) ? Math.max(-limit, Math.min(limit, value)) : 0);
 const oneHot = (values, value) => values.map((candidate) => (candidate === value ? 1 : 0));
@@ -91,6 +100,10 @@ export function orderAircraft(observation) {
     return observation.aircraft
         .slice()
         .sort((a, b) => {
+            if (Boolean(a.emergency) !== Boolean(b.emergency)) {
+                return a.emergency ? -1 : 1;
+            }
+
             if (a.isControllable !== b.isControllable) {
                 return a.isControllable ? -1 : 1;
             }
@@ -121,6 +134,8 @@ export function encodeAircraft(aircraft, observation, runwayIndex) {
     const occupancy = realism.runwayOccupancy.find((runway) => runway.runway === physicalName);
     const lastTakeoff = realism.lastTakeoffs.find((takeoff) => takeoff.runway === physicalName);
     const { clearance } = aircraft;
+    const restrictedAhead = aircraft.isOnGround ? null :
+        secondsToRestrictedArea(aircraft, observation.airport.restrictedAreas, RESTRICTED_AREA_HORIZON_SECONDS);
 
     return [
         ...oneHot(CATEGORIES, aircraft.category),
@@ -157,7 +172,10 @@ export function encodeAircraft(aircraft, observation, runwayIndex) {
         (aircraft.conflicts || []).length > 0 ? 1 : 0,
         occupancy && occupancy.occupants.length > 0 ? 1 : 0,
         lastTakeoff ? clip(lastTakeoff.secondsAgo / 180, 1) : 1,
-        clip(distanceInsideAirspace(aircraft, observation.airport.airspace) / 30)
+        clip(distanceInsideAirspace(aircraft, observation.airport.airspace) / 30),
+        aircraft.emergency ? 1 : 0,
+        aircraft.emergency ? clip(aircraft.emergency.remainingSeconds / 1800, 1) : 0,
+        restrictedAhead ? 1 - restrictedAhead.seconds / RESTRICTED_AREA_HORIZON_SECONDS : 0
     ];
 }
 
@@ -204,7 +222,8 @@ export function encodeObservation(observation, shield) {
         clip(Math.cos(wind.angle * DEG) * wind.speed / 30),
         observation.aircraft.length / MAX_AIRCRAFT,
         observation.aircraft.filter((aircraft) => aircraft.isControllable).length / MAX_AIRCRAFT,
-        clip(observation.time / 3600)
+        clip(observation.time / 3600),
+        clip(observation.aircraft.filter((aircraft) => aircraft.emergency && !aircraft.isOnGround).length / 3, 1)
     ];
 
     return {

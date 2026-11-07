@@ -3,7 +3,11 @@
  *
  * Usage:
  *   node tools/sim/run-bot.js --bot A --airport lemd --minutes 60 --seed 1
- *       [--wind 180/15] [--traffic 1.5] [--params params.json] [--verbose]
+ *       [--wind 180/15] [--traffic 1.5] [--emergencies 0.05] [--params params.json] [--verbose]
+ *       [--supervision-log log.jsonl]
+ *
+ * `--emergencies` is the probability that a flight declares an emergency (default 0.01, as the
+ * game's "rare" option; 0 turns them off). `--supervision-log` saves the audit of Bot C.
  */
 const fs = require('fs');
 const { BOTS, runEpisode } = require('./botRunner');
@@ -20,8 +24,11 @@ const minutes = Number(argValue('--minutes', 60));
 const seed = Number(argValue('--seed', 1));
 const windText = argValue('--wind', null);
 const trafficScale = Number(argValue('--traffic', 1));
+const emergencyText = argValue('--emergencies', null);
+const emergencyRate = emergencyText === null ? null : Number(emergencyText);
 const parametersFile = argValue('--params', null);
 const verbose = process.argv.includes('--verbose');
+const supervisionLog = argValue('--supervision-log', null);
 
 if (!BOTS[botName]) {
     console.error(`Unknown bot "${botName}". Bot B runs from Python: python -m openscope_bots.run --bot B`);
@@ -40,6 +47,7 @@ const { summary, violations } = runEpisode({
     minutes,
     wind,
     trafficScale,
+    emergencyRate,
     onDecision: verbose ? (decisions, observation) => {
         decisions.forEach((decision) => {
             console.log(`${Math.round(observation.time)}s ${decision.callsign} ${decision.command}  (${decision.reason})`);
@@ -57,4 +65,13 @@ if (violations.length > 0) {
         console.log(`  ${Math.round(violation.time)}s [tier ${violation.tier}] ${violation.rule}: ` +
             `${violation.callsigns.join('/')} ${violation.details}`);
     });
+}
+
+if (bot.supervision) {
+    console.log('\nSupervision:');
+    console.log(JSON.stringify(bot.supervision.getSummary(), null, 2));
+
+    if (supervisionLog) {
+        fs.writeFileSync(supervisionLog, bot.supervision.toJsonLines());
+    }
 }

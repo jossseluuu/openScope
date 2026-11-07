@@ -145,6 +145,22 @@ export const RADAR_TARGET_THEME = {
     HALO: COLOR.BLUE_MEDIUM,
 
     /**
+     * Color of the radar target, history dots and ring of an aircraft in emergency (squawk 7700)
+     *
+     * @memberof RADAR_TARGET_THEME
+     * @property EMERGENCY
+     */
+    EMERGENCY: COLOR.EMERGENCY_RED,
+
+    /**
+     * Color of the history dots of an aircraft in emergency
+     *
+     * @memberof RADAR_TARGET_THEME
+     * @property EMERGENCY_HISTORY_DOT
+     */
+    EMERGENCY_HISTORY_DOT: COLOR.EMERGENCY_RED_05,
+
+    /**
      * Whether or not the small line behind aircraft established on an
      * instrument approach should be drawn
      *

@@ -49,12 +49,13 @@
 
 [Miscellaneous Commands](#miscellaneous-commands)
 
-- [~~Abort~~](#abort)
+- [Abort](#abort)
 - [Squawk](#squawk)
 
 [System Commands](#system-commands)
 
 - [Airport](#airport)
+- [Emergency](#emergency)
 - [Pause](#pause)
 - [Timewarp](#timewarp)
 - [Tutorial](#tutorial)
@@ -214,6 +215,8 @@ as the command `hold` comes first.
 
 To clear the aircraft out of the hold, you can use the `exithold` command below,
 clear it direct to a fix, or assign it a new heading.
+
+Aircraft in emergency (squawk 7700) refuse to hold: see [emergencies](emergencias.md).
 
 _Syntax -_ `AAL123 hold [fixname] [left|l|right|r] [leg_time]min|[leg_dist]nm [radial]` ~~or `AAL123 hold`~~
 
@@ -460,22 +463,36 @@ _Syntax -_ `AAL123 sas`
 
 All other commands are listed below.
 
-### ~~Abort~~
+### Abort
 
-~~_Aliases -_ `abort`~~
+_Aliases -_ `abort`
 
-~~_Information -_ Instructs the aircraft to abort the current operation.~~
-~~Currently, only landings, taxiing, and fix navigation can be aborted.~~
+_Information -_ Cancels a takeoff. At the holding point the aircraft goes to the
+end of the queue and is ready again after 60 seconds, without using the runway.
+Lined up, it vacates the runway. On the takeoff roll it rejects the takeoff while it
+is below V1 (90 % of its rotation speed), brakes on the runway and vacates it (longer
+above 80 knots); past V1 it replies that it cannot stop. From the runway it taxis back
+to the end of the queue. An unjustified cancellation costs points, see
+[scoring](scoring.md#cancelled-takeoffs).
 
-~~_Syntax -_ `AAL123 abort`~~
+_Syntax -_ `AAL123 abort`
 
-*_This command has been deprecated_*
+### Line up
+
+_Aliases -_ `lineup`, `lu`
+
+_Information -_ The next aircraft in the queue enters the runway and waits there for
+`cto`. The runway is occupied from that moment. `cto` from the holding point still works.
+
+_Syntax -_ `AAL123 lineup`
 
 ### Squawk
 
 _Aliases -_ `sq`
 
-_Information -_ This command tells an aircraft to set its transponder code, or "squawk" a four-digit number, from `0000` to `7777`. These codes uniquely identify each plane to the air traffic controller. Certain codes have special significance, such as `0033: Paradrop in progress` or `1200: VFR`. Currently the squawk is purely cosmetic, though it will be important for features planned in the future.
+_Information -_ This command tells an aircraft to set its transponder code, or "squawk" a four-digit number, from `0000` to `7777`. These codes uniquely identify each plane to the air traffic controller. Certain codes have special significance, such as `0033: Paradrop in progress` or `1200: VFR`.
+
+The emergency codes `7500` (unlawful interference), `7600` (radio failure) and `7700` (emergency) cannot be assigned. An aircraft that declares an emergency squawks `7700` itself and keeps it; see [emergencies](emergencias.md).
 
 _Parameters -_ A four digit number. Each number must be between `0` and `7`, inclusive. For example, `0736` is a valid squawk, `9416` is not.
 
@@ -492,6 +509,18 @@ _Information -_ Changes the current airport to the one specified.
 _Parameters -_ The ICAO (four-letter) code of the desired airport.
 
 _Syntax -_ `airport [ICAO]`
+
+### Emergency
+
+_Aliases -_ `emergency`, `mayday`
+
+_Information -_ Makes an aircraft declare an emergency now, to practise handling one. Without a
+callsign, a random airborne aircraft under your control is chosen. Emergencies also happen on
+their own, see the "Emergencies (squawk 7700)" setting and [emergencies](emergencias.md).
+
+_Parameters -_ Optionally, the callsign of the aircraft.
+
+_Syntax -_ `emergency` or `emergency [callsign]`
 
 ### Pause
 

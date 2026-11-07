@@ -3,6 +3,9 @@
 Example (from bots/python):
     .venv\\Scripts\\python -m openscope_bots.evaluate --model ../runs/botB/best.pt --airports lemd eddm \\
         --seeds 101 102 103 --minutes 60
+
+    # every airport checked by tools/sim/check-airports.js, with more emergencies than in the game
+    .venv\\Scripts\\python -m openscope_bots.evaluate --airports all --seeds 101 --minutes 45 --emergencies 0.05
 """
 
 from __future__ import annotations
@@ -15,6 +18,7 @@ from typing import Any, Optional
 
 from openscope_sim import SimulatorClient
 
+from .env import resolve_airports
 from .fitness import EpisodeScore, score_summary
 from .workers import SimulatorPool
 
@@ -22,12 +26,13 @@ ROOT = Path(__file__).resolve().parents[3]
 TIER_OF_RULE = {
     "RUNWAY_INCURSION": 0, "TERRAIN_COLLISION": 0, "MINIMUM_ALTITUDE": 0,
     "RADAR_SEPARATION": 1, "FINAL_APPROACH_SEPARATION": 1, "WAKE_ARRIVAL": 1, "WAKE_DEPARTURE": 1,
-    "ARRIVAL_DEPARTURE": 1, "RUNWAY_WIND_LIMIT": 2, "GO_AROUND": 3,
+    "ARRIVAL_DEPARTURE": 1, "EMERGENCY_DEADLINE": 1, "RUNWAY_WIND_LIMIT": 2, "GO_AROUND": 3,
 }
 
 
 def run_bot_b_episode(client: SimulatorClient, model: Any, device: Any, airport: str, seed: int, minutes: float,
-                      wind: Optional[tuple[float, float]] = None) -> dict[str, Any]:
+                      wind: Optional[tuple[float, float]] = None,
+                      emergency_rate: Optional[float] = None) -> dict[str, Any]:
     """Fly one episode with the network (greedy) and summarize it like a Bot A episode."""
     import torch  # noqa: WPS433 - torch is only needed for Bot B
 
@@ -35,7 +40,10 @@ def run_bot_b_episode(client: SimulatorClient, model: Any, device: Any, airport:
     from .ppo import choose_actions
 
     env = OpenScopeEnv(EnvConfig(airports=[airport], episode_minutes=minutes), client=client)
-    observation, info = env.reset(options={"airport": airport, "seed": seed, "wind": wind, "traffic_scale": 1.0})
+    options = {"airport": airport, "seed": seed, "wind": wind, "traffic_scale": 1.0}
+    if emergency_rate is not None:
+        options["emergency_rate"] = emergency_rate
+    observation, info = env.reset(options=options)
     by_rule: dict[str, int] = {}
     commands = 0
     done = False
@@ -80,7 +88,7 @@ def evaluate(episodes: list[dict[str, Any]], workers: int, bot_a_parameters: Opt
             model, _ = load_checkpoint(model_path, device)
             results["B"] = pool.map(
                 lambda client, ep: run_bot_b_episode(client, model, device, ep["airport"], ep["seed"], ep["minutes"],
-                                                     ep.get("wind")),
+                                                     ep.get("wind"), ep.get("emergency_rate")),
                 episodes,
             )
     return results
@@ -100,30 +108,35 @@ def report(episodes: list[dict[str, Any]], results: dict[str, list[dict[str, Any
                 f"{score.landings} | {score.departures} | {score.go_arounds} | {score.commands} | {score.cost:.0f} |"
             )
     lines.append("")
-    lines.append("| Bot | Mean cost | Safety | Separation | Landings | Departures |")
-    lines.append("|---|---|---|---|---|---|")
+    lines.append("| Bot | Mean cost | Safety | Separation | Landings | Departures | Emergencies landed in time |")
+    lines.append("|---|---|---|---|---|---|---|")
     for bot, scores in totals.items():
         count = len(scores)
         lines.append(
             f"| {bot} | {sum(s.cost for s in scores) / count:.0f} | {sum(s.safety for s in scores) / count:.2f} | "
             f"{sum(s.separation for s in scores) / count:.1f} | {sum(s.landings for s in scores) / count:.1f} | "
-            f"{sum(s.departures for s in scores) / count:.1f} |"
+            f"{sum(s.departures for s in scores) / count:.1f} | "
+            f"{sum(s.emergencies_landed for s in scores)}/{sum(s.emergencies_declared for s in scores)} |"
         )
     return "\n".join(lines)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--airports", nargs="+", default=["lemd", "eddm"])
+    parser.add_argument("--airports", nargs="+", default=["lemd", "eddm"],
+                        help='ICAO codes, or "all" for every airport in bots/configs/airports.json')
     parser.add_argument("--seeds", nargs="+", type=int, default=[101, 102, 103])
     parser.add_argument("--minutes", type=float, default=60)
+    parser.add_argument("--emergencies", type=float, default=None,
+                        help="probability that a flight declares an emergency (default: the game's 0.01)")
     parser.add_argument("--model", type=Path, help="Bot B checkpoint (.pt); without it only Bot A is evaluated")
     parser.add_argument("--bot-a-params", type=Path, help="tuned Bot A parameters (JSON from tune_bot_a)")
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--out", type=Path, default=ROOT / "bots" / "runs" / "evaluation")
     args = parser.parse_args()
 
-    episodes = [{"airport": a, "seed": s, "minutes": args.minutes} for a in args.airports for s in args.seeds]
+    episodes = [{"airport": a, "seed": s, "minutes": args.minutes, "emergency_rate": args.emergencies}
+                for a in resolve_airports(args.airports) for s in args.seeds]
     parameters = json.loads(args.bot_a_params.read_text())["parameters"] if args.bot_a_params else None
     results = evaluate(episodes, args.workers, parameters, args.model)
     table = report(episodes, results)

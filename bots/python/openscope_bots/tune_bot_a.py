@@ -22,6 +22,7 @@ import numpy as np
 from openscope_sim import SimulatorClient
 
 from .cmaes import CMAES
+from .env import resolve_airports
 from .fitness import mean_cost, score_summary
 from .workers import SimulatorPool
 
@@ -64,7 +65,10 @@ def evaluate(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--airports", nargs="+", default=["lemd", "eddm"])
+    parser.add_argument("--airports", nargs="+", default=["lemd", "eddm"],
+                        help='ICAO codes, or "all" for every airport in bots/configs/airports.json')
+    parser.add_argument("--emergencies", type=float, default=None,
+                        help="probability that a flight declares an emergency (default: the game's 0.01)")
     parser.add_argument("--seeds", nargs="+", type=int, default=[1, 2])
     parser.add_argument("--minutes", type=float, default=45)
     parser.add_argument("--traffic", type=float, default=1.0, help="traffic scale")
@@ -78,8 +82,9 @@ def main() -> None:
     args = parser.parse_args()
 
     episodes = [
-        {"airport": airport, "seed": seed, "minutes": args.minutes, "traffic_scale": args.traffic}
-        for airport in args.airports
+        {"airport": airport, "seed": seed, "minutes": args.minutes, "traffic_scale": args.traffic,
+         "emergency_rate": args.emergencies}
+        for airport in resolve_airports(args.airports)
         for seed in args.seeds
     ]
     args.out.parent.mkdir(parents=True, exist_ok=True)

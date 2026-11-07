@@ -13,6 +13,7 @@ import AircraftModel from './AircraftModel';
 import AircraftCommander from './AircraftCommander';
 import AircraftConflict from './AircraftConflict';
 import RealismController from '../realism/RealismController';
+import TimeKeeper from '../engine/TimeKeeper';
 import StripViewController from './StripView/StripViewController';
 import GameController, { GAME_EVENTS } from '../game/GameController';
 import CommandParser from '../commands/parsers/CommandParser';
@@ -194,6 +195,7 @@ export default class AircraftController {
      */
     _setupHandlers() {
         this._onRemoveAircraftHandler = this.aircraft_remove.bind(this);
+        this._onEmergencyCommandHandler = this._onEmergencyCommand.bind(this);
 
         return this;
     }
@@ -211,6 +213,7 @@ export default class AircraftController {
         this._eventBus.on(EVENT.SCROLL_TO_AIRCRAFT, this._onScrollToAircraft);
         this._eventBus.on(EVENT.REMOVE_AIRCRAFT, this._onRemoveAircraftHandler);
         this._eventBus.on(EVENT.REMOVE_AIRCRAFT_CONFLICT, this.removeConflict);
+        this._eventBus.on(EVENT.EMERGENCY_COMMAND, this._onEmergencyCommandHandler);
 
         return this;
     }
@@ -228,6 +231,7 @@ export default class AircraftController {
         this._eventBus.off(EVENT.SCROLL_TO_AIRCRAFT, this._onScrollToAircraft);
         this._eventBus.off(EVENT.REMOVE_AIRCRAFT, this._onRemoveAircraftHandler);
         this._eventBus.off(EVENT.REMOVE_AIRCRAFT_CONFLICT, this.removeConflict);
+        this._eventBus.off(EVENT.EMERGENCY_COMMAND, this._onEmergencyCommandHandler);
 
         return this;
     }
@@ -446,6 +450,39 @@ export default class AircraftController {
         }
 
         this.realismController.update();
+    }
+
+    /**
+     * The player typed `emergency [callsign]`: that aircraft, or a random airborne one under
+     * our control, declares an emergency now (to practise handling them)
+     *
+     * @for AircraftController
+     * @method _onEmergencyCommand
+     * @param [callsign] {string}
+     * @private
+     */
+    _onEmergencyCommand(callsign) {
+        const { emergencies } = this.realismController;
+        const time = TimeKeeper.accumulatedDeltaTime;
+        const candidates = callsign ?
+            [this.findAircraftByCallsign(callsign)].filter(Boolean) :
+            this.aircraft.list.filter((aircraftModel) => aircraftModel.isControllable && !aircraftModel.isOnGround() &&
+                !aircraftModel.emergency);
+
+        while (candidates.length > 0) {
+            const index = Math.floor(Math.random() * candidates.length);
+
+            if (emergencies.declare(candidates[index], null, time)) {
+                return;
+            }
+
+            candidates.splice(index, 1);
+        }
+
+        UiController.ui_log(
+            callsign ? `${callsign.toUpperCase()} cannot declare an emergency now` : 'no aircraft can declare an emergency now',
+            true
+        );
     }
 
     /**

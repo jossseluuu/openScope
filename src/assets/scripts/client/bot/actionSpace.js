@@ -56,7 +56,9 @@ export const ACTION_TYPE = {
     EXIT_HOLD: 'EXIT_HOLD',
     GO_AROUND: 'GO_AROUND',
     TAXI: 'TAXI',
-    TAKEOFF: 'TAKEOFF'
+    TAKEOFF: 'TAKEOFF',
+    CANCEL_TAKEOFF: 'CANCEL_TAKEOFF',
+    LINE_UP: 'LINE_UP'
 };
 
 const buildActions = () => [
@@ -72,7 +74,9 @@ const buildActions = () => [
     { type: ACTION_TYPE.EXIT_HOLD },
     { type: ACTION_TYPE.GO_AROUND },
     { type: ACTION_TYPE.TAXI },
-    { type: ACTION_TYPE.TAKEOFF }
+    { type: ACTION_TYPE.TAKEOFF },
+    { type: ACTION_TYPE.CANCEL_TAKEOFF },
+    { type: ACTION_TYPE.LINE_UP }
 ];
 
 /**
@@ -245,7 +249,12 @@ export function getApplicableActions(aircraft, observation) {
     if (aircraft.isOnGround) {
         if (aircraft.category === 'departure') {
             mask[ACTION_INDEX.TAXI] = aircraft.flightPhase === 'APRON';
-            mask[ACTION_INDEX.TAKEOFF] = aircraft.flightPhase === 'WAITING';
+            const isReady = !(aircraft.takeoffNotBefore > observation.time);
+
+            mask[ACTION_INDEX.TAKEOFF] = (aircraft.flightPhase === 'WAITING' || aircraft.flightPhase === 'LINE_UP') && isReady;
+            mask[ACTION_INDEX.LINE_UP] = aircraft.flightPhase === 'WAITING' && isReady && Boolean(aircraft.isNextForTakeoff);
+            mask[ACTION_INDEX.CANCEL_TAKEOFF] = aircraft.flightPhase === 'WAITING' || aircraft.flightPhase === 'LINE_UP' ||
+                (aircraft.flightPhase === 'TAKEOFF' && aircraft.speed < aircraft.takeoffDecisionSpeed);
         }
 
         return mask;
@@ -277,12 +286,23 @@ export function getApplicableActions(aircraft, observation) {
     mask[ACTION_INDEX.ILS] = isArrival && hasIlsRunway(aircraft, observation);
     mask[ACTION_INDEX.PARALLEL_RUNWAY] = isArrival && !isOnApproach(aircraft) &&
         Boolean(parallelRunwayName(aircraft, observation));
-    mask[ACTION_INDEX.HOLD] = hasNextFix && !aircraft.isHoldAssigned;
+    // aircraft in emergency refuse holding patterns
+    mask[ACTION_INDEX.HOLD] = hasNextFix && !aircraft.isHoldAssigned && !aircraft.emergency;
     mask[ACTION_INDEX.EXIT_HOLD] = Boolean(aircraft.isHoldAssigned);
     mask[ACTION_INDEX.GO_AROUND] = isArrival && isOnApproach(aircraft);
 
     return mask;
 }
+
+/**
+ * Aircraft in emergency descend expeditiously (`a 60 ex`): at their full rate of descent
+ *
+ * @function isExpeditedDescent
+ * @param aircraft {object}
+ * @param altitude {number}  cleared altitude, ft
+ * @return {boolean}
+ */
+export const isExpeditedDescent = (aircraft, altitude) => Boolean(aircraft.emergency) && altitude <= aircraft.altitude - 1000;
 
 const formatHeading = (heading) => {
     const rounded = Math.round(normalizeHeading(heading));
@@ -310,7 +330,7 @@ export function actionToCommand(actionIndex, aircraft, observation) {
             return `fh ${direction} ${formatHeading(headingReference(aircraft) + action.value)}`;
         }
         case ACTION_TYPE.ALTITUDE:
-            return `a ${action.value / 100}`;
+            return `a ${action.value / 100}${isExpeditedDescent(aircraft, action.value) ? ' ex' : ''}`;
         case ACTION_TYPE.SPEED:
             return `sp ${action.value}`;
         case ACTION_TYPE.DIRECT_NEXT:
@@ -331,6 +351,10 @@ export function actionToCommand(actionIndex, aircraft, observation) {
             return `caf taxi ${departureRunwayName(aircraft, observation)} cvs`;
         case ACTION_TYPE.TAKEOFF:
             return 'cto';
+        case ACTION_TYPE.CANCEL_TAKEOFF:
+            return 'abort';
+        case ACTION_TYPE.LINE_UP:
+            return 'lineup';
         default:
             return null;
     }

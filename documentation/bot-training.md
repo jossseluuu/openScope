@@ -1,7 +1,8 @@
 # Cómo entrenar tu propio agente
 
 Guía paso a paso para entrenar el Bot B (aprendizaje por refuerzo), ajustar el
-Bot A y comparar los dos. La referencia general de los bots está en
+Bot A y comparar los dos. Cada bot tiene su documento: [Bot A](bot-a.md),
+[Bot B](bot-b.md) y [Bot C](bot-c.md). La referencia común está en
 [bot-information.md](bot-information.md).
 
 ## Índice
@@ -10,7 +11,7 @@ Bot A y comparar los dos. La referencia general de los bots está en
 2. [Preparación (una sola vez)](#preparación-una-sola-vez)
 3. [Paso 1: prueba rápida](#paso-1-prueba-rápida-5-minutos)
 4. [Paso 2: ajustar el Bot A (opcional)](#paso-2-ajustar-el-bot-a-opcional-1-3-horas)
-5. [Paso 3: entrenar el Bot B](#paso-3-entrenar-el-bot-b-6-7-horas)
+5. [Paso 3: entrenar el Bot B](#paso-3-entrenar-el-bot-b-9-10-horas)
 6. [Paso 4: comparar A contra B](#paso-4-comparar-a-contra-b)
 7. [Paso 5: usar el Bot B en el juego](#paso-5-usar-el-bot-b-en-el-juego)
 8. [Cómo seguir el entrenamiento](#cómo-seguir-el-entrenamiento)
@@ -29,8 +30,9 @@ Bot A (reglas)  ──vuela──►  datos  ──imitación──►  red neur
    (*behaviour cloning*). Después la red vuela y el Bot A corrige sus errores
    (*DAgger*).
 2. Con **PPO** la red mejora por su cuenta, por recompensa, empezando con poco
-   tráfico en LEMD y acabando con tráfico completo en LEMD y EDDM con viento
-   variable.
+   tráfico en LEMD, LEMG y EDDM y acabando con tráfico completo en **todos los
+   aeropuertos** que funcionan sin navegador, con viento variable y
+   emergencias (squawk 7700, ver [emergencias.md](emergencias.md)).
 3. El modelo se exporta a **ONNX** y se juega con él en el navegador escribiendo
    `bot b`.
 
@@ -91,15 +93,36 @@ cd bots/python
 ```
 
 Debe terminar con `done.` y dejar los ficheros en `bots/runs/quick-check/`.
+La prueba rápida usa LEMD y LEMG con un 10 % de emergencias.
+
+## Paso 1 bis: comprobar todos los aeropuertos (10-15 minutos)
+
+El entrenamiento usa por defecto **todos** los aeropuertos (`"airports": "all"`).
+La lista sale de una comprobación previa: el Bot A vuela 20 minutos en cada
+aeropuerto del juego y se quedan los que funcionan y tienen tráfico.
+
+```sh
+node tools/sim/check-airports.js --write
+```
+
+- Escribe `bots/configs/airports.json` (aeropuertos válidos y los que fallaron,
+  con el error). Ya está generado: 58 aeropuertos, ninguno falló.
+- Repítelo si añades o cambias aeropuertos.
+- Opciones: `--minutes 20`, `--seed 1`, `--emergencies 0.05`, `--jobs 7`,
+  `--airports lemd,eddm`, `--include-disabled`.
 
 ## Paso 2: ajustar el Bot A (opcional, 1-3 horas)
 
 Busca con CMA-ES los parámetros del Bot A que mejor funcionan en LEMD y EDDM.
-Conviene hacerlo antes de entrenar el B, porque el B aprende imitando al A.
+No influye en el Bot B: la imitación usa siempre los parámetros por defecto.
 
 ```sh
-.venv\Scripts\python -m openscope_bots.tune_bot_a --airports lemd eddm --seeds 1 2 --minutes 45 --generations 30 --workers 8
+.venv\Scripts\python -m openscope_bots.tune_bot_a --airports lemd lemg eddm --seeds 1 2 --minutes 45 --generations 30 --workers 8
 ```
+
+`--airports all` usa todos los aeropuertos comprobados (mucho más lento: mejor
+con `--seeds 1` y `--minutes 30`), y `--emergencies 0.05` ajusta también la
+gestión de emergencias.
 
 - Resultado: `bots/params/botA_tuned.json`, con el registro en `botA_tuned.csv`.
 - Cada generación evalúa unos 14 candidatos × 4 episodios. Con 8 procesos
@@ -112,7 +135,7 @@ Para ver el Bot A con esos parámetros:
 node tools/sim/run-bot.js --bot A --airport lemd --params bots/params/botA_tuned.json
 ```
 
-## Paso 3: entrenar el Bot B (6-7 horas)
+## Paso 3: entrenar el Bot B (9-10 horas)
 
 ```sh
 .venv\Scripts\python -m openscope_bots.train --config ../configs/default.json
@@ -122,15 +145,21 @@ Lo que ocurre, en orden:
 
 | Fase | Qué hace | Tiempo aproximado |
 |---|---|---|
-| Recogida | el Bot A vuela 20.000 decisiones | 10-15 min |
-| Imitación | 10 épocas de clonado | 1-2 min |
-| DAgger | 3 rondas: la red vuela y el Bot A corrige | 15-20 min |
-| PPO etapa 1 | 100 actualizaciones, poco tráfico en LEMD | ~45 min |
-| PPO etapa 2 | 200 actualizaciones, LEMD y EDDM, tráfico medio, algo de viento | ~1,7 h |
-| PPO etapa 3 | 400 actualizaciones, tráfico completo y viento variable | ~3,3 h |
+| Recogida | el Bot A vuela 40.000 decisiones en todos los aeropuertos | 20-30 min |
+| Imitación | 10 épocas de clonado | 2-4 min |
+| DAgger | 3 rondas de 10.000 decisiones: la red vuela y el Bot A corrige | 30-40 min |
+| PPO etapa 1 | 100 actualizaciones, poco tráfico en LEMD, LEMG y EDDM, 2-5 % de emergencias | ~45 min |
+| PPO etapa 2 | 300 actualizaciones, todos los aeropuertos, tráfico medio, algo de viento, 3-10 % de emergencias | ~2,5 h |
+| PPO etapa 3 | 600 actualizaciones, todos los aeropuertos, tráfico completo, viento variable, 1-8 % de emergencias | ~5 h |
 
-Medido en este equipo: unas 36 decisiones por segundo con 8 simuladores y unos
-30 s por actualización.
+En total, **unas 9-10 horas** (dos noches con `--resume`). Medido antes de
+ampliar a todos los aeropuertos: unas 36 decisiones por segundo con 8
+simuladores y unos 30 s por actualización; los aeropuertos grandes (KJFK,
+KATL, EGLL…) son algo más lentos.
+
+> **Hay que reentrenar.** La versión 6 de la codificación y las acciones nuevas de
+> alinearse y cancelar despegue cambian la red: un modelo anterior ya no se carga en el juego
+> ni continúa con `--resume`. Empieza desde la imitación.
 
 Todo se guarda en `bots/runs/botB/`:
 
@@ -174,8 +203,11 @@ Los dos vuelan exactamente los mismos episodios (mismas semillas, aeropuertos y
 viento):
 
 ```sh
-.venv\Scripts\python -m openscope_bots.evaluate --model ../runs/botB/best.pt --bot-a-params ../params/botA_tuned.json --airports lemd eddm --seeds 101 102 103 --minutes 60
+.venv\Scripts\python -m openscope_bots.evaluate --model ../runs/botB/best.pt --bot-a-params ../params/botA_tuned.json --airports lemd lemg eddm --seeds 101 102 103 --minutes 60 --emergencies 0.05
 ```
+
+`--airports all` compara en todos los aeropuertos comprobados. La tabla final
+incluye las emergencias aterrizadas a tiempo de cada bot.
 
 Imprime una tabla y la guarda en `bots/runs/evaluation/` (Markdown y JSON). Se
 compara en orden de prioridad: seguridad, después separación, después
@@ -243,15 +275,18 @@ Copia `bots/configs/default.json` con otro nombre, cámbialo y pásalo con
 
 - `name`: carpeta dentro de `bots/runs/`.
 - `envs`: simuladores en paralelo.
-- `env`: tipo de episodios (`airports`, `traffic_scale` como `[mínimo, máximo]`,
-  `episode_minutes`, `decision_seconds`, `random_wind_probability`,
-  `max_wind_kt`, `reward_weights`).
+- `env`: tipo de episodios (`airports` como lista o `"all"`, `traffic_scale` y
+  `emergency_rate` como `[mínimo, máximo]`, `episode_minutes`,
+  `decision_seconds`, `random_wind_probability`, `max_wind_kt`,
+  `reward_weights`).
 - `model`: tamaño de la red (`width`, `heads`, `layers`).
 - `imitation`: cantidad de datos del Bot A, épocas y rondas de DAgger.
 - `ppo`: hiperparámetros de PPO.
 - `curriculum`: etapas en orden, cada una con su número de actualizaciones y los
   cambios sobre `env`.
-- `evaluation`: episodios con los que se elige `best.pt`.
+- `evaluation`: episodios con los que se elige `best.pt` (`airports`, `seeds`,
+  `minutes`, `emergency_rate`). Por defecto LEMD, LEMG, EDDM, EGLL, KJFK y RJTT
+  con un 5 % de emergencias.
 
 ### Pesos de la recompensa
 
@@ -268,23 +303,29 @@ En `env.reward_weights` puedes cambiar cualquiera de estos valores:
 | `airspaceBust` | -5 | llegada que abandona el espacio aéreo |
 | `notClearedOnRoute` | -1 | salida que sale sin ruta |
 | `localizerAboveGlideslope` | -0.3 | interceptación por encima de la senda |
+| `emergencyLanding` | +3 | emergencia aterrizada antes de su plazo |
+| `emergencyMissed` | -6 | plazo de una emergencia incumplido (en lugar de contar como nivel 1) |
+| `emergencyTime` | -0.002 | por segundo y emergencia en el aire (aterrizarla antes siempre es mejor) |
 | `timePenalty` | -0.0005 | por segundo y avión bajo control (anima a resolver rápido) |
 | `commandPenalty` | -0.002 | por orden (anima a no sobrecargar la frecuencia) |
 
 ### Entrenar para otro aeropuerto
 
 Cualquier aeropuerto de `assets/airports/airportLoadList.json` sirve. Pon su
-código OACI en minúsculas en `env.airports` y en `evaluation.airports`. Una red
-entrenada en varios aeropuertos generaliza mejor que una entrenada en uno.
+código OACI en minúsculas en `env.airports` y en `evaluation.airports`, o
+`"all"` para todos los comprobados. Una red entrenada en varios aeropuertos
+generaliza mejor que una entrenada en uno: por eso la configuración por defecto
+usa todos.
 
 ## Cómo funciona por dentro
 
-- **Observación.** Hasta 48 aviones, ordenados con los controlables primero y
-  después por distancia, cada uno con 50 rasgos: tipo de vuelo, fase,
-  posición, altitud, rumbo, velocidad, autorizaciones, categoría de estela,
-  altitud mínima, posición respecto a su pista, siguiente fijo, ocupación de
-  pista, distancia al límite del espacio aéreo… Se añaden 5 rasgos globales:
-  viento, tráfico y hora. Código: `src/assets/scripts/client/bot/rl/featureEncoder.js`.
+- **Observación.** Hasta 48 aviones, ordenados con los que están en emergencia
+  primero, después los controlables y después por distancia, cada uno con 53
+  rasgos: tipo de vuelo, fase, posición, altitud, rumbo, velocidad,
+  autorizaciones, categoría de estela, altitud mínima, posición respecto a su
+  pista, siguiente fijo, ocupación de pista, distancia al límite del espacio
+  aéreo, emergencia (sí/no, tiempo restante, salida que regresa)… Se añaden 6
+  rasgos globales: viento, tráfico, hora y número de emergencias. Código: `src/assets/scripts/client/bot/rl/featureEncoder.js`.
 - **Acciones.** Una por avión y decisión (cada 10 s), entre 64: nada, 14 cambios
   de rumbo, 23 altitudes, 17 velocidades, directo al siguiente fijo, seguir el
   procedimiento, ILS, pista paralela, espera, salir de espera, frustrada,

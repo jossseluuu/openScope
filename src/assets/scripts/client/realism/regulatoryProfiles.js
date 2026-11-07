@@ -54,7 +54,10 @@ export const REGULATORY_PROFILE = {
         maxTailwindKt: 5,
         maxCrosswindKt: 20,
         // heading divergence that separates simultaneous departures from parallel runways (Doc 4444 6.7.3.2.3)
-        parallelDepartureDivergenceDeg: 15
+        parallelDepartureDivergenceDeg: 15,
+        // independent parallel approaches (Doc 4444 6.7.3.2.1 mode 1): runway centerlines at least 1035 m
+        // apart; once both aircraft are established on their localizers no separation is required between them
+        independentParallelApproachFt: 3400
     },
     ICAO: {
         id: 'ICAO',
@@ -66,7 +69,8 @@ export const REGULATORY_PROFILE = {
         arrivalDepartureSeparationNm: 2,
         maxTailwindKt: 5,
         maxCrosswindKt: 20,
-        parallelDepartureDivergenceDeg: 15
+        parallelDepartureDivergenceDeg: 15,
+        independentParallelApproachFt: 3400
     },
     FAA: {
         id: 'FAA',
@@ -82,7 +86,9 @@ export const REGULATORY_PROFILE = {
         maxTailwindKt: 5,
         maxCrosswindKt: 20,
         // 5-8-3: courses diverging by 15 degrees or more
-        parallelDepartureDivergenceDeg: 15
+        parallelDepartureDivergenceDeg: 15,
+        // 5-9-7: simultaneous independent approaches, runway centerlines at least 4300 ft apart
+        independentParallelApproachFt: 4300
     }
 };
 

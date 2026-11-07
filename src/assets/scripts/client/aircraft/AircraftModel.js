@@ -17,6 +17,7 @@ import TimeKeeper from '../engine/TimeKeeper';
 import UiController from '../ui/UiController';
 import EventBus from '../lib/EventBus';
 import { AIRCRAFT_EVENT } from '../constants/eventNames';
+import { TAKEOFF_CANCEL } from '../realism/takeoffCancel';
 import {
     radians_normalize,
     angle_offset
@@ -183,6 +184,15 @@ export default class AircraftModel {
         this.isTakeoffReleased = null;
 
         /**
+         * After a cancelled takeoff, game time before which the aircraft is not ready again
+         *
+         * @for AircraftModel
+         * @property takeoffNotBefore
+         * @type {number}
+         */
+        this.takeoffNotBefore = 0;
+
+        /**
          * Trasponder code
          *
          * Initially generated and assined on instantiation by the `AircraftController`
@@ -193,6 +203,28 @@ export default class AircraftModel {
          * @default 1200
          */
         this.transponderCode = 1200;
+
+        /**
+         * Emergency declared by the crew (squawk 7700), null otherwise
+         *
+         * Set by the `EmergencyController`: `{ type, description, declaredAt, deadline }`
+         *
+         * @for AircraftModel
+         * @property emergency
+         * @type {object|null}
+         * @default null
+         */
+        this.emergency = null;
+
+        /**
+         * An arrival that already left the airspace: it is scored once, even if it comes back in
+         *
+         * @for AircraftModel
+         * @property hasLeftAirspace
+         * @type {boolean}
+         * @default false
+         */
+        this.hasLeftAirspace = false;
 
         /**
          * Pilot's voice
@@ -1118,7 +1150,9 @@ export default class AircraftModel {
     isTaxiing() {
         return this.flightPhase === FLIGHT_PHASE.APRON ||
             this.flightPhase === FLIGHT_PHASE.TAXI ||
-            this.flightPhase === FLIGHT_PHASE.WAITING;
+            this.flightPhase === FLIGHT_PHASE.WAITING ||
+            this.flightPhase === FLIGHT_PHASE.LINE_UP ||
+            (this.flightPhase === FLIGHT_PHASE.REJECTED_TAKEOFF && this.speed === 0);
     }
 
     /**
@@ -1357,6 +1391,59 @@ export default class AircraftModel {
     }
 
     /**
+     * Enter the runway and wait there for the takeoff clearance. The aircraft stays first in the queue.
+     *
+     * @for AircraftModel
+     * @method lineUp
+     * @param runwayModel {RunwayModel}
+     */
+    lineUp(runwayModel) {
+        this.setFlightPhase(FLIGHT_PHASE.LINE_UP);
+        EventBus.trigger(AIRCRAFT_EVENT.LINE_UP, this, runwayModel);
+    }
+
+    /**
+     * Stop a takeoff. At the holding point the aircraft goes to the end of the queue. On the runway
+     * it brakes until the `RealismController` says it has vacated (see `finishRejectedTakeoff`).
+     *
+     * @for AircraftModel
+     * @method cancelTakeoff
+     */
+    cancelTakeoff() {
+        const runwayModel = this.fms.departureRunwayModel;
+        const speedWhenCancelled = this.speed;
+        const phaseWhenCancelled = this.flightPhase;
+
+        runwayModel.removeAircraftFromQueue(this.id);
+
+        if (phaseWhenCancelled === FLIGHT_PHASE.WAITING) {
+            runwayModel.addAircraftToQueue(this.id);
+        } else {
+            if (runwayModel.lastDepartedAircraftModel === this) {
+                runwayModel.lastDepartedAircraftModel = null;
+            }
+
+            this.setFlightPhase(FLIGHT_PHASE.REJECTED_TAKEOFF);
+        }
+
+        EventBus.trigger(AIRCRAFT_EVENT.TAKEOFF_CANCELLED, this, runwayModel, { speedWhenCancelled, phaseWhenCancelled });
+    }
+
+    /**
+     * The aircraft has vacated the runway after a cancelled takeoff: it taxis back to the end of the queue
+     *
+     * @for AircraftModel
+     * @method finishRejectedTakeoff
+     */
+    finishRejectedTakeoff() {
+        this.taxi_start = TimeKeeper.accumulatedDeltaTime;
+        this.taxi_time = this.takeoffNotBefore - this.taxi_start;
+        this.speed = 0;
+        this.fms.departureRunwayModel.addAircraftToQueue(this.id);
+        this.setFlightPhase(FLIGHT_PHASE.TAXI);
+    }
+
+    /**
      * Initialize all autopilot systems for takeoff.
      *
      * @for AircraftModel
@@ -1435,6 +1522,13 @@ export default class AircraftModel {
                 // this.target.altitude = this.altitude;
                 // this.targetHeading = this.heading;
                 // this.target.speed = 0;
+
+                break;
+
+            case FLIGHT_PHASE.REJECTED_TAKEOFF:
+                this.target.altitude = this.altitude;
+                this.targetHeading = this.heading;
+                this.target.speed = 0;
 
                 break;
 
@@ -1536,6 +1630,7 @@ export default class AircraftModel {
                 break;
             }
 
+            case FLIGHT_PHASE.LINE_UP:
             case FLIGHT_PHASE.WAITING:
                 const iAmTheNextDeparture = this.fms.departureRunwayModel.isAircraftNextInQueue(this.id);
 
@@ -2520,7 +2615,9 @@ export default class AircraftModel {
             return;
         }
 
-        if (this.speed > this.target.speed) {
+        if (this.flightPhase === FLIGHT_PHASE.REJECTED_TAKEOFF) {
+            speedChange = -TAKEOFF_CANCEL.DECELERATION_KT_PER_SECOND * TimeKeeper.getDeltaTimeForGameStateAndTimewarp();
+        } else if (this.speed > this.target.speed) {
             speedChange = -this.model.rate.decelerate * TimeKeeper.getDeltaTimeForGameStateAndTimewarp() / 2;
 
             if (this.isOnGround()) {
@@ -2632,7 +2729,10 @@ export default class AircraftModel {
 
                     // ac has just entered the area: .inside is still false, but st is true
                     if (new_inside && !area.inside) {
-                        GameController.events_recordNew(GAME_EVENTS.AIRSPACE_BUST, { callsigns: [this.callsign], details: 'entered a restricted area' });
+                        GameController.events_recordNew(
+                            GAME_EVENTS.RESTRICTED_AREA_ENTRY,
+                            { callsigns: [this.callsign], details: `entered restricted area ${area.data.name || ''}`.trim() }
+                        );
                         area.range = this.speed * 1.85 / 3.6 * 50 / 1000; // check in 50 seconds
                         // speed is kts, range is km.
                         // if a plane got into restricted area, don't check it too often

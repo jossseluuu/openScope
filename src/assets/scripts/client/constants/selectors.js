@@ -70,6 +70,7 @@ export const CLASSNAMES = {
     STRIP_VIEW_DEPARTURES_LIST: 'js-stripViewDepartures-list',
     STRIP_VIEW_FLIGHT_PLAN_ALTITUDE: '.js-stripView-flightPlanAltitude',
     STRIP_VIEW_FLIGHT_PLAN: '.js-stripView-flightPlan',
+    STRIP_VIEW_IS_EMERGENCY: 'mix-stripView_isEmergency',
     STRIP_VIEW_IS_HIDDEN: 'mix-stripView_isHidden',
     STRIP_VIEW_PREPLANNING: 'stripView-preplanning',
     STRIP_VIEW_REMARKS: '.js-stripView-remarks',

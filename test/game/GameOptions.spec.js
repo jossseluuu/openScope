@@ -13,6 +13,7 @@ ava('sets #_options on instantiation', (t) => {
     const expectedResult = [
         'theme',
         'towerController',
+        'emergencies',
         'controlMethod',
         'drawIlsDistanceSeparator',
         'ptlLengths',

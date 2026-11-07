@@ -84,7 +84,11 @@ ava('aliases, timewarp parser and zeroOrOneArgumentValidator used by timewarp', 
     test_aliases(t, AIRCRAFT_COMMAND_MAP, 'timewarp', ['timewarp', 'tw']);
 });
 
-ava('make sure we test all 10 system commands', t => {
+ava('aliases of emergency', t => {
+    test_aliases(t, AIRCRAFT_COMMAND_MAP, 'emergency', ['emergency', 'mayday']);
+});
+
+ava('make sure we test all 11 system commands', t => {
     t.true(Object.values(AIRCRAFT_COMMAND_MAP)
-        .filter(val => val.isSystemCommand).length === 10);
+        .filter(val => val.isSystemCommand).length === 11);
 });

@@ -124,6 +124,12 @@ export default class ScoreController {
      * @private
      */
     _onAirspaceExitForArrival(aircraftModel) {
+        // an aircraft that wanders out and back in along the edge of the airspace is lost once
+        if (aircraftModel.hasLeftAirspace) {
+            return;
+        }
+
+        aircraftModel.hasLeftAirspace = true;
         aircraftModel.radioCall('leaving radar coverage as arrival', AIRPORT_CONTROL_POSITION_NAME.APPROACH, true);
         GameController.events_recordNew(
             GAME_EVENTS.AIRSPACE_BUST,

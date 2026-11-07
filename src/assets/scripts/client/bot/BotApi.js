@@ -7,6 +7,7 @@ import { MCP_HEADING_MODE } from '../aircraft/ModeControl/modeControlConstants';
 import { FLIGHT_PHASE } from '../constants/aircraftConstants';
 import { WAKE_SCHEME } from '../realism/regulatoryProfiles';
 import { getWakeCategory } from '../realism/wakeTurbulence';
+import { takeoffDecisionSpeed } from '../realism/takeoffCancel';
 import { km, nm, radiansToDegrees } from '../utilities/unitConverters';
 
 /**
@@ -205,6 +206,7 @@ export default class BotApi {
             arrivalRunway: airportModel.arrivalRunwayModel?.name ?? null,
             departureRunway: airportModel.departureRunwayModel?.name ?? null,
             airspace: this._getAirspaceObservation(airportModel),
+            restrictedAreas: this._getRestrictedAreasObservation(airportModel),
             runways: _map(airportModel.runways, ([runwayModel, oppositeRunwayModel]) => [
                 this._buildRunwayObservation(runwayModel),
                 this._buildRunwayObservation(oppositeRunwayModel)
@@ -237,6 +239,31 @@ export default class BotApi {
         }
 
         return this._airspaceObservation.airspace;
+    }
+
+    /**
+     * Restricted areas: aircraft at or below `height` (null: at any altitude) may not enter them.
+     * Built once per airport, like the airspace.
+     *
+     * @for BotApi
+     * @method _getRestrictedAreasObservation
+     * @param airportModel {AirportModel}
+     * @return {array<object>}
+     * @private
+     */
+    _getRestrictedAreasObservation(airportModel) {
+        if (!this._restrictedObservation || this._restrictedObservation.airportModel !== airportModel) {
+            this._restrictedObservation = {
+                airportModel,
+                areas: _map(airportModel.restricted_areas, (area) => ({
+                    name: area.name || '',
+                    height: Number.isFinite(area.height) ? area.height : null,
+                    polygon: _map(area.poly, ([x, y]) => ({ x: round(nm(x)), y: round(nm(y)) }))
+                }))
+            };
+        }
+
+        return this._restrictedObservation.areas;
     }
 
     /**
@@ -411,6 +438,27 @@ export default class BotApi {
     }
 
     /**
+     * Highest ceiling of the controlled airspace at a position (null outside it)
+     *
+     * @for BotApi
+     * @method _getAirspaceCeiling
+     * @param position {array<number>} relative position, km
+     * @return {number|null} ft
+     * @private
+     */
+    _getAirspaceCeiling(position) {
+        let highest = null;
+
+        AirportController.airport_get().airspace.forEach((airspaceModel) => {
+            if ((highest === null || airspaceModel.ceiling > highest) && airspaceModel.isPointInside2D(position)) {
+                highest = airspaceModel.ceiling;
+            }
+        });
+
+        return highest;
+    }
+
+    /**
      * Highest value of `getValue` on the present track over the next `MVA_LOOKAHEAD_SECONDS`
      *
      * @for BotApi
@@ -438,6 +486,48 @@ export default class BotApi {
         }
 
         return highest;
+    }
+
+    /**
+     * Lowest airspace ceiling on the present track over the next `MVA_LOOKAHEAD_SECONDS`
+     *
+     * @for BotApi
+     * @method _getLowestCeilingAhead
+     * @param aircraftModel {AircraftModel}
+     * @return {number|null} ft
+     * @private
+     */
+    _getLowestCeilingAhead(aircraftModel) {
+        const lowest = this._getHighestAhead(aircraftModel, (position) => {
+            const ceiling = this._getAirspaceCeiling(position);
+
+            return ceiling === null ? null : -ceiling;
+        });
+
+        return lowest === null ? null : -lowest;
+    }
+
+    /**
+     * @for BotApi
+     * @method _buildEmergencyObservation
+     * @param aircraftModel {AircraftModel}
+     * @return {object|null}
+     * @private
+     */
+    _buildEmergencyObservation(aircraftModel) {
+        const { emergency } = aircraftModel;
+
+        if (!emergency) {
+            return null;
+        }
+
+        return {
+            type: emergency.type,
+            description: emergency.description,
+            declaredAt: round(emergency.declaredAt),
+            deadline: round(emergency.deadline),
+            remainingSeconds: round(Math.max(0, emergency.deadline - TimeKeeper.accumulatedDeltaTime))
+        };
     }
 
     /**
@@ -499,9 +589,20 @@ export default class BotApi {
             airspaceFloorAhead: this._getHighestAhead(aircraftModel, (position) => this._getAirspaceFloor(position)),
             airspaceFloorAround: isManeuverable ?
                 this._getHighestAround(aircraftModel, (position) => this._getAirspaceFloor(position)) : null,
+            // ceiling of the controlled airspace here and the lowest one on the track ahead (null outside it):
+            // above it an arrival leaves the airspace, like below the floor
+            airspaceCeiling: this._getAirspaceCeiling(aircraftModel.relativePosition),
+            airspaceCeilingAhead: this._getLowestCeilingAhead(aircraftModel),
             warning: Boolean(aircraftModel.warning),
+            squawk: String(aircraftModel.transponderCode),
+            // squawk 7700: must land with priority before `deadline`
+            emergency: this._buildEmergencyObservation(aircraftModel),
             conflicts: Object.keys(aircraftModel.conflicts),
             speedLimits: { min: model.speed.min, landing: model.speed.landing, max: model.speed.max },
+            takeoffDecisionSpeed: round(takeoffDecisionSpeed(model.speed)),
+            takeoffNotBefore: round(aircraftModel.takeoffNotBefore),
+            isNextForTakeoff: Boolean(fms.departureRunwayModel) &&
+                fms.departureRunwayModel.isAircraftNextInQueue(aircraftModel.id),
             ceiling: model.ceiling,
             route: fms.getRouteString(),
             waypoints: this._buildWaypointsObservation(fms.waypoints),
@@ -512,6 +613,7 @@ export default class BotApi {
             clearance: {
                 altitudeMode: mcp.altitudeMode,
                 altitude: mcp.altitude,
+                expedite: Boolean(mcp.shouldExpediteAltitudeChange),
                 headingMode: mcp.headingMode,
                 heading: mcp.headingMode === MCP_HEADING_MODE.HOLD ? toDegrees(mcp.heading) : null,
                 speedMode: mcp.speedMode,

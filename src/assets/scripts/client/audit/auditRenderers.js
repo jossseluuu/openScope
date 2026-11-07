@@ -1,3 +1,4 @@
+import { AGENT_LABEL } from '../bot/botC/agents';
 import { OUTCOME } from './auditConstants';
 
 /**
@@ -17,6 +18,7 @@ const MAX_ROWS = 300;
 export const TABS = [
     { id: 'aircraft', label: 'Aeronaves' },
     { id: 'decisions', label: 'Decisiones' },
+    { id: 'supervision', label: 'Supervisión' },
     { id: 'score', label: 'Puntuación' },
     { id: 'spawns', label: 'Spawns' },
     { id: 'summary', label: 'Resumen' }
@@ -180,6 +182,49 @@ function renderSpawns(snapshot) {
         table(['Hora', 'Resultado', 'Aeronave', 'Ruta', 'Altitud', 'Motivo'], rows)}`;
 }
 
+function renderSupervision(snapshot) {
+    const { supervision } = snapshot;
+
+    if (!supervision) {
+        return '<p class="audit-empty">La supervisión funciona con el Bot C: escribe <code>bot c</code> en la partida.</p>';
+    }
+
+    const { summary, entries, incidents } = supervision;
+    const totals = Object.keys(summary.byAgent).map((agent) => {
+        const counts = summary.byAgent[agent];
+
+        return `<tr><td>${escape(AGENT_LABEL[agent] || agent)}</td><td>${counts.BUENA}</td><td>${counts.DUDOSA}</td>
+            <td class="audit-bad">${counts.MALA}</td></tr>`;
+    });
+    const instructions = entries.slice().reverse().slice(0, MAX_ROWS).map((entry) => `<tr>
+        <td>${clock(entry.time)}</td>
+        <td>${escape(AGENT_LABEL[entry.agent] || entry.agent)}</td>
+        <td>${escape(entry.callsign)}</td>
+        <td>${escape(entry.command)}</td>
+        <td class="${entry.verdict === 'MALA' ? 'audit-bad' : ''}">${escape(entry.verdict)}</td>
+        <td class="audit-dim">${escape(entry.agentReason)}</td>
+        <td>${entry.findings.map((finding) => escape(finding.text)).join('; ')}${
+    entry.consequence ? ` <span class="audit-bad">→ ${escape(entry.consequence)}</span>` : ''}</td>
+    </tr>`);
+    const incidentRows = incidents.slice().reverse().slice(0, MAX_ROWS).map((incident) => `<tr>
+        <td>${clock(incident.time)}</td>
+        <td>${escape(incident.rule)}</td>
+        <td>${escape(incident.callsigns.join(' / '))}</td>
+        <td class="audit-bad">${escape(incident.category)}</td>
+        <td>${escape(AGENT_LABEL[incident.responsible] || incident.responsible)}</td>
+        <td>${escape(incident.explanation)}</td>
+    </tr>`);
+
+    return `<p class="audit-caption">Instrucciones por agente. Alertas: ${summary.alertsRaised}, traspasos: ${summary.handoffs},
+        órdenes fuera de competencia: ${summary.authorityBreaches}</p>${
+    table(['Agente', 'Buenas', 'Dudosas', 'Malas'], totals)
+}<p class="audit-caption">Incidentes</p>${incidentRows.length ?
+    table(['Hora', 'Regla', 'Aeronaves', 'Causa', 'Responsable', 'Explicación'], incidentRows) :
+    '<p class="audit-empty">Ninguno.</p>'
+}<p class="audit-caption">Instrucciones auditadas</p>${
+    table(['Hora', 'Agente', 'Aeronave', 'Orden', 'Juicio', 'Motivo del agente', 'Por qué'], instructions)}`;
+}
+
 function renderSummary(snapshot) {
     const { summary } = snapshot;
     const metrics = summary.metrics || {};
@@ -217,6 +262,7 @@ export function renderTab(tab, snapshot) {
     const renderers = {
         aircraft: renderAircraft,
         decisions: renderDecisions,
+        supervision: renderSupervision,
         score: renderScore,
         spawns: renderSpawns,
         summary: renderSummary

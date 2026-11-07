@@ -14,6 +14,7 @@ export const GAME_OPTION_NAMES = {
     CHAT_LOG_DURATION: 'chatLogDuration',
     DRAW_PROJECTED_PATHS: 'drawProjectedPaths',
     DRAW_ILS_DISTANCE_SEPARATOR: 'drawIlsDistanceSeparator',
+    EMERGENCIES: 'emergencies',
     MEASURE_TOOL_PATH: 'measureToolPath',
     MOUSE_CLICK_DRAG: 'mouseClickDrag',
     PROJECTED_TRACK_LINE_LENGTHS: 'ptlLengths',
@@ -68,6 +69,32 @@ export const GAME_OPTION_VALUES = [
             {
                 displayLabel: 'User Controlled',
                 value: 'USER'
+            }
+        ]
+    },
+    {
+        name: GAME_OPTION_NAMES.EMERGENCIES,
+        defaultValue: 'rare',
+        description: 'Emergencies (squawk 7700)',
+        help: 'Probability that a flight declares an emergency and must be landed with priority before a deadline',
+        type: 'select',
+        onChangeEventHandler: null,
+        optionList: [
+            {
+                displayLabel: 'Off',
+                value: 'off'
+            },
+            {
+                displayLabel: 'Rare (1% of flights)',
+                value: 'rare'
+            },
+            {
+                displayLabel: 'Occasional (3%)',
+                value: 'occasional'
+            },
+            {
+                displayLabel: 'Frequent (10%, practice)',
+                value: 'frequent'
             }
         ]
     },

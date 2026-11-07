@@ -74,6 +74,11 @@ export const AIRCRAFT_COMMAND_MAP = {
         functionName: 'runCross',
         isSystemCommand: false
     },
+    emergency: {
+        aliases: ['emergency', 'mayday'],
+        functionName: '',
+        isSystemCommand: true
+    },
     delete: {
         aliases: ['del', 'delete', 'kill'],
         functionName: 'runDelete',
@@ -212,6 +217,11 @@ export const AIRCRAFT_COMMAND_MAP = {
     star: {
         aliases: ['star'],
         functionName: 'runSTAR',
+        isSystemCommand: false
+    },
+    lineUp: {
+        aliases: ['lineup', 'lu'],
+        functionName: 'runLineUp',
         isSystemCommand: false
     },
     takeoff: {

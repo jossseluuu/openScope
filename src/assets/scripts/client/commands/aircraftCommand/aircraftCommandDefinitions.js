@@ -91,6 +91,10 @@ const ZERO_ARG_AIRCRAFT_COMMANDS = {
         validate: singleArgumentValidator,
         parse: noop
     },
+    emergency: {
+        validate: zeroOrOneArgumentValidator,
+        parse: noop
+    },
 
     // Aircraft commands
     abort: {
@@ -110,6 +114,10 @@ const ZERO_ARG_AIRCRAFT_COMMANDS = {
         parse: noop
     },
     goAround: {
+        validate: zeroArgumentsValidator,
+        parse: noop
+    },
+    lineUp: {
         validate: zeroArgumentsValidator,
         parse: noop
     },

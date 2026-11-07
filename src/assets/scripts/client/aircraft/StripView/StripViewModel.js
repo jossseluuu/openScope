@@ -781,6 +781,15 @@ export default class StripViewModel extends BaseModel {
             SELECTORS.CLASSNAMES.STRIP_VIEW_PREPLANNING,
             !this._runwayInformation.hasRunwayAssigned
         );
+        this.$element.toggleClass(SELECTORS.CLASSNAMES.STRIP_VIEW_IS_EMERGENCY, Boolean(aircraftModel.emergency));
+
+        const categoryClassName = this._buildClassnameForFlightCategory(aircraftModel);
+
+        if (categoryClassName !== this._categoryClassName) {
+            this.$element.removeClass(this._categoryClassName);
+            this.$element.addClass(categoryClassName);
+            this._categoryClassName = categoryClassName;
+        }
 
         return this._redraw();
     }

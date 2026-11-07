@@ -72,12 +72,29 @@ At airports with terrain data, you lose 150 points each time an aircraft
 flying a heading you assigned descends more than 100 ft below the minimum
 vectoring altitude (1000 ft above the terrain within 3 nm).
 
+## Emergencies
+
+Now and then a flight declares an emergency (squawk 7700) and is drawn in red;
+how often is set with the "Emergencies (squawk 7700)" setting (1% of flights by
+default). It must land before its deadline, at least 15 to 25 minutes depending
+on the kind of emergency, more when it declares far away. You earn 50 points
+(on top of the 10 for the landing) when it lands in time, and lose 300 points
+when the deadline passes with the aircraft still airborne or when it leaves the
+airspace. See [emergencies](emergencias.md).
+
 ## Go-arounds
 
 You lose 50 points for each go-around, whether you instructed it or the
 pilot had to: aircraft go around when they are not stable at 1000 ft above
 the runway (not established, or more than 20 kt above their landing speed) or
 when the runway is occupied at 200 ft.
+
+## Cancelled takeoffs
+
+The `abort` command cancels a takeoff. You lose 50 points when nothing justified
+it: the runway was free, the wake interval had passed, no arrival was closer than
+the arrival-departure separation plus 1 nm, and no aircraft in emergency was
+landing on that runway within 4 minutes. A justified cancellation scores nothing.
 
 ## Windy takeoffs
 

@@ -9,8 +9,10 @@ exact same logic.
 
 from __future__ import annotations
 
+import json
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Optional, Union
 
 import gymnasium as gym
@@ -19,13 +21,29 @@ from gymnasium import spaces
 
 from openscope_sim import SimulatorClient
 
+# airports where Bot A runs headless, written by tools/sim/check-airports.js --write
+AIRPORTS_FILE = Path(__file__).resolve().parents[2] / "configs" / "airports.json"
+
+
+def resolve_airports(airports: Union[str, list[str]]) -> list[str]:
+    """`"all"` (or `["all"]`) means every airport checked by tools/sim/check-airports.js."""
+    if airports == "all" or airports == ["all"]:
+        if not AIRPORTS_FILE.exists():
+            raise FileNotFoundError(f"{AIRPORTS_FILE} not found: run node tools/sim/check-airports.js --write")
+        return list(json.loads(AIRPORTS_FILE.read_text())["airports"])
+    return list(airports)
+
 
 @dataclass
 class EnvConfig:
-    """What kind of episodes to fly. Lists are sampled uniformly at every reset."""
+    """What kind of episodes to fly. Lists are sampled uniformly at every reset; ranges
+    (traffic_scale, emergency_rate) uniformly between their two values."""
 
     airports: list[str] = field(default_factory=lambda: ["lemd", "eddm"])
     traffic_scale: tuple[float, float] = (1.0, 1.0)
+    # probability that a flight declares an emergency (squawk 7700); the game's default is 0.01,
+    # training uses more so the network sees enough of them
+    emergency_rate: tuple[float, float] = (0.01, 0.01)
     episode_minutes: float = 60
     decision_seconds: float = 10
     # probability of a random surface wind instead of the airport's default
@@ -37,8 +55,11 @@ class EnvConfig:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "EnvConfig":
         known = {key: value for key, value in data.items() if key in cls.__dataclass_fields__}
-        if "traffic_scale" in known and not isinstance(known["traffic_scale"], (list, tuple)):
-            known["traffic_scale"] = (known["traffic_scale"], known["traffic_scale"])
+        for key in ("traffic_scale", "emergency_rate"):
+            if key in known and not isinstance(known[key], (list, tuple)):
+                known[key] = (known[key], known[key])
+        if "airports" in known:
+            known["airports"] = resolve_airports(known["airports"])
         return cls(**known)
 
 
@@ -74,6 +95,7 @@ class OpenScopeEnv(gym.Env):
         airport = options.get("airport") or cfg.airports[int(rng.integers(len(cfg.airports)))]
         episode_seed = int(options.get("seed", rng.integers(1, 2**31 - 1)))
         low, high = cfg.traffic_scale
+        emergency_low, emergency_high = cfg.emergency_rate
         wind = options.get("wind")
         if wind is None and rng.random() < cfg.random_wind_probability:
             wind = (float(rng.uniform(0, 360)), float(rng.uniform(0, cfg.max_wind_kt)))
@@ -83,6 +105,7 @@ class OpenScopeEnv(gym.Env):
             seed=episode_seed,
             wind=wind,
             trafficScale=float(options.get("traffic_scale", rng.uniform(low, high))),
+            emergencyRate=float(options.get("emergency_rate", rng.uniform(emergency_low, emergency_high))),
             decisionSeconds=cfg.decision_seconds,
             episodeSeconds=cfg.episode_minutes * 60,
             withExpert=bool(options.get("with_expert", cfg.with_expert)),

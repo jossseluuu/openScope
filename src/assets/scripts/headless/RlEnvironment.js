@@ -51,6 +51,7 @@ export default class RlEnvironment {
      * @param options.seed {number}
      * @param [options.wind] {object}
      * @param [options.trafficScale] {number}
+     * @param [options.emergencyRate] {number|null}  probability per flight of an emergency
      * @param [options.decisionSeconds] {number}   simulated time between decisions
      * @param [options.episodeSeconds] {number}
      * @param [options.withExpert] {boolean}       compute Bot A's labels
@@ -67,11 +68,13 @@ export default class RlEnvironment {
             rewardWeights: {},
             trafficScale: 1,
             wind: null,
+            emergencyRate: null,
             ...options
         };
         this._observation = this.simulator.reset(this.options.airport, this.options.seed, {
             wind: this.options.wind,
-            trafficScale: this.options.trafficScale
+            trafficScale: this.options.trafficScale,
+            emergencyRate: this.options.emergencyRate
         });
         this.expert = this.options.withExpert ? new BotA(this.options.expertParameters) : null;
         this._episodeReturn = 0;
@@ -127,6 +130,7 @@ export default class RlEnvironment {
             violations: next.violations,
             scoreEvents: next.scoreEvents,
             controllableCount: next.aircraft.filter((aircraft) => aircraft.isControllable).length,
+            emergencyCount: next.aircraft.filter((aircraft) => aircraft.emergency && !aircraft.isOnGround).length,
             elapsedSeconds: next.time - previousTime,
             commandCount
         }, this.options.rewardWeights);

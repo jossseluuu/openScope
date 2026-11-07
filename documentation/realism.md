@@ -18,6 +18,10 @@ with `regulatoryProfile` in the airport file:
 
 All profiles limit runway use to 5 kt of tailwind and 20 kt of crosswind.
 
+Parallel runways whose centerlines are at least 1035 m (3400 ft) apart, 4300 ft
+with the `FAA` profile, are flown as independent parallel approaches (Doc 4444
+6.7.3.2 mode 1; 7110.65 5-9-7).
+
 ## Rules
 
 Rules are ordered in tiers. A lower tier always takes precedence: no gain in a
@@ -33,6 +37,7 @@ higher tier makes up for a violation in a lower one.
 | 1 Separation | `WAKE_ARRIVAL` | less than the wake distance on the same final | Doc 4444 8.7.3.4; RECAT-EU; 7110.65 5-5-4 |
 | 1 Separation | `WAKE_DEPARTURE` | less than the wake time between departures | Doc 4444 5.8.3; RECAT-EU; 7110.65 3-9-6 |
 | 1 Separation | `ARRIVAL_DEPARTURE` | a takeoff roll with an arrival inside 2 nm | Doc 4444 7.11.3; 7110.65 3-9-6 |
+| 1 Separation | `EMERGENCY_DEADLINE` | an aircraft in emergency not landed before its deadline, or leaving the airspace | Doc 4444 15.1.1-15.1.3; 7110.65 10-2-5 |
 | 2 Procedure | `RUNWAY_WIND_LIMIT` | a runway used beyond its wind limits | Doc 4444 7.2.3 |
 | 3 Efficiency | `GO_AROUND` | a missed approach | stabilized approach criteria |
 
@@ -40,9 +45,13 @@ Details:
 
 - **Radar separation** is checked between aircraft under our control, both at
   least 1000 ft above the airport (below that the runway rules apply). It does
-  not apply to aircraft established on approaches to different parallel
-  runways that keep the dependent-approach minimum, nor to departures from
-  parallel runways on headings diverging by 15 degrees or more and moving apart.
+  not apply to aircraft established on approaches to different independent
+  parallel runways (see above), nor between aircraft established on dependent
+  parallel approaches that keep the diagonal minimum of their runway spacing
+  (7110.65 5-9-6), nor to departures from parallel runways on headings
+  diverging by 15 degrees or more and moving apart. Until they are established,
+  aircraft turning onto adjacent localizers need the radar or the vertical
+  minimum like everyone else.
   A loss counts once, however long it lasts. Pairs that enter our airspace
   already too close get 60 seconds to be separated.
 - **Wake turbulence** treats parallel runways less than 2500 ft apart as one
@@ -70,6 +79,15 @@ Details:
   by 85% to 125%. Any aircraft at the holding point can be cleared for takeoff.
 - The runway configuration is chosen from the wind when the airport loads, see
   `runwayConfigurations` in the [airport format](airport-format.md).
+
+## Emergencies
+
+Aircraft declare emergencies (squawk 7700) with the probability of the game
+option (1% of flights by default), arrivals once under our control and
+departures right after takeoff (they return to land). They must land before a
+deadline; landing in time scores `EMERGENCY_LANDING`, missing it is the tier 1
+rule `EMERGENCY_DEADLINE`. Aircraft in emergency refuse holding patterns and
+keep squawking 7700. The details, in Spanish, are in [emergencias.md](emergencias.md).
 
 ## Metrics
 

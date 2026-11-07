@@ -209,6 +209,8 @@ export default class AuditController {
             ledger: this.ledger.slice(-SNAPSHOT_ROWS),
             spawns: this.spawns.slice(-SNAPSHOT_ROWS),
             violations: this.violations.slice(-SNAPSHOT_ROWS),
+            supervision: this._botController && this._botController.supervision ?
+                this._botController.supervision.getSnapshot(SNAPSHOT_ROWS) : null,
             summary: this.getSummary(),
             activeBot: this._botController ? this._botController.activeBot : null
         };
@@ -255,7 +257,12 @@ export default class AuditController {
             });
         });
 
-        return lines.map((line) => JSON.stringify(line)).join('\n');
+        const supervision = this._botController ? this._botController.supervision : null;
+
+        return [
+            ...lines.map((line) => JSON.stringify(line)),
+            ...(supervision ? [supervision.toJsonLines()] : [])
+        ].join('\n');
     }
 
     /**

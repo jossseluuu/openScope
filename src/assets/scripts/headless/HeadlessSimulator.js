@@ -96,9 +96,11 @@ export default class HeadlessSimulator {
      * @param [options.wind] {object}  `{ angle, speed }` surface wind (degrees, knots) replacing the
      *                                  airport's default; the runway configuration is chosen from it
      * @param [options.trafficScale] {number}  multiplies the rate of every spawn pattern
+     * @param [options.emergencyRate] {number|null}  probability that a flight declares an emergency
+     *                                               (null: the game option's default, 1%)
      * @return {object} observation
      */
-    reset(airportIcao, seed = 0, { wind = null, trafficScale = 1 } = {}) {
+    reset(airportIcao, seed = 0, { wind = null, trafficScale = 1, emergencyRate = null } = {}) {
         const icao = airportIcao.toLowerCase();
         const airportJson = this._loadAirportJson(icao);
 
@@ -139,6 +141,9 @@ export default class HeadlessSimulator {
             scopeModel
         );
         this._scoreController = new ScoreController(this.aircraftController);
+        // emergencies draw from their own generator, seeded with the episode, so they are
+        // reproducible and do not change the rest of the traffic
+        this.aircraftController.realismController.emergencies.configure({ seed: seed + 7700, rate: emergencyRate });
         window.aircraftController = this.aircraftController;
         SpawnScheduler.init(this.aircraftController);
 

@@ -1,5 +1,5 @@
 import {
-    ACTIONS, ACTION_INDEX, ACTION_TYPE, ALTITUDES, HEADING_CHANGES, headingReference
+    ACTIONS, ACTION_INDEX, ACTION_TYPE, ALTITUDES, HEADING_CHANGES, headingReference, isExpeditedDescent, speedAction
 } from '../actionSpace';
 import {
     bearing, distanceInsideAirspace, headingDifference, headingVector, normalizeHeading
@@ -12,8 +12,14 @@ import {
 const PREDICTION_STEP_SECONDS = 10;
 const CLIMB_FEET_PER_SECOND = 2000 / 60;
 const DESCENT_FEET_PER_SECOND = 1800 / 60;
+// expedited descents (aircraft in emergency) use the full rate of descent
+const EXPEDITED_DESCENT_FEET_PER_SECOND = 2600 / 60;
 const FINAL_DESCENT_FEET_PER_SECOND = 750 / 60;
 const VERTICAL_TOLERANCE_FT = 50;
+// speed change of each aircraft when one speeds up and the other slows down to solve a conflict
+const COORDINATED_SPEED_CHANGE_KT = 20;
+// the larger of the opposite turns tried when the usual one is not enough
+const COORDINATED_WIDE_TURN_DEGREES = 60;
 
 const isOnFinal = (aircraft) => (aircraft.flightPhase === 'APPROACH' || aircraft.flightPhase === 'LANDING') &&
     aircraft.hasApproachClearance;
@@ -145,7 +151,9 @@ export function predictState(aircraft, seconds) {
     } else if (Number.isFinite(target) && target > altitude) {
         altitude = Math.min(target, altitude + CLIMB_FEET_PER_SECOND * verticalSeconds);
     } else if (Number.isFinite(target) && target < altitude) {
-        altitude = Math.max(target, altitude - DESCENT_FEET_PER_SECOND * verticalSeconds);
+        const rate = aircraft.clearance.expedite ? EXPEDITED_DESCENT_FEET_PER_SECOND : DESCENT_FEET_PER_SECOND;
+
+        altitude = Math.max(target, altitude - rate * verticalSeconds);
     }
 
     return {
@@ -207,7 +215,7 @@ const isBelowTerrainAround = (aircraft) => Number.isFinite(aircraft.minimumVecto
 
 /**
  * What-if copy of an aircraft that has just received an action, as far as the
- * short-term prediction can tell: a new cleared altitude, or a new track
+ * short-term prediction can tell: a new cleared altitude, a new track or a new speed
  *
  * @function applyAction
  * @param aircraft {object}
@@ -218,11 +226,21 @@ export function applyAction(aircraft, action) {
     const definition = ACTIONS[action];
 
     if (definition.type === ACTION_TYPE.ALTITUDE) {
-        return { ...aircraft, clearance: { ...aircraft.clearance, altitude: definition.value } };
+        // the altitude mode is kept on purpose: predicting the change of level straight away (HOLD)
+        // instead of along the procedure's restrictions made the resolutions measurably worse
+        // (24 episodes of Bot A: score -15335 against -9635)
+        return {
+            ...aircraft,
+            clearance: { ...aircraft.clearance, altitude: definition.value, expedite: isExpeditedDescent(aircraft, definition.value) }
+        };
     }
 
     if (definition.type === ACTION_TYPE.HEADING) {
         return { ...aircraft, groundTrack: normalizeHeading(headingReference(aircraft) + definition.value) };
+    }
+
+    if (definition.type === ACTION_TYPE.SPEED && aircraft.speed > 0) {
+        return { ...aircraft, groundSpeed: aircraft.groundSpeed * definition.value / aircraft.speed };
     }
 
     return aircraft;
@@ -259,7 +277,8 @@ const PARALLEL_FINAL_BUFFER_NM = 0.5;
 /**
  * Horizontal minimum between aircraft established on approaches to two parallel
  * runways, by the distance between the centerlines, as the realism layer checks it
- * (dependent approaches, FAA JO 7110.65 5-9-6)
+ * (dependent approaches, FAA JO 7110.65 5-9-6; none for independent approaches, ICAO Doc 4444
+ * 6.7.3.2 and FAA JO 7110.65 5-9-7, when the centerlines are far enough apart)
  *
  * @function dependentApproachMinimumNm
  * @param firstName {string}
@@ -268,7 +287,7 @@ const PARALLEL_FINAL_BUFFER_NM = 0.5;
  * @return {number}
  */
 export function dependentApproachMinimumNm(firstName, secondName, observation) {
-    const { radarNm } = observation.realism.separationMinima;
+    const { radarNm, independentParallelApproachFt = Infinity } = observation.realism.separationMinima;
     const runways = [].concat(...observation.airport.runways);
     const first = runways.find((runway) => runway.name === firstName);
     const second = runways.find((runway) => runway.name === secondName);
@@ -281,6 +300,11 @@ export function dependentApproachMinimumNm(firstName, secondName, observation) {
     const dx = second.threshold.x - first.threshold.x;
     const dy = second.threshold.y - first.threshold.y;
     const centerlinesFt = Math.abs(dx * unit.y - dy * unit.x) * 6076;
+
+    // independent parallel approaches: no minimum once both are established
+    if (centerlinesFt >= independentParallelApproachFt) {
+        return 0;
+    }
 
     if (centerlinesFt >= 2500 && centerlinesFt <= 3600) {
         return 1;
@@ -342,6 +366,51 @@ export function predictLoss(a, b, threshold, verticalFt, horizonSeconds) {
 }
 
 /**
+ * Seconds until `aircraft` (possibly a what-if copy) conflicts with any other aircraft
+ *
+ * @function earliestPredictedConflict
+ * @param aircraft {object}
+ * @param observation {object}
+ * @param parameters {object}
+ * @param [isIgnoredPair] {function}  `(a, b) => boolean`, pairs separated by other means
+ * @param [othersMayLevelOff] {boolean} also check the others staying at their present altitude
+ * @return {number|null} null when there is no conflict within the horizon
+ */
+export function earliestPredictedConflict(aircraft, observation, parameters, isIgnoredPair = () => false,
+    othersMayLevelOff = false) {
+    const { elevation } = observation.airport;
+    const { verticalFt } = observation.realism.separationMinima;
+    const lossWith = (other) => predictLoss(
+        aircraft,
+        other,
+        pairThresholdNm(aircraft, other, observation, parameters.conflictBufferNm),
+        verticalFt,
+        parameters.conflictHorizonSeconds
+    );
+    const levelledOff = (other) => ({
+        ...other,
+        clearance: { ...other.clearance, altitudeMode: 'HOLD', altitude: other.altitude }
+    });
+    let earliest = null;
+
+    observation.aircraft.forEach((other) => {
+        if (other.callsign === aircraft.callsign || other.isOnGround || other.altitude - elevation <= 800 ||
+            isExemptPair(aircraft, other) || isIgnoredPair(aircraft, other)) {
+            return;
+        }
+
+        const times = [lossWith(other), othersMayLevelOff && !isOnFinal(other) ? lossWith(levelledOff(other)) : null]
+            .filter((time) => time !== null);
+
+        if (times.length > 0) {
+            earliest = Math.min(earliest === null ? Infinity : earliest, ...times);
+        }
+    });
+
+    return earliest;
+}
+
+/**
  * Whether `aircraft` (possibly a what-if copy) would conflict with any other aircraft
  *
  * @function hasPredictedConflict
@@ -355,23 +424,7 @@ export function predictLoss(a, b, threshold, verticalFt, horizonSeconds) {
  */
 export function hasPredictedConflict(aircraft, observation, parameters, isIgnoredPair = () => false,
     othersMayLevelOff = false) {
-    const { elevation } = observation.airport;
-    const { verticalFt } = observation.realism.separationMinima;
-    const lossWith = (other) => predictLoss(
-        aircraft,
-        other,
-        pairThresholdNm(aircraft, other, observation, parameters.conflictBufferNm),
-        verticalFt,
-        parameters.conflictHorizonSeconds
-    ) !== null;
-    const levelledOff = (other) => ({
-        ...other,
-        clearance: { ...other.clearance, altitudeMode: 'HOLD', altitude: other.altitude }
-    });
-
-    return observation.aircraft.some((other) => other.callsign !== aircraft.callsign && !other.isOnGround &&
-        other.altitude - elevation > 800 && !isExemptPair(aircraft, other) && !isIgnoredPair(aircraft, other) &&
-        (lossWith(other) || (othersMayLevelOff && !isOnFinal(other) && lossWith(levelledOff(other)))));
+    return earliestPredictedConflict(aircraft, observation, parameters, isIgnoredPair, othersMayLevelOff) !== null;
 }
 
 /**
@@ -532,8 +585,13 @@ const canManeuver = (aircraft) => aircraft.isControllable && !isOnFinal(aircraft
  */
 function resolutionCandidates(a, b, minimumAltitude, parameters) {
     // the aircraft changing altitude is usually the one to stop; departures before arrivals
+    // ... and an aircraft in emergency only moves when the other one cannot
     const order = [a, b].sort((first, second) => {
         const movement = (aircraft) => Math.abs(aircraft.clearance.altitude - aircraft.altitude);
+
+        if (Boolean(first.emergency) !== Boolean(second.emergency)) {
+            return first.emergency ? 1 : -1;
+        }
 
         return movement(second) - movement(first);
     }).filter(canManeuver);
@@ -559,26 +617,73 @@ function resolutionCandidates(a, b, minimumAltitude, parameters) {
         push(mover, headingChangeAction(-awayChange), 'lateral');
     });
 
+    // every way of moving the other aircraft is tried before moving the one in emergency
+    return [
+        ...candidates.filter((candidate) => !candidate.mover.emergency),
+        ...candidates.filter((candidate) => candidate.mover.emergency)
+    ];
+}
+
+/**
+ * Complementary actions for both aircraft of a conflict, least disruptive first: one climbs and
+ * the other descends, one speeds up and the other slows down, they turn away from each other.
+ * An aircraft in emergency keeps flying as it is.
+ */
+function coordinatedCandidates(a, b, minimumAltitude, parameters) {
+    if (!canManeuver(a) || !canManeuver(b) || a.emergency || b.emergency) {
+        return [];
+    }
+
+    const [upper, lower] = a.altitude >= b.altitude ? [a, b] : [b, a];
+    const candidates = [];
+    const up = altitudeIndexAbove(upper.altitude + 500);
+    const down = altitudeIndexBelow(lower.altitude - 500);
+
+    if (up >= 0 && ALTITUDES[up] <= (upper.ceiling || Infinity) && down >= 0 && ALTITUDES[down] >= minimumAltitude(lower)) {
+        candidates.push({
+            first: upper, firstAction: ACTION_INDEX.ALTITUDE + up, second: lower, secondAction: ACTION_INDEX.ALTITUDE + down, kind: 'vertical'
+        });
+    }
+
+    [[a, b], [b, a]].forEach(([faster, slower]) => {
+        candidates.push({
+            first: faster,
+            firstAction: speedAction(faster.speed + COORDINATED_SPEED_CHANGE_KT),
+            second: slower,
+            secondAction: speedAction(slower.speed - COORDINATED_SPEED_CHANGE_KT),
+            kind: 'speed'
+        });
+    });
+
+    [parameters.resolutionTurnDegrees, COORDINATED_WIDE_TURN_DEGREES].forEach((degrees) => {
+        candidates.push({
+            first: a, firstAction: turnAway(a, b, degrees), second: b, secondAction: turnAway(b, a, degrees), kind: 'lateral'
+        });
+    });
+
     return candidates;
 }
 
 /**
- * Least disruptive resolution of a conflict that is predicted to work.
+ * Resolution of a conflict that is predicted to work, the least disruptive first: moving one
+ * aircraft, and when that is not enough complementary orders to both (`partner` in the result).
  *
  * Each candidate is checked with the short-term prediction: it must keep the pair
  * separated and, when the observation is given, not create a conflict with anyone
- * else. If none does, the one that delays the loss the most is chosen. Turns that
- * would take an arrival out of the airspace, or an aircraft over higher terrain, are
- * never chosen.
+ * else. If none does, the one that delays the first loss the most is given: something is always
+ * done to avoid the loss. Turns that would take an arrival out of the airspace, or an aircraft
+ * over higher terrain, are never chosen.
  *
  * @function chooseResolution
  * @param conflict {object}
  * @param minimumAltitude {function}  `(aircraft) => ft`
  * @param parameters {object}
  * @param [observation] {object}
- * @return {object|null} `{ callsign, action, kind }`, kind is `vertical` or `lateral`
+ * @param [isAllowed] {function}  `(aircraft, action) => boolean`, e.g. the safety shield's mask
+ * @return {object|null} `{ callsign, action, kind, partner }`, kind is `vertical`, `lateral` or `speed`;
+ *                       `partner` is the order for the other aircraft (same fields), or null
  */
-export function chooseResolution(conflict, minimumAltitude, parameters, observation = null) {
+export function chooseResolution(conflict, minimumAltitude, parameters, observation = null, isAllowed = () => true) {
     const { a, b } = conflict;
     const verticalFt = observation ? observation.realism.separationMinima.verticalFt : 1000;
     const threshold = observation ? pairThresholdNm(a, b, observation, parameters.conflictBufferNm) :
@@ -586,29 +691,78 @@ export function chooseResolution(conflict, minimumAltitude, parameters, observat
     const candidates = resolutionCandidates(a, b, minimumAltitude, parameters);
     let fallback = null;
     let fallbackTime = -Infinity;
+    const isUnsafeTurn = (aircraft, whatIf, kind) => kind === 'lateral' && (isBelowTerrainAround(aircraft) ||
+        (observation && isTrackLeavingAirspace(whatIf, observation, parameters.conflictHorizonSeconds)));
+    const thirdPartyTime = (whatIf, other) => (observation ? earliestPredictedConflict(
+        whatIf,
+        observation,
+        parameters,
+        (first, second) => second.callsign === other.callsign,
+        true
+    ) : null);
+    const orBeyondHorizon = (time) => (time === null ? parameters.conflictHorizonSeconds : time);
 
     for (const candidate of candidates) {
+        if (!isAllowed(candidate.mover, candidate.action)) {
+            continue;
+        }
+
         const whatIf = applyAction(candidate.mover, candidate.action);
 
-        if (candidate.kind === 'lateral' && (isBelowTerrainAround(candidate.mover) ||
-            (observation && isTrackLeavingAirspace(whatIf, observation, parameters.conflictHorizonSeconds)))) {
+        if (isUnsafeTurn(candidate.mover, whatIf, candidate.kind)) {
             continue;
         }
 
         const lossTime = predictLoss(whatIf, candidate.other, threshold, verticalFt, parameters.conflictHorizonSeconds);
-        const resolution = { callsign: candidate.mover.callsign, action: candidate.action, kind: candidate.kind };
+        const otherTime = thirdPartyTime(whatIf, candidate.other);
+        const resolution = {
+            callsign: candidate.mover.callsign, action: candidate.action, kind: candidate.kind, partner: null
+        };
 
-        if (lossTime === null && (!observation || !hasPredictedConflict(
-            whatIf,
-            observation,
-            parameters,
-            (first, second) => second.callsign === candidate.other.callsign,
-            true
-        ))) {
+        if (lossTime === null && otherTime === null) {
             return resolution;
         }
 
-        const time = lossTime === null ? parameters.conflictHorizonSeconds : lossTime;
+        // the first loss of any pair: solving this conflict by flying into a third aircraft buys nothing
+        const time = Math.min(orBeyondHorizon(lossTime), orBeyondHorizon(otherTime));
+
+        if (time > fallbackTime) {
+            fallback = resolution;
+            fallbackTime = time;
+        }
+    }
+
+    for (const candidate of coordinatedCandidates(a, b, minimumAltitude, parameters)) {
+        const {
+            first, firstAction, second, secondAction, kind
+        } = candidate;
+
+        if (!isAllowed(first, firstAction) || !isAllowed(second, secondAction)) {
+            continue;
+        }
+
+        const firstWhatIf = applyAction(first, firstAction);
+        const secondWhatIf = applyAction(second, secondAction);
+
+        if (isUnsafeTurn(first, firstWhatIf, kind) || isUnsafeTurn(second, secondWhatIf, kind)) {
+            continue;
+        }
+
+        const lossTime = predictLoss(firstWhatIf, secondWhatIf, threshold, verticalFt, parameters.conflictHorizonSeconds);
+        const firstOtherTime = thirdPartyTime(firstWhatIf, second);
+        const secondOtherTime = thirdPartyTime(secondWhatIf, first);
+        const resolution = {
+            callsign: first.callsign,
+            action: firstAction,
+            kind,
+            partner: { callsign: second.callsign, action: secondAction, kind }
+        };
+
+        if (lossTime === null && firstOtherTime === null && secondOtherTime === null) {
+            return resolution;
+        }
+
+        const time = Math.min(orBeyondHorizon(lossTime), orBeyondHorizon(firstOtherTime), orBeyondHorizon(secondOtherTime));
 
         if (time > fallbackTime) {
             fallback = resolution;

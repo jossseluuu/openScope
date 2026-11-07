@@ -74,6 +74,14 @@ export const DATA_BLOCK_THEME = {
     BACKGROUND_SELECTED: COLOR.BLUE_VERY_LIGHT,
 
     /**
+     * Fill color of the data block of an aircraft in emergency (only used when `HAS_FILL`)
+     *
+     * @memberof DATA_BLOCK_THEME
+     * @property BACKGROUND_EMERGENCY
+     */
+    BACKGROUND_EMERGENCY: COLOR.EMERGENCY_RED_07,
+
+    /**
      * Color of the bar on the left side of the data block
      * Opacity used for when the aircraft is within the airspace
      *
@@ -230,6 +238,14 @@ export const DATA_BLOCK_THEME = {
      * @property TEXT_SELECTED
      */
     TEXT_SELECTED: COLOR.WHITE,
+
+    /**
+     * Color of the data block text and leader line of an aircraft in emergency
+     *
+     * @memberof DATA_BLOCK_THEME
+     * @property TEXT_EMERGENCY
+     */
+    TEXT_EMERGENCY: COLOR.EMERGENCY_RED,
 
     /**
      * Width of the data block

@@ -1,15 +1,27 @@
 import {
-    ACTIONS, ACTION_COUNT, ACTION_INDEX, ACTION_TYPE, altitudeAction, getApplicableActions, headingAction
+    ACTIONS,
+    ACTION_COUNT,
+    ACTION_INDEX,
+    ACTION_TYPE,
+    ALTITUDES,
+    altitudeAction,
+    getApplicableActions,
+    headingAction,
+    headingReference
 } from './actionSpace';
 import {
     DEFAULT_RULE_MARGINS,
     RunwayIndex,
+    airspaceMaximumAltitude,
     airspaceMinimumAltitude,
+    checkRunwayEntry,
     checkTakeoff,
     finalSpacingNm,
     minimumAssignableAltitude
 } from './botRules';
-import { distance } from './botGeometry';
+import {
+    distance, hasAltitudeGaps, headingVector, levelsInsideAirspace, secondsToRestrictedArea
+} from './botGeometry';
 
 /**
  * Turn away from the final approach course when breaking off an approach far out, in degrees
@@ -19,6 +31,15 @@ import { distance } from './botGeometry';
  * @final
  */
 const BREAK_OFF_DEGREES = 45;
+
+/**
+ * A heading that enters a restricted area within this time is forbidden
+ *
+ * @property RESTRICTED_AREA_HORIZON_SECONDS
+ * @type {number}
+ * @final
+ */
+const RESTRICTED_AREA_HORIZON_SECONDS = 75;
 
 /**
  * Safety shield shared by every bot.
@@ -72,11 +93,25 @@ export default class SafetyShield {
             mask[ACTION_INDEX.TAKEOFF] = checkTakeoff(aircraft, observation, this.getRunwayIndex(observation), this.margins).ok;
         }
 
+        if (mask[ACTION_INDEX.LINE_UP]) {
+            mask[ACTION_INDEX.LINE_UP] = checkRunwayEntry(aircraft, observation, this.getRunwayIndex(observation), this.margins).ok;
+        }
+
         if (!aircraft.isOnGround && aircraft.isControllable) {
             const minimumAltitude = minimumAssignableAltitude(aircraft, observation, this.margins);
+            // never above the ceiling of the airspace (when floor and ceiling leave no level, the floor wins)
+            const maximumAltitude = Math.max(airspaceMaximumAltitude(aircraft), minimumAltitude);
+
+            const insideLevels = this._levelsInsideAhead(aircraft, observation);
+
+            this._forbiddenHeadingActions(aircraft, observation).forEach((index) => {
+                mask[index] = false;
+            });
 
             for (let i = 0; i < ACTION_COUNT; i++) {
-                if (ACTIONS[i].type === ACTION_TYPE.ALTITUDE && ACTIONS[i].value < minimumAltitude) {
+                if (ACTIONS[i].type === ACTION_TYPE.ALTITUDE &&
+                    (ACTIONS[i].value < minimumAltitude || ACTIONS[i].value > maximumAltitude ||
+                        (insideLevels && insideLevels.indexOf(ACTIONS[i].value) === -1))) {
                     mask[i] = false;
                 }
             }
@@ -163,6 +198,112 @@ export default class SafetyShield {
             required[aircraft.callsign] = altitudeAction(minimum);
         });
 
+        // ...and one whose cleared level leaves the airspace ahead (a lower ceiling, or a gap between
+        // sectors) changes to the closest level that stays inside
+        observation.aircraft.forEach((aircraft) => {
+            if (required[aircraft.callsign] !== undefined || !aircraft.isControllable || aircraft.isOnGround ||
+                aircraft.category !== 'arrival' || aircraft.isEstablishedOnCourse || aircraft.hasApproachClearance) {
+                return;
+            }
+
+            const minimum = minimumAssignableAltitude(aircraft, observation, this.margins);
+            const levels = (this._levelsInsideAhead(aircraft, observation) || []).filter((level) => level >= minimum);
+            const cleared = aircraft.clearance.altitude;
+            const maximum = airspaceMaximumAltitude(aircraft);
+
+            // without gaps in altitude only the ceiling can be in the way
+            if (!hasAltitudeGaps(observation.airport.airspace)) {
+                if (Number.isFinite(maximum) && maximum >= minimum && (cleared > maximum || aircraft.altitude > maximum + 500)) {
+                    required[aircraft.callsign] = altitudeAction(maximum);
+                }
+
+                return;
+            }
+
+            if (levels.length === 0 || levels.indexOf(cleared) !== -1 ||
+                (aircraft.clearance.altitudeMode === 'VNAV' && levels.indexOf(Math.round(aircraft.altitude / 1000) * 1000) !== -1)) {
+                return;
+            }
+
+            const closest = levels.reduce((best, level) => (Math.abs(level - cleared) < Math.abs(best - cleared) ? level : best));
+
+            required[aircraft.callsign] = altitudeAction(closest);
+        });
+
         return required;
+    }
+
+    /**
+     * Heading actions that lead an aircraft into a restricted area, computed once per aircraft and
+     * decision. When all of them do, none is forbidden: the aircraft has to go somewhere.
+     *
+     * @for SafetyShield
+     * @method _forbiddenHeadingActions
+     * @param aircraft {object}
+     * @param observation {object}
+     * @return {array<number>} action indexes
+     * @private
+     */
+    _forbiddenHeadingActions(aircraft, observation) {
+        const areas = observation.airport.restrictedAreas;
+
+        if (!areas || areas.length === 0) {
+            return [];
+        }
+
+        if (this._headingsTime !== observation.time) {
+            this._headingsTime = observation.time;
+            this._headingsByCallsign = {};
+        }
+
+        if (!(aircraft.callsign in this._headingsByCallsign)) {
+            const headings = ACTIONS.filter((action) => action.type === ACTION_TYPE.HEADING);
+            const forbidden = headings.filter((action) => secondsToRestrictedArea(
+                aircraft, areas, RESTRICTED_AREA_HORIZON_SECONDS, headingReference(aircraft) + action.value
+            )).map((action) => action.index);
+
+            this._headingsByCallsign[aircraft.callsign] = forbidden.length === headings.length ? [] : forbidden;
+        }
+
+        return this._headingsByCallsign[aircraft.callsign];
+    }
+
+    /**
+     * Assignable levels that keep an arrival inside the airspace where it is and on its track over the
+     * next 2 minutes, computed once per aircraft and decision; null when no level does (then nothing
+     * is restricted) or for departures, which may climb out of it. (Looking only ahead, where the
+     * arrival is going, was tried at KLAX and left more aircraft out of the airspace.)
+     *
+     * @for SafetyShield
+     * @method _levelsInsideAhead
+     * @param aircraft {object}
+     * @param observation {object}
+     * @return {array<number>|null}
+     * @private
+     */
+    _levelsInsideAhead(aircraft, observation) {
+        // only where sectors leave gaps in altitude: elsewhere floor and ceiling are enough, and checking
+        // every level made Bot A measurably worse at LEMD and EDDM
+        if (aircraft.category !== 'arrival' || !hasAltitudeGaps(observation.airport.airspace)) {
+            return null;
+        }
+
+        if (this._levelsTime !== observation.time) {
+            this._levelsTime = observation.time;
+            this._levelsByCallsign = {};
+        }
+
+        if (!(aircraft.callsign in this._levelsByCallsign)) {
+            const unit = headingVector(aircraft.groundTrack);
+            const points = [0, 60, 120].map((seconds) => ({
+                x: aircraft.x + unit.x * aircraft.groundSpeed * seconds / 3600,
+                y: aircraft.y + unit.y * aircraft.groundSpeed * seconds / 3600
+            }));
+            const levels = levelsInsideAirspace(points, observation.airport.airspace, ALTITUDES);
+
+            this._levelsByCallsign[aircraft.callsign] = levels.length > 0 ? levels : null;
+        }
+
+        return this._levelsByCallsign[aircraft.callsign];
     }
 }

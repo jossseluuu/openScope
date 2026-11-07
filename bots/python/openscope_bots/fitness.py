@@ -22,6 +22,8 @@ class EpisodeScore:
     departures: int
     go_arounds: int
     commands: int
+    emergencies_declared: int = 0
+    emergencies_landed: int = 0
 
     @property
     def cost(self) -> float:
@@ -47,8 +49,11 @@ def score_summary(summary: dict[str, Any]) -> EpisodeScore:
     landings = events.get("ARRIVAL", 0)
     departures = events.get("DEPARTURE", 0)
     go_arounds = metrics.get("goArounds", 0)
+    # a missed emergency deadline is a tier-1 violation (EMERGENCY_DEADLINE) and counts as separation
+    emergencies_landed = events.get("EMERGENCY_LANDING", 0)
 
-    safety = tiers.get(0, 0) + aircraft_collisions + events.get("AIRSPACE_BUST", 0)
+    safety = (tiers.get(0, 0) + aircraft_collisions + events.get("AIRSPACE_BUST", 0)
+              + events.get("RESTRICTED_AREA_ENTRY", 0))
     separation = tiers.get(1, 0) + metrics.get("separationLossSeconds", 0) / 600
     procedure = (
         tiers.get(2, 0)
@@ -58,6 +63,7 @@ def score_summary(summary: dict[str, Any]) -> EpisodeScore:
     efficiency = (
         20 * go_arounds
         - 30 * (landings + departures)
+        - 60 * emergencies_landed
         + (metrics.get("averageArrivalTimeInAirspaceSeconds") or 0) / 60
         + (metrics.get("averageHoldingPointWaitSeconds") or 0) / 60
         + 0.01 * summary.get("commands", 0)
@@ -72,6 +78,8 @@ def score_summary(summary: dict[str, Any]) -> EpisodeScore:
         departures=departures,
         go_arounds=go_arounds,
         commands=summary.get("commands", 0),
+        emergencies_declared=events.get("EMERGENCY_DECLARED", 0),
+        emergencies_landed=emergencies_landed,
     )
 
 

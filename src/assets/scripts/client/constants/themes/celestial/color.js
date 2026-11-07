@@ -4,6 +4,9 @@
  * @final
  */
 export const COLOR = {
+    EMERGENCY_RED: 'rgba(255, 48, 48, 1.0)',
+    EMERGENCY_RED_05: 'rgba(255, 48, 48, 0.5)',
+    EMERGENCY_RED_07: 'rgba(255, 48, 48, 0.7)',
     BLUE_VERY_LIGHT: 'rgba(64, 127, 143, 1.0)',
     BLUE_VERY_LIGHT_02: 'rgba(64, 127, 143, 0.2)',
     BLUE_LIGHT: 'rgba(56, 111, 125, 1.0)',

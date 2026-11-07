@@ -13,10 +13,26 @@ import {
     speedAction
 } from '../actionSpace';
 import {
-    bearing, distance, distanceInsideAirspace, headingDifference, headingVector, trueAirspeedFactor
+    bearing,
+    distance,
+    distanceInsideAirspace,
+    hasAltitudeGaps,
+    headingDifference,
+    headingVector,
+    highestFloorAlongPath,
+    levelsInsideAirspace,
+    restrictedAreaAt,
+    samplePath,
+    secondsToRestrictedArea,
+    trueAirspeedFactor
 } from '../botGeometry';
 import {
-    areDivergingDepartures, checkTakeoff, finalSpacingNm, landingIntervalSeconds, minimumAssignableAltitude
+    airspaceMaximumAltitude,
+    areDivergingDepartures,
+    checkTakeoff,
+    finalSpacingNm,
+    landingIntervalSeconds,
+    minimumAssignableAltitude
 } from '../botRules';
 import { getDefaultBotAParameters } from './botAParameters';
 import { createRandom, optimizeSequence, scheduleSequence } from './sequencing';
@@ -27,6 +43,7 @@ import {
     ARRIVAL_MODE,
     buildArrivalPath,
     classifyArrival,
+    completePattern,
     joinPattern,
     pathLength,
     patternGeometry,
@@ -203,6 +220,25 @@ const PATTERN_LEG = {
 const JOIN_STEP_NM = 0.5;
 
 /**
+ * The downwind, the base and the final are kept at least this far inside the airspace: at airports
+ * whose airspace is small on one side of the final (e.g. EGNM) a long downwind leaves it
+ *
+ * @property PATTERN_BOUNDARY_MARGIN_NM
+ * @type {number}
+ * @final
+ */
+const PATTERN_BOUNDARY_MARGIN_NM = 2;
+
+/**
+ * A downwind on the other side of the final is used when it can be this much longer
+ *
+ * @property PATTERN_SIDE_ADVANTAGE_NM
+ * @type {number}
+ * @final
+ */
+const PATTERN_SIDE_ADVANTAGE_NM = 3;
+
+/**
  * A join may land the arrival this much before its slot
  *
  * @property JOIN_EARLY_TOLERANCE_SECONDS
@@ -210,6 +246,15 @@ const JOIN_STEP_NM = 0.5;
  * @final
  */
 const JOIN_EARLY_TOLERANCE_SECONDS = 20;
+
+/**
+ * Arrivals can descend this much steeper than the planned descent profile when vectored
+ *
+ * @property DESCENT_CAPABILITY_FACTOR
+ * @type {number}
+ * @final
+ */
+const DESCENT_CAPABILITY_FACTOR = 1.5;
 
 /**
  * Cost of moving the chosen join, so it does not jump along the localizer from one cycle to the next
@@ -230,16 +275,76 @@ const JOIN_CHANGE_SECONDS_PER_NM = 4;
 const FINAL_SPEED_STEP_KNOTS = 5;
 
 /**
- * Arrivals being vectored to the same runway are spaced by the pattern, not by conflict resolution
+ * Kept above the floor of the controlled airspace along the planned path, rounded up to the
+ * next thousand feet (the same margin the safety shield uses)
  *
- * @function isSpacedByPattern
- * @param a {object}
- * @param b {object}
- * @return {boolean}
+ * @property PATH_FLOOR_MARGIN_FT
+ * @type {number}
+ * @final
  */
-const isSpacedByPattern = (a, b) => a.category === 'arrival' && b.category === 'arrival' &&
-    a.arrivalRunway === b.arrivalRunway &&
-    classifyArrival(a) !== ARRIVAL_MODE.ROUTE && classifyArrival(b) !== ARRIVAL_MODE.ROUTE;
+const PATH_FLOOR_MARGIN_FT = 500;
+
+/**
+ * Length of the planned path over which the airspace floor is checked: about two minutes of flight,
+ * what is flown before the level is cleared again (and what the safety shield looks ahead)
+ *
+ * @property PATH_FLOOR_LOOKAHEAD_NM
+ * @type {number}
+ * @final
+ */
+const PATH_FLOOR_LOOKAHEAD_NM = 8;
+
+/**
+ * Lowest level that keeps an aircraft inside the controlled airspace over the next part of `path`
+ * (at most up to the join on the localizer): the airspace floors step up away from the airport,
+ * and a downwind or an inbound leg can lead under a higher floor than the one the aircraft is
+ * under now. Only the next `PATH_FLOOR_LOOKAHEAD_NM` count: further on the level is cleared again,
+ * and holding the highest floor of the whole path kept aircraft too high to join
+ *
+ * @function pathFloorLevel
+ * @param path {array<object>}  ends at the threshold
+ * @param airspace {array<object>}
+ * @return {number} ft, 0 when the airspace reaches the ground all along
+ */
+const pathFloorLevel = (path, airspace) => {
+    const floor = highestFloorAlongPath(path.slice(0, -1), airspace, PATH_FLOOR_LOOKAHEAD_NM);
+
+    return floor > 0 ? Math.ceil((floor + PATH_FLOOR_MARGIN_FT) / 1000) * 1000 : 0;
+};
+
+/**
+ * Restricted areas: an aircraft whose track enters one within `LOOKAHEAD_SECONDS` is turned, by the
+ * smallest of `TURNS_DEGREES` that keeps it clear for `CLEAR_SECONDS`. The pattern to the localizer
+ * is laid out of the areas that reach `PATTERN_ALTITUDE_FT` above the airport.
+ *
+ * @property RESTRICTED_AREA
+ * @type {object}
+ * @final
+ */
+const RESTRICTED_AREA = {
+    LOOKAHEAD_SECONDS: 90,
+    CLEAR_SECONDS: 135,
+    TURNS_DEGREES: [20, 30, 45, 60, 90],
+    PATTERN_ALTITUDE_FT: 6000
+};
+
+/**
+ * Aircraft in emergency (squawk 7700). They land first (ICAO Doc 4444 15.1.3):
+ * - departures do not take off from their runway for this long before their landing slot
+ * - they leave their STAR for radar vectors when that shortens the track by this much
+ * - they may change to the parallel runway closer in, more often and for a smaller gain
+ *
+ * @property EMERGENCY
+ * @type {object}
+ * @final
+ */
+const EMERGENCY = {
+    RUNWAY_PROTECTION_SECONDS: 240,
+    SHORTCUT_MINIMUM_NM: 3,
+    RUNWAY_CHOICE_MINIMUM_DISTANCE_NM: 12,
+    RUNWAY_CHOICE_INTERVAL_SECONDS: 30,
+    RUNWAY_CHANGE_MINIMUM_GAIN_SECONDS: 20
+};
 
 /**
  * Bot A: an expert controller with metaheuristic planning.
@@ -250,7 +355,8 @@ const isSpacedByPattern = (a, b) => a.category === 'arrival' && b.category === '
  * 3. sequences departures at each runway (DMAN)
  * 4. sequences arrivals at each runway (AMAN, simulated annealing under CPS)
  *    and absorbs the delays with speed control, downwind extension and holds,
- *    then vectors the aircraft to the localizer
+ *    then vectors the aircraft to the localizer. Aircraft in emergency go first:
+ *    shortest vectors and join, the others make room behind them
  *
  * It gives at most one action per aircraft per cycle, chosen from the shared
  * action space and checked by the safety shield.
@@ -279,6 +385,8 @@ export default class BotA {
         this._sequences = {};
         // join points on the localizer committed by the arrivals being vectored, by callsign
         this._joins = {};
+        // furthest base turn inside the airspace, by airport, runway and side (see `_downwindLimitNm`)
+        this._downwindLimits = {};
         this._random = createRandom(1);
         this.lastPlan = { sequences: {}, decisions: [] };
     }
@@ -333,6 +441,7 @@ export default class BotA {
         });
 
         this._resolveConflicts(context, add);
+        this._avoidRestrictedAreas(context, add);
         this._sequenceDepartures(context, add);
         this._controlDepartureClimbs(context, addChecked);
         this._controlArrivals(context, addChecked);
@@ -387,7 +496,7 @@ export default class BotA {
 
     _memoryOf(callsign) {
         if (!this._memory[callsign]) {
-            // resolutions by kind: lateral, vertical, breakout
+            // resolutions by kind: lateral, vertical, speed, breakout
             this._memory[callsign] = { lastActions: {}, resolutions: {}, waitingSince: null };
         }
 
@@ -514,47 +623,28 @@ export default class BotA {
         const { observation, time } = context;
         // the pattern spaces arrivals to the same runway, unless a loss is imminent
         const conflicts = detectConflicts(observation, this.parameters)
-            .filter((conflict) => conflict.time < IMMINENT_CONFLICT_SECONDS || !isSpacedByPattern(conflict.a, conflict.b));
+            .filter((conflict) => conflict.time < IMMINENT_CONFLICT_SECONDS || !this._isSpacedByPattern(conflict.a, conflict.b));
 
         conflicts.forEach((conflict) => {
+            // only what the shield allows: e.g. no climb above the ceiling of the airspace
             const resolution = chooseResolution(
                 conflict,
                 (aircraft) => this._minimumAltitude(aircraft, observation),
                 this.parameters,
-                observation
+                observation,
+                (aircraft, action) => this.shield.getActionMask(aircraft, observation)[action]
             );
 
             if (!resolution) {
                 return;
             }
 
-            const mover = context.byCallsign[resolution.callsign];
-            const { resolutions } = this._memoryOf(resolution.callsign);
-            const active = Object.values(resolutions);
-            const lastIssuedAt = Math.max(-Infinity, ...active.map((slot) => slot.issuedAt));
-            const other = conflict.a.callsign === resolution.callsign ? conflict.b : conflict.a;
+            this._applyResolution(resolution, conflict, context, add);
 
-            // give the previous resolution time to work before changing it
-            if (time - lastIssuedAt >= RESOLUTION_REVISION_SECONDS &&
-                add(resolution.callsign, resolution.action, `conflict with ${other.callsign} in ${conflict.time} s`) !== null) {
-                const previous = resolutions[resolution.kind];
-
-                resolutions[resolution.kind] = {
-                    action: resolution.action,
-                    issuedAt: time,
-                    createdAt: previous ? previous.createdAt : time,
-                    until: time + this.parameters.resolutionHoldSeconds,
-                    // what the aircraft was doing before the first resolution, to resume it later
-                    intentAltitude: previous ? previous.intentAltitude : mover.clearance.altitude
-                };
-
-                return;
+            // complementary order for the other aircraft of the conflict
+            if (resolution.partner) {
+                this._applyResolution(resolution.partner, conflict, context, add);
             }
-
-            // the conflict lasts: keep what was already done
-            active.forEach((slot) => {
-                slot.until = Math.max(slot.until, time + this.parameters.resolutionHoldSeconds);
-            });
         });
 
         Object.keys(this._memory).forEach((callsign) => {
@@ -566,13 +656,52 @@ export default class BotA {
             }
 
             Object.keys(memory.resolutions).forEach((kind) => {
+                // a heading kept for long can also lead over higher terrain: resume before getting there
                 const isLeavingAirspace = kind === 'lateral' &&
-                    isTrackLeavingAirspace(aircraft, context.observation, BOUNDARY_RESUME_SECONDS);
+                    (isTrackLeavingAirspace(aircraft, context.observation, BOUNDARY_RESUME_SECONDS) ||
+                        (aircraft.minimumVectoringAltitudeAhead || 0) > aircraft.altitude);
 
                 if (memory.resolutions[kind].until <= time || isLeavingAirspace) {
                     this._resumeAfterResolution(aircraft, kind, memory, context, add, isLeavingAirspace);
                 }
             });
+        });
+    }
+
+    /**
+     * Give a resolution to one aircraft and remember it, to resume what it was doing later
+     */
+    _applyResolution(resolution, conflict, context, add) {
+        const { time } = context;
+        const mover = context.byCallsign[resolution.callsign];
+        const { resolutions } = this._memoryOf(resolution.callsign);
+        const active = Object.values(resolutions);
+        const lastIssuedAt = Math.max(-Infinity, ...active.map((slot) => slot.issuedAt));
+        const other = conflict.a.callsign === resolution.callsign ? conflict.b : conflict.a;
+
+        // give the previous resolution time to work before changing it
+        if (time - lastIssuedAt >= RESOLUTION_REVISION_SECONDS &&
+            add(resolution.callsign, resolution.action, `conflict with ${other.callsign} in ${conflict.time} s`) !== null) {
+            const previous = resolutions[resolution.kind];
+
+            resolutions[resolution.kind] = {
+                action: resolution.action,
+                issuedAt: time,
+                createdAt: previous ? previous.createdAt : time,
+                until: time + this.parameters.resolutionHoldSeconds,
+                // what the aircraft was doing before the first resolution, to resume it later
+                intentAltitude: previous ? previous.intentAltitude : mover.clearance.altitude,
+                // an arrival already on radar vectors goes back to them, not to its old route
+                resumesPattern: previous ? previous.resumesPattern :
+                    mover.category === 'arrival' && classifyArrival(mover) === ARRIVAL_MODE.VECTOR
+            };
+
+            return;
+        }
+
+        // the conflict lasts: keep what was already done
+        active.forEach((slot) => {
+            slot.until = Math.max(slot.until, time + this.parameters.resolutionHoldSeconds);
         });
     }
 
@@ -586,6 +715,13 @@ export default class BotA {
         const slot = memory.resolutions[kind];
         const { intentAltitude } = slot;
         const nextFix = nextPositionedWaypoint(aircraft);
+
+        if (kind === 'speed') {
+            // the plan of the aircraft sets its speed again
+            delete memory.resolutions[kind];
+
+            return;
+        }
 
         if (kind === 'breakout') {
             // the radar pattern starts over from where the aircraft is now
@@ -609,8 +745,23 @@ export default class BotA {
 
         const isTooOld = time - slot.createdAt > MAX_RESOLUTION_SECONDS;
 
+        if (kind === 'lateral' && slot.resumesPattern) {
+            delete memory.resolutions[kind];
+
+            return;
+        }
+
+        // the way back to the route leads through a restricted area: keep the heading a while longer
+        if (kind === 'lateral' && nextFix && !isLeavingAirspace && aircraft.isControllable && secondsToRestrictedArea(
+            aircraft, observation.airport.restrictedAreas, RESTRICTED_AREA.CLEAR_SECONDS, bearing(aircraft, nextFix)
+        )) {
+            slot.until = time + RESOLUTION_EXTENSION_SECONDS;
+
+            return;
+        }
+
         if (!isTooOld && !isLeavingAirspace && aircraft.isControllable && !aircraft.isOnGround &&
-            hasPredictedConflict(resumed, observation, this.parameters, isSpacedByPattern)) {
+            hasPredictedConflict(resumed, observation, this.parameters, (a, b) => this._isSpacedByPattern(a, b))) {
             slot.until = time + RESOLUTION_EXTENSION_SECONDS;
 
             return;
@@ -637,6 +788,66 @@ export default class BotA {
         return Boolean(slot) && slot.until > time;
     }
 
+    /**
+     * Turn aircraft away from the restricted areas ahead, like a lateral conflict resolution: the
+     * heading is kept for a while and the route or the pattern is resumed afterwards
+     */
+    _avoidRestrictedAreas(context, add) {
+        const { observation, time } = context;
+        const areas = observation.airport.restrictedAreas;
+
+        if (!areas || areas.length === 0) {
+            return;
+        }
+
+        observation.aircraft.forEach((aircraft) => {
+            const isOnFinal = aircraft.category === 'arrival' && classifyArrival(aircraft) === ARRIVAL_MODE.FINAL;
+
+            if (!aircraft.isControllable || aircraft.isOnGround || aircraft.flightPhase === 'TAKEOFF' || isOnFinal ||
+                this._hasActiveResolution(aircraft.callsign, 'lateral', time)) {
+                return;
+            }
+
+            const ahead = secondsToRestrictedArea(aircraft, areas, RESTRICTED_AREA.LOOKAHEAD_SECONDS);
+
+            if (!ahead) {
+                return;
+            }
+
+            const reference = headingReference(aircraft);
+            const goal = bearing(aircraft, { x: 0, y: 0 });
+            const turns = [];
+
+            RESTRICTED_AREA.TURNS_DEGREES.forEach((degrees) => turns.push(degrees, -degrees));
+
+            const clear = turns
+                .filter((turn) => !secondsToRestrictedArea(aircraft, areas, RESTRICTED_AREA.CLEAR_SECONDS, reference + turn) &&
+                    !isTrackLeavingAirspace({ ...aircraft, groundTrack: reference + turn }, observation, BOUNDARY_RESUME_SECONDS))
+                .sort((a, b) => Math.abs(a) - Math.abs(b) ||
+                    Math.abs(headingDifference(reference + a, goal)) - Math.abs(headingDifference(reference + b, goal)));
+
+            if (clear.length === 0) {
+                return;
+            }
+
+            const action = headingAction(aircraft, reference + clear[0]);
+
+            if (add(aircraft.callsign, action, `restricted area ${ahead.area.name} in ${ahead.seconds} s`) !== null) {
+                const { resolutions } = this._memoryOf(aircraft.callsign);
+
+                resolutions.lateral = {
+                    action,
+                    issuedAt: time,
+                    createdAt: time,
+                    until: time + this.parameters.resolutionHoldSeconds,
+                    intentAltitude: aircraft.clearance.altitude,
+                    // an arrival continues on radar vectors: its route is what led it here
+                    resumesPattern: aircraft.category === 'arrival'
+                };
+            }
+        });
+    }
+
     // --------------------------------------------------------------- departures
 
     _sequenceDepartures(context, add) {
@@ -656,11 +867,11 @@ export default class BotA {
 
             if (aircraft.flightPhase === 'APRON') {
                 queues[runwayName].apron.push(aircraft);
-            } else if (aircraft.flightPhase === 'TAXI' || aircraft.flightPhase === 'WAITING') {
+            } else if (aircraft.flightPhase === 'TAXI' || aircraft.flightPhase === 'WAITING' || aircraft.flightPhase === 'LINE_UP') {
                 queues[runwayName].active.push(aircraft);
             }
 
-            if (aircraft.flightPhase === 'WAITING') {
+            if (aircraft.flightPhase === 'WAITING' || aircraft.flightPhase === 'LINE_UP') {
                 const memory = this._memoryOf(aircraft.callsign);
 
                 memory.waitingSince = memory.waitingSince === null ? time : memory.waitingSince;
@@ -741,7 +952,8 @@ export default class BotA {
                 return false;
             }
 
-            return this._sequences[runwayName].some((entry) => entry.sta - time < window && entry.sta >= time);
+            return this._sequences[runwayName].some((entry) => entry.sta >= time &&
+                entry.sta - time < (entry.isEmergency ? Math.max(window, EMERGENCY.RUNWAY_PROTECTION_SECONDS) : window));
         });
     }
 
@@ -791,7 +1003,7 @@ export default class BotA {
                 .filter((plan) => plan.mode === ARRIVAL_MODE.FINAL || plan.etaMinimum - time < this.parameters.freezeSeconds)
                 .sort((a, b) => a.etaMinimum - b.etaMinimum);
             const free = plans.filter((plan) => frozen.indexOf(plan) === -1);
-            const order = optimizeSequence([...frozen, ...free].map((plan) => ({ ...plan, eta: plan.etaMinimum })), {
+            const optimized = optimizeSequence([...frozen, ...free].map((plan) => ({ ...plan, eta: plan.etaMinimum })), {
                 intervalSeconds: interval,
                 frozenCount: frozen.length,
                 maxShift: this.parameters.maxPositionShift,
@@ -800,13 +1012,15 @@ export default class BotA {
                 iterations: 200,
                 random: this._random
             });
+            const order = this._prioritizeEmergencies(optimized);
             const times = scheduleSequence(order, interval, time);
 
             this._sequences[runwayName] = order.map((plan, i) => ({
                 id: plan.id,
                 callsign: plan.aircraft.callsign,
                 eta: plan.etaMinimum,
-                sta: times[i]
+                sta: times[i],
+                isEmergency: Boolean(plan.aircraft.emergency)
             }));
 
             order.forEach((plan, i) => {
@@ -818,8 +1032,30 @@ export default class BotA {
     }
 
     /**
+     * Aircraft in emergency land first: only the arrivals already on the localizer, or turning
+     * onto it, that land before the emergency could stay ahead of it (ICAO Doc 4444 15.1.3).
+     * Everyone else gets a later slot and makes room (speed, longer downwind, holding).
+     */
+    _prioritizeEmergencies(order) {
+        const emergencies = order.filter((plan) => plan.aircraft.emergency).sort((a, b) => a.etaMinimum - b.etaMinimum);
+
+        if (emergencies.length === 0) {
+            return order;
+        }
+
+        const first = emergencies[0].etaMinimum;
+        const isCommitted = (plan) => plan.mode === ARRIVAL_MODE.FINAL ||
+            Boolean(this._joins[plan.aircraft.callsign] && this._joins[plan.aircraft.callsign].leg === PATTERN_LEG.INTERCEPT);
+        const others = order.filter((plan) => !plan.aircraft.emergency);
+        const ahead = others.filter((plan) => isCommitted(plan) && plan.etaMinimum <= first);
+
+        return [...ahead, ...emergencies, ...others.filter((plan) => ahead.indexOf(plan) === -1)];
+    }
+
+    /**
      * Move arrivals far out to the parallel runway when it offers a clearly earlier slot,
-     * preferring the runway on the aircraft's side so finals are not crossed
+     * preferring the runway on the aircraft's side so finals are not crossed. Aircraft in
+     * emergency may move closer in, as soon as it saves a little time.
      */
     _balanceParallelRunways(byRunway, context, add) {
         const { observation, runwayIndex, time } = context;
@@ -829,10 +1065,17 @@ export default class BotA {
                 const { aircraft } = plan;
                 const memory = this._memoryOf(aircraft.callsign);
                 const parallelName = parallelRunwayName(aircraft, observation);
+                const isEmergency = Boolean(aircraft.emergency);
+                const minimumDistance = isEmergency ? EMERGENCY.RUNWAY_CHOICE_MINIMUM_DISTANCE_NM : RUNWAY_CHOICE_MINIMUM_DISTANCE_NM;
+                const checkInterval = isEmergency ? EMERGENCY.RUNWAY_CHOICE_INTERVAL_SECONDS : RUNWAY_CHOICE_INTERVAL_SECONDS;
+                const join = this._joins[aircraft.callsign];
+                const isOnPattern = plan.mode === ARRIVAL_MODE.ROUTE ||
+                    (isEmergency && plan.mode === ARRIVAL_MODE.VECTOR && !(join && join.isLocked));
 
-                if (!aircraft.isControllable || !parallelName || plan.mode !== ARRIVAL_MODE.ROUTE ||
-                    pathLength(plan.path) < RUNWAY_CHOICE_MINIMUM_DISTANCE_NM ||
-                    (memory.runwayCheckedAt !== undefined && time - memory.runwayCheckedAt < RUNWAY_CHOICE_INTERVAL_SECONDS)) {
+                // an aircraft in emergency changes runway once: going back and forth restarts its pattern
+                if (!aircraft.isControllable || !parallelName || !isOnPattern || (isEmergency && memory.hasChangedRunway) ||
+                    pathLength(plan.path) < minimumDistance ||
+                    (memory.runwayCheckedAt !== undefined && time - memory.runwayCheckedAt < checkInterval)) {
                     return;
                 }
 
@@ -850,8 +1093,11 @@ export default class BotA {
                     return Math.max(plan.etaMinimum, last + this.parameters.mixedModeGapSeconds / 2) + sidePenalty;
                 };
 
-                if (slot(parallelName) + RUNWAY_CHANGE_MINIMUM_GAIN_SECONDS < slot(runwayName)) {
-                    add(aircraft.callsign, ACTION_INDEX.PARALLEL_RUNWAY, `earlier slot on ${parallelName}`);
+                const minimumGain = isEmergency ? EMERGENCY.RUNWAY_CHANGE_MINIMUM_GAIN_SECONDS : RUNWAY_CHANGE_MINIMUM_GAIN_SECONDS;
+
+                if (slot(parallelName) + minimumGain < slot(runwayName) &&
+                    add(aircraft.callsign, ACTION_INDEX.PARALLEL_RUNWAY, `earlier slot on ${parallelName}`) !== null) {
+                    memory.hasChangedRunway = true;
                 }
             });
         });
@@ -862,7 +1108,8 @@ export default class BotA {
         const pending = new Set();
 
         observation.aircraft.forEach((aircraft) => {
-            if (aircraft.category === 'departure' && (aircraft.flightPhase === 'WAITING' || aircraft.flightPhase === 'TAXI')) {
+            if (aircraft.category === 'departure' &&
+                (aircraft.flightPhase === 'WAITING' || aircraft.flightPhase === 'TAXI' || aircraft.flightPhase === 'LINE_UP')) {
                 pending.add(runwayIndex.physicalName[aircraft.departureRunway || observation.airport.departureRunway]);
             }
         });
@@ -882,7 +1129,20 @@ export default class BotA {
         const naturalPath = buildArrivalPath(aircraft, frame, pattern);
         // from further out than the base turn, the arrival can also be vectored straight to the nominal join
         const directPath = mode === ARRIVAL_MODE.FINAL ? naturalPath : buildArrivalPath(aircraft, frame, pattern, 0, true);
-        const path = pathLength(directPath) < pathLength(naturalPath) ? directPath : naturalPath;
+        let path = pathLength(directPath) < pathLength(naturalPath) ? directPath : naturalPath;
+        let isShortcut = false;
+
+        // an aircraft in emergency leaves its STAR for radar vectors when that is clearly shorter
+        if (aircraft.emergency && mode === ARRIVAL_MODE.ROUTE) {
+            const vectorPath = [{ x: aircraft.x, y: aircraft.y }]
+                .concat(completePattern(aircraft, aircraft.heading, frame, pattern, 0, true));
+
+            if (pathLength(vectorPath) + EMERGENCY.SHORTCUT_MINIMUM_NM < pathLength(path)) {
+                path = vectorPath;
+                isShortcut = true;
+            }
+        }
+
         const etaMinimum = time + timeAlongPath(path, aircraft, frame, this.parameters, 0);
         const etaSlowest = mode === ARRIVAL_MODE.ROUTE ?
             time + timeAlongPath(path, aircraft, frame, this.parameters, 1) :
@@ -895,10 +1155,33 @@ export default class BotA {
             pattern,
             mode,
             path,
+            isShortcut,
             etaMinimum,
             etaSlowest,
             weight: DELAY_WEIGHT[aircraft.recatEu] || 1
         };
+    }
+
+    /**
+     * `level` if it keeps the aircraft inside the airspace over the next part of `path`, otherwise
+     * the closest level (not below `minimum`) that does, or `level` when none does. Sectors may
+     * leave gaps between them in altitude (class B shelves), see `isInsideAirspaceAt`.
+     */
+    _levelInsideAirspace(path, level, minimum, context) {
+        if (!hasAltitudeGaps(context.observation.airport.airspace)) {
+            return level;
+        }
+
+        const points = samplePath(path.slice(0, -1), PATH_FLOOR_LOOKAHEAD_NM);
+        const valid = levelsInsideAirspace(points, context.observation.airport.airspace,
+            ALTITUDES.filter((candidate) => candidate >= minimum));
+
+        if (valid.length === 0 || valid.indexOf(level) !== -1) {
+            return level;
+        }
+
+        // the closest one, the higher one on a tie
+        return valid.reduce((best, candidate) => (Math.abs(candidate - level) <= Math.abs(best - level) ? candidate : best));
     }
 
     _controlArrival(plan, scheduledTime, context, add) {
@@ -910,6 +1193,18 @@ export default class BotA {
 
         if (plan.mode !== ARRIVAL_MODE.VECTOR) {
             this._memoryOf(aircraft.callsign).pattern = null;
+        }
+
+        if (aircraft.emergency && aircraft.isHoldAssigned) {
+            add(aircraft.callsign, ACTION_INDEX.EXIT_HOLD, `emergency (${aircraft.emergency.description}): leave the hold`);
+
+            return;
+        }
+
+        if (plan.isShortcut && !hasLateral) {
+            this._leaveRouteForEmergency(plan, context, add);
+
+            return;
         }
 
         if (plan.mode === ARRIVAL_MODE.FINAL) {
@@ -927,6 +1222,29 @@ export default class BotA {
         if (!hasLateral) {
             this._controlVectors(plan, scheduledTime, context, add, hasVertical);
         }
+    }
+
+    /**
+     * An aircraft in emergency on its STAR is turned toward the shortest pattern to the localizer:
+     * inbound to the base turn when it is further out, otherwise onto the downwind. From the next
+     * cycle on it is vectored like any other.
+     */
+    _leaveRouteForEmergency(plan, context, add) {
+        const { aircraft, frame, pattern } = plan;
+        const lateral = frame.lateral(aircraft);
+        const side = Math.abs(lateral) < 0.5 ? 1 : Math.sign(lateral);
+        const heading = frame.along(aircraft) > pattern.baseTurnAlong + 1.5 ?
+            bearing(aircraft, this._baseTurnPoint(frame, pattern, side)) :
+            frame.downwindHeading;
+        let action = headingAction(aircraft, heading);
+
+        // already on the right heading: any heading takes it off the STAR
+        if (action === ACTION_INDEX.NOOP) {
+            action = headingAction(aircraft, headingReference(aircraft) + 5);
+        }
+
+        this._memoryOf(aircraft.callsign).pattern = null;
+        add(aircraft.callsign, action, `emergency (${aircraft.emergency.description}): vectors for the shortest approach`);
     }
 
     /**
@@ -1007,17 +1325,22 @@ export default class BotA {
 
         const excessDelay = scheduledTime - plan.etaSlowest;
         const nextFix = nextPositionedWaypoint(aircraft);
-        const canHoldThere = nextFix &&
+        const canHoldThere = nextFix && nextFix.name !== memory.unusableHoldFix &&
             remaining - distance(aircraft, nextFix) >= p.holdMinimumDistanceNm &&
             distanceInsideAirspace(nextFix, context.observation.airport.airspace) >= HOLD_BOUNDARY_MARGIN_NM;
 
         if (excessDelay > p.holdThresholdSeconds && canHoldThere &&
             !this._recentlyIssued(aircraft.callsign, ACTION_INDEX.HOLD, time, 120)) {
-            memory.hold = { fix: nextFix.name, level: this._holdingLevel(nextFix, aircraft, context) };
-            add(aircraft.callsign, ACTION_INDEX.HOLD, `hold at ${nextFix.name} at ${memory.hold.level} ft, ` +
-                `${Math.round(excessDelay)} s of delay left`);
+            const level = this._holdingLevel(nextFix, aircraft, context);
 
-            return;
+            // a full stack takes nobody else: the delay is absorbed with speed and the downwind
+            if (level !== null) {
+                memory.hold = { fix: nextFix.name, level };
+                add(aircraft.callsign, ACTION_INDEX.HOLD, `hold at ${nextFix.name} at ${level} ft, ` +
+                    `${Math.round(excessDelay)} s of delay left`);
+
+                return;
+            }
         }
 
         // descend via the STAR once under our control
@@ -1036,7 +1359,11 @@ export default class BotA {
         // 1000 ft at a time, down to the downwind altitude
         const restrictionsAhead = (aircraft.waypoints || []).some((waypoint) => waypoint.altitudeMinimum !== null ||
             waypoint.altitudeMaximum !== null);
-        const targetAltitude = Math.max(plan.pattern.downwindAltitude, profileAltitude(remaining, plan.pattern, p));
+        const targetAltitude = this._levelInsideAirspace(path, Math.max(
+            plan.pattern.downwindAltitude,
+            profileAltitude(remaining, plan.pattern, p),
+            pathFloorLevel(path, context.observation.airport.airspace)
+        ), 0, context);
 
         if (!hasVertical && !restrictionsAhead && aircraft.clearance.altitude - targetAltitude >= 1000 &&
             add(aircraft.callsign, altitudeAction(targetAltitude), 'descend on the descent profile') !== null) {
@@ -1062,7 +1389,8 @@ export default class BotA {
     _canChangeSpeed(callsign, time) {
         const memory = this._memoryOf(callsign);
 
-        return memory.lastSpeedChange === undefined || time - memory.lastSpeedChange >= SPEED_CHANGE_INTERVAL_SECONDS;
+        return !this._hasActiveResolution(callsign, 'speed', time) &&
+            (memory.lastSpeedChange === undefined || time - memory.lastSpeedChange >= SPEED_CHANGE_INTERVAL_SECONDS);
     }
 
     _changeSpeed(aircraft, speed, time, reason, add) {
@@ -1077,7 +1405,7 @@ export default class BotA {
     _controlSpeed(plan, needed, remaining, time, add) {
         const { aircraft } = plan;
         const p = this.parameters;
-        const slowFraction = this._slowFractionFor(plan, needed);
+        const slowFraction = aircraft.emergency ? 0 : this._slowFractionFor(plan, needed);
         const target = plannedSpeed(remaining, aircraft.altitude, p, slowFraction, aircraft.speedLimits);
         const cleared = aircraft.clearance.speedMode === 'HOLD' ? aircraft.clearance.speed : null;
         const isAtNominal = slowFraction < 0.05 && remaining > 30;
@@ -1110,12 +1438,14 @@ export default class BotA {
         // the hold entry can take an aircraft far from the fix, even out of the airspace: back to the fix
         if (nextFix && isTrackLeavingAirspace(aircraft, context.observation, BOUNDARY_RESUME_SECONDS) &&
             !this._recentlyIssued(aircraft.callsign, ACTION_INDEX.DIRECT_NEXT, context.time, 60)) {
+            // that fix cannot contain this hold: the rest of the delay is absorbed some other way
+            memory.unusableHoldFix = nextFix.name;
             add(aircraft.callsign, ACTION_INDEX.DIRECT_NEXT, `back to ${nextFix.name}, the hold is leaving the airspace`);
 
             return;
         }
 
-        const stack = this._holdingStack(memory.hold.fix, aircraft.callsign);
+        const stack = this._holdingStack(memory.hold.fix, aircraft.callsign, context);
         const isLowest = stack.every((level) => level > memory.hold.level);
 
         if (isLowest && plan.etaMinimum >= scheduledTime - this.parameters.holdExitMarginSeconds) {
@@ -1139,10 +1469,15 @@ export default class BotA {
         }
     }
 
-    _holdingStack(fixName, exceptCallsign) {
+    /**
+     * Levels taken in the stack of a fix: only by aircraft really holding there, a level is
+     * not kept for an aircraft that was vectored out of the hold
+     */
+    _holdingStack(fixName, exceptCallsign, context) {
         return Object.keys(this._memory)
             .filter((callsign) => callsign !== exceptCallsign && this._memory[callsign].hold &&
-                this._memory[callsign].hold.fix === fixName)
+                this._memory[callsign].hold.fix === fixName && context.byCallsign[callsign] &&
+                context.byCallsign[callsign].isHoldAssigned)
             .map((callsign) => this._memory[callsign].hold.level);
     }
 
@@ -1160,15 +1495,24 @@ export default class BotA {
     }
 
     /**
-     * Level for a new aircraft in the stack: the lowest free level that does not make
-     * it descend through the levels already occupied
+     * Level for a new aircraft in the stack: the lowest free level that does not make it descend
+     * through the levels already occupied, up to the top of the airspace and of the assignable
+     * levels. If the stack is full, the lowest free level, or null when there is none.
      */
     _holdingLevel(fix, aircraft, context) {
-        const stack = this._holdingStack(fix.name, aircraft.callsign);
+        const stack = this._holdingStack(fix.name, aircraft.callsign, context);
         const base = this._holdingBaseLevel(fix, aircraft, context);
         const top = stack.length > 0 ? Math.max(...stack) + 1000 : base;
+        const highest = Math.min(ALTITUDES[ALTITUDES.length - 1], airspaceMaximumAltitude(aircraft));
+        const level = Math.max(base, top);
 
-        return Math.max(base, top);
+        if (level <= highest) {
+            return level;
+        }
+
+        const free = ALTITUDES.find((candidate) => candidate >= base && candidate <= highest && stack.indexOf(candidate) === -1);
+
+        return free === undefined ? null : free;
     }
 
     /**
@@ -1214,9 +1558,13 @@ export default class BotA {
         const isClosing = this._isClosingCenterline(aircraft, frame);
 
         if (!memory.pattern || memory.pattern.runway !== frame.name) {
+            const side = absoluteLateral < 0.5 ? 1 : Math.sign(lateral);
+
             memory.pattern = {
                 runway: frame.name,
-                side: absoluteLateral < 0.5 ? 1 : Math.sign(lateral),
+                // the side of the final the aircraft is on, unless the airspace leaves much more room on the other
+                side: this._downwindLimitNm(frame, -side, context) - this._downwindLimitNm(frame, side, context) >
+                    PATTERN_SIDE_ADVANTAGE_NM ? -side : side,
                 leg: null
             };
         }
@@ -1224,7 +1572,9 @@ export default class BotA {
         // the join is chosen while the aircraft can still go anywhere; from the base on it is where the turn leads
         const isChoosing = memory.pattern.leg === null || memory.pattern.leg === PATTERN_LEG.DOWNWIND ||
             memory.pattern.leg === PATTERN_LEG.INBOUND;
-        const chosen = isChoosing ? this._chooseJoin(plan, scheduledTime, context, memory.pattern.joinAlong) : null;
+        const chosen = isChoosing ?
+            this._chooseJoin(plan, scheduledTime, context, memory.pattern.joinAlong, memory.pattern.side) :
+            null;
 
         if (memory.pattern.leg === null) {
             memory.pattern.leg = this._initialPatternLeg(aircraft, frame, chosen.pattern, isClosing);
@@ -1252,6 +1602,7 @@ export default class BotA {
                 along: join.along,
                 time: join.joinTime,
                 scheduledTime,
+                leg,
                 // from the base on the aircraft no longer moves its join
                 isLocked: leg === PATTERN_LEG.BASE || leg === PATTERN_LEG.INTERCEPT
             };
@@ -1296,18 +1647,33 @@ export default class BotA {
         const patternAltitude = isOnIntercept ?
             pattern.interceptAltitude :
             Math.max(legFloor, profileAltitude(pathLength(join.path), pattern, p));
-        // the terrain under the downwind may be higher than on final
-        const targetAltitude = Math.max(
-            patternAltitude,
-            Math.ceil(this._minimumAltitude(aircraft, context.observation) / 1000) * 1000
+        // the terrain under the downwind may be higher than on final; until the base the aircraft
+        // may still be turned anywhere, so it stays above the terrain all around
+        const terrainAround = leg === PATTERN_LEG.DOWNWIND || leg === PATTERN_LEG.INBOUND ?
+            Math.ceil((aircraft.minimumVectoringAltitudeAround || 0) / 1000) * 1000 :
+            0;
+        // terrain and airspace floor: these always win, even if the aircraft has to climb for them
+        const safetyMinimum = Math.max(
+            terrainAround,
+            Math.ceil(this._minimumAltitude(aircraft, context.observation) / 1000) * 1000,
+            pathFloorLevel(join.path, context.observation.airport.airspace)
         );
-        // never climb back on the downwind or the base: the profile only goes down
-        const isClimbBack = !isOnIntercept && targetAltitude > aircraft.clearance.altitude &&
-            aircraft.clearance.altitude >= legFloor;
-
-        if (!hasVertical && !isClimbBack && aircraft.clearance.altitude !== targetAltitude &&
-            !this._recentlyIssued(aircraft.callsign, altitudeAction(targetAltitude), time, 20) &&
-            add(aircraft.callsign, altitudeAction(targetAltitude), `altitude for ${leg}`) !== null) {
+        const targetAltitude = this._levelInsideAirspace(join.path, Math.max(patternAltitude, safetyMinimum), safetyMinimum, context);
+        // a vectored aircraft still descending via its STAR (VNAV) keeps obeying the STAR's restrictions,
+        // whatever its cleared altitude says: it needs an explicit level, never above where it is
+        const isVnav = aircraft.clearance.altitudeMode === 'VNAV';
+        const level = isVnav && !isOnIntercept && targetAltitude > aircraft.altitude ?
+            Math.max(Math.ceil((aircraft.altitude - 100) / 1000) * 1000, safetyMinimum) :
+            targetAltitude;
+        // never climb back on the downwind or the base: the profile only goes down. Unless the aircraft
+        // is below the terrain or the airspace floor there (e.g. back on the downwind after a low intercept)
+        const isClimbBack = !isVnav && !isOnIntercept && level > aircraft.clearance.altitude &&
+            aircraft.clearance.altitude >= legFloor && aircraft.clearance.altitude >= safetyMinimum &&
+            this._levelInsideAirspace(join.path, aircraft.clearance.altitude, 0, context) === aircraft.clearance.altitude;
+        // (giving the level before the heading was tried and was worse: 24 episodes, -12755 against -9635)
+        if (!hasVertical && !isClimbBack && (isVnav || aircraft.clearance.altitude !== level) &&
+            !this._recentlyIssued(aircraft.callsign, altitudeAction(level), time, 20) &&
+            add(aircraft.callsign, altitudeAction(level), `altitude for ${leg}`) !== null) {
             return;
         }
 
@@ -1362,7 +1728,11 @@ export default class BotA {
         const p = this.parameters;
         const { along, lateral, absoluteLateral } = geometry;
         const backToDownwind = () => {
-            state.side = Math.sign(lateral) || state.side;
+            const side = Math.sign(lateral) || state.side;
+
+            // back on the side it is on, unless the airspace leaves much more room on the other one
+            state.side = this._downwindLimitNm(frame, -side, context) - this._downwindLimitNm(frame, side, context) >
+                PATTERN_SIDE_ADVANTAGE_NM ? -side : side;
 
             return PATTERN_LEG.DOWNWIND;
         };
@@ -1374,9 +1744,30 @@ export default class BotA {
                 const isLowEnough = aircraft.altitude <= pattern.downwindAltitude + 1500;
                 const isFarEnough = along >= pattern.baseTurnAlong - 0.5 && absoluteLateral > pattern.interceptLateral + 0.5;
 
-                // the downwind is never extended beyond its maximum, whatever the altitude
-                if (along >= p.maximumBaseTurnDistanceNm) {
+                const isLeavingAirspace = isTrackLeavingAirspace(aircraft, context.observation, BOUNDARY_RESUME_SECONDS);
+
+                // too close in for a base turn, and this side of the final leads out of the airspace: the
+                // downwind moves to the other side, once (if that one leads out too, it turns base)
+                if (isLeavingAirspace && along < pattern.baseTurnAlong - 0.5 && !state.hasChangedSide) {
+                    state.side = -state.side;
+                    state.hasChangedSide = true;
+
+                    return PATTERN_LEG.DOWNWIND;
+                }
+
+                // the downwind is never extended beyond its maximum or out of the airspace, whatever the altitude
+                if (isLeavingAirspace ||
+                    along >= Math.min(p.maximumBaseTurnDistanceNm, this._downwindLimitNm(frame, state.side, context))) {
+                    // at the edge of the airspace: the base is not extended back onto this downwind
+                    state.isAtBoundary = state.isAtBoundary || isLeavingAirspace;
+
                     return PATTERN_LEG.BASE;
+                }
+
+                // an aircraft in emergency turns back as soon as it is past its base turn, even close to the
+                // centerline: a longer downwind leads it away, under higher airspace floors
+                if (aircraft.emergency && !chosen.isWaiting && along >= pattern.baseTurnAlong - 0.5) {
+                    return absoluteLateral <= pattern.interceptLateral + 0.5 ? PATTERN_LEG.INTERCEPT : PATTERN_LEG.BASE;
                 }
 
                 return isFarEnough && isLowEnough && !chosen.isWaiting ? PATTERN_LEG.BASE : PATTERN_LEG.DOWNWIND;
@@ -1401,10 +1792,14 @@ export default class BotA {
                 }
 
                 const join = this._naturalJoin(plan, PATTERN_LEG.BASE, context);
-                const canExtend = along < p.maximumBaseTurnDistanceNm - 2;
+                // room to extend: not beyond the longest downwind, nor out of the airspace on this side
+                const canExtend = !state.isAtBoundary &&
+                    along < Math.min(p.maximumBaseTurnDistanceNm, this._downwindLimitNm(frame, state.side, context)) - 2;
+                const isEmergency = Boolean(aircraft.emergency);
 
                 // the traffic on the localizer leaves no gap where this base leads: extend rather than join too close
-                if (canExtend && this._joinSpacingMargin(plan, join.along, join.joinTime, scheduledTime, context) <
+                // (an aircraft in emergency only gives way to those already on the localizer or turning onto it)
+                if (canExtend && this._joinSpacingMargin(plan, join.along, join.joinTime, scheduledTime, context, 0, isEmergency) <
                     -BASE_SPACING_TOLERANCE_NM) {
                     return backToDownwind();
                 }
@@ -1415,7 +1810,7 @@ export default class BotA {
                 }
 
                 // much too early: extend on downwind instead
-                if (join.landingTime < scheduledTime - 120 && along < p.maximumBaseTurnDistanceNm - 3) {
+                if (!isEmergency && join.landingTime < scheduledTime - 120 && along < p.maximumBaseTurnDistanceNm - 3) {
                     return backToDownwind();
                 }
 
@@ -1439,8 +1834,10 @@ export default class BotA {
         const { aircraft } = plan;
         const p = this.parameters;
         const isFarOut = phase === PATTERN_LEG.DOWNWIND || phase === PATTERN_LEG.INBOUND;
+        // an aircraft in emergency is kept faster until the base
+        const farOutSpeed = aircraft.emergency ? p.intermediateSpeed : Math.min(p.intermediateSpeed, 210);
         const spacing = isFarOut ?
-            { speed: Math.min(p.intermediateSpeed, 210), reason: null } :
+            { speed: farOutSpeed, reason: null } :
             this._spacingSpeed(plan, join.along, join.joinTime, p.baseSpeed, context);
         const cleared = aircraft.clearance.speedMode === 'HOLD' ? aircraft.clearance.speed : aircraft.speed;
 
@@ -1450,6 +1847,19 @@ export default class BotA {
     }
 
     // --------------------------------------------------------- joining the final
+
+    /**
+     * Arrivals to the same runway that are on final or committed to their join (on the base or
+     * the intercept leg) are spaced by the join planning, not by conflict resolution. On the
+     * downwind or inbound they can still meet anyone, so they are not.
+     */
+    _isSpacedByPattern(a, b) {
+        const isCommitted = (aircraft) => classifyArrival(aircraft) === ARRIVAL_MODE.FINAL ||
+            Boolean(this._joins[aircraft.callsign] && this._joins[aircraft.callsign].isLocked);
+
+        return a.category === 'arrival' && b.category === 'arrival' && a.arrivalRunway === b.arrivalRunway &&
+            isCommitted(a) && isCommitted(b);
+    }
 
     /**
      * Where and when an arrival joins the localizer `joinAlong` nm from the threshold,
@@ -1468,6 +1878,43 @@ export default class BotA {
         return {
             along: joinAlong, pattern, path, joinTime, landingTime
         };
+    }
+
+    /**
+     * Furthest base turn on one side of the final for which the downwind, the base and the final
+     * stay `PATTERN_BOUNDARY_MARGIN_NM` inside the airspace, scanning out from the threshold
+     * (fixed for an airport, so it is cached)
+     *
+     * @return {number} nm from the threshold
+     */
+    _downwindLimitNm(frame, side, context) {
+        const p = this.parameters;
+        const key = `${context.observation.airport.icao}|${frame.name}|${side}`;
+
+        if (!(key in this._downwindLimits)) {
+            const { airspace, elevation, restrictedAreas } = context.observation.airport;
+            const altitude = elevation + RESTRICTED_AREA.PATTERN_ALTITUDE_FT;
+            let limit = 0;
+
+            for (let along = JOIN_STEP_NM; along <= p.maximumBaseTurnDistanceNm + 0.01; along += JOIN_STEP_NM) {
+                const points = [
+                    frame.point(along, 0),
+                    frame.point(along, side * (p.interceptLateralNm + 1)),
+                    frame.point(along, side * p.downwindLateralNm)
+                ];
+
+                if (points.some((point) => restrictedAreaAt(point, altitude, restrictedAreas)) ||
+                    points.some((point) => distanceInsideAirspace(point, airspace) < PATTERN_BOUNDARY_MARGIN_NM)) {
+                    break;
+                }
+
+                limit = along;
+            }
+
+            this._downwindLimits[key] = limit;
+        }
+
+        return this._downwindLimits[key];
     }
 
     /**
@@ -1505,26 +1952,37 @@ export default class BotA {
      *
      * @return {object} see `_evaluateJoin`, plus `isWaiting`
      */
-    _chooseJoin(plan, scheduledTime, context, previousJoinAlong = null) {
+    _chooseJoin(plan, scheduledTime, context, previousJoinAlong = null, side = 1) {
         const { aircraft, pattern } = plan;
         const p = this.parameters;
         const legToJoin = pattern.baseTurnAlong - pattern.interceptAlong;
-        const maximum = Math.max(pattern.interceptAlong, p.maximumBaseTurnDistanceNm - legToJoin);
+        const longestBase = Math.min(p.maximumBaseTurnDistanceNm, this._downwindLimitNm(plan.frame, side, context));
+        const maximum = Math.max(pattern.minimumJoinAlong, Math.min(
+            Math.max(pattern.interceptAlong, p.maximumBaseTurnDistanceNm - legToJoin),
+            longestBase - legToJoin
+        ));
+        // an aircraft in emergency takes the earliest landing: shortened approaches are not penalized,
+        // and only the arrivals already on the localizer or turning onto it are in its way
+        const isEmergency = Boolean(aircraft.emergency);
         let best = null;
 
         for (let along = pattern.minimumJoinAlong; along <= maximum + 0.01; along += JOIN_STEP_NM) {
             const join = this._evaluateJoin(plan, along, context);
             const isShort = along < pattern.interceptAlong - 0.01;
             const change = previousJoinAlong === null ? 0 : Math.abs(along - previousJoinAlong);
-            const cost = join.landingTime - scheduledTime + (isShort ? p.shortJoinPenaltySeconds : 0) +
-                change * JOIN_CHANGE_SECONDS_PER_NM;
+            const cost = isEmergency ?
+                join.landingTime + change * JOIN_CHANGE_SECONDS_PER_NM :
+                join.landingTime - scheduledTime + (isShort ? p.shortJoinPenaltySeconds : 0) + change * JOIN_CHANGE_SECONDS_PER_NM;
             const descentNeeded = aircraft.altitude - join.pattern.interceptAltitude;
-            const descentAvailable = (pathLength(join.path) - along) * p.descentGradientFtPerNm;
+            const descentAvailable = (pathLength(join.path) - along) * p.descentGradientFtPerNm *
+                DESCENT_CAPABILITY_FACTOR;
 
-            if (join.landingTime < scheduledTime - JOIN_EARLY_TOLERANCE_SECONDS || (best && cost >= best.cost) ||
+            const isTooEarly = !isEmergency && join.landingTime < scheduledTime - JOIN_EARLY_TOLERANCE_SECONDS;
+
+            if (isTooEarly || (best && cost >= best.cost) ||
                 descentNeeded > descentAvailable ||
                 this._joinSpacingMargin(plan, along, join.joinTime, scheduledTime, context,
-                    isShort ? p.shortJoinBufferNm : 0) < 0) {
+                    isShort && !isEmergency ? p.shortJoinBufferNm : 0, isEmergency) < 0) {
                 continue;
             }
 
@@ -1537,11 +1995,13 @@ export default class BotA {
     /**
      * Arrivals on the localizer of a runway, or committed to join it, as states on final
      * at the time they are (or will be) on it. With `scheduledTime`, the joins of arrivals
-     * that land later and can still move theirs are left out: they make room.
+     * that land later and can still move theirs are left out: they make room. With `hardOnly`,
+     * only the arrivals on the localizer or on the intercept leg count (the others can still
+     * extend their downwind for an aircraft in emergency).
      *
      * @return {array<object>} `{ aircraft, joinTime, state }`
      */
-    _finalStream(runwayName, exceptCallsign, context, scheduledTime = Infinity) {
+    _finalStream(runwayName, exceptCallsign, context, scheduledTime = Infinity, hardOnly = false) {
         const plans = (this._currentPlans && this._currentPlans[runwayName]) || [];
         const stream = [];
 
@@ -1559,7 +2019,8 @@ export default class BotA {
                     joinTime: context.time,
                     state: finalState(aircraft, Math.max(0, frame.along(aircraft)), frame.elevation)
                 });
-            } else if (join && join.runway === runwayName && (join.isLocked || join.scheduledTime < scheduledTime)) {
+            } else if (join && join.runway === runwayName && (hardOnly ? join.leg === PATTERN_LEG.INTERCEPT :
+                join.isLocked || join.scheduledTime < scheduledTime)) {
                 stream.push({
                     aircraft,
                     joinTime: join.time,
@@ -1574,13 +2035,13 @@ export default class BotA {
     /**
      * Smallest margin over the required spacing, from the moment the arrival joins the localizer
      * `joinAlong` nm out at `joinTime` until the threshold, with everyone on the same localizer
-     * (negative: too close)
+     * (negative: too close). `hardOnly`: see `_finalStream`.
      */
-    _joinSpacingMargin(plan, joinAlong, joinTime, scheduledTime, context, extraBufferNm = 0) {
+    _joinSpacingMargin(plan, joinAlong, joinTime, scheduledTime, context, extraBufferNm = 0, hardOnly = false) {
         const { aircraft, frame } = plan;
         const own = finalState(aircraft, joinAlong, frame.elevation, this.parameters.finalSpeed);
 
-        return this._finalStream(frame.name, aircraft.callsign, context, scheduledTime).reduce((margin, other) => {
+        return this._finalStream(frame.name, aircraft.callsign, context, scheduledTime, hardOnly).reduce((margin, other) => {
             // compare both once both are on the localizer
             const start = Math.max(joinTime, other.joinTime);
             const mine = advanceOnFinal(own, start - joinTime);

@@ -5,12 +5,14 @@
 const { HeadlessSimulator, ASSETS_PATH } = require('./bootstrap');
 
 const BotA = require('../../src/assets/scripts/client/bot/botA/BotA').default;
+const BotC = require('../../src/assets/scripts/client/bot/botC/BotC').default;
 
 /**
  * Bots that run inside Node, by name
  */
 const BOTS = {
-    A: (parameters) => new BotA(parameters)
+    A: (parameters) => new BotA(parameters),
+    C: (parameters) => new BotC(parameters)
 };
 
 /**
@@ -41,6 +43,11 @@ function summarize(observation, violations, commandCount) {
         violationsByRule: byRule,
         violationsByTier: byTier,
         commands: commandCount,
+        emergencies: {
+            declared: observation.events.EMERGENCY_DECLARED || 0,
+            landedInTime: observation.events.EMERGENCY_LANDING || 0,
+            missed: observation.events.EMERGENCY_DEADLINE_MISSED || 0
+        },
         metrics: observation.realism.metrics
     };
 }
@@ -56,18 +63,19 @@ function summarize(observation, violations, commandCount) {
  * @param options.minutes {number}
  * @param [options.wind] {object}
  * @param [options.trafficScale] {number}
+ * @param [options.emergencyRate] {number|null}  probability per flight of an emergency
  * @param [options.simulator] {HeadlessSimulator}
  * @param [options.onDecision] {function}  called with `(decisions, observation)`
  * @return {object} summary
  */
 function runEpisode({
-    bot, airport, seed, minutes, wind = null, trafficScale = 1, simulator = null, onDecision = null
+    bot, airport, seed, minutes, wind = null, trafficScale = 1, emergencyRate = null, simulator = null, onDecision = null
 }) {
     const sim = simulator || new HeadlessSimulator({ assetsPath: ASSETS_PATH });
     const interval = (bot.parameters && bot.parameters.decisionIntervalSeconds) || 5;
     const violations = [];
     let commandCount = 0;
-    let observation = sim.reset(airport, seed, { wind, trafficScale });
+    let observation = sim.reset(airport, seed, { wind, trafficScale, emergencyRate });
 
     bot.reset();
 

@@ -6,12 +6,15 @@ import AirportController from '../airport/AirportController';
 import EventBus from '../lib/EventBus';
 import GameController from '../game/GameController';
 import NavigationLibrary from '../navigationLibrary/NavigationLibrary';
+import TimeKeeper from '../engine/TimeKeeper';
 import UiController from '../ui/UiController';
 import { MCP_MODE } from './ModeControl/modeControlConstants';
 import {
     FLIGHT_PHASE
 } from '../constants/aircraftConstants';
 import { AIRCRAFT_EVENT, EVENT } from '../constants/eventNames';
+import { EMERGENCY_SQUAWK, RESERVED_EMERGENCY_SQUAWKS } from '../realism/EmergencyController';
+import { takeoffDecisionSpeed } from '../realism/takeoffCancel';
 import { radians_normalize } from '../math/circle';
 import { round } from '../math/core';
 import { AIRCRAFT_COMMAND_MAP } from '../commands/aircraftCommand/aircraftCommandMap';
@@ -165,14 +168,72 @@ export default class AircraftCommander {
     }
 
     /**
-     * Aborts an action. Deprecated.
+     * Cancels a takeoff: at the holding point, lined up, or during the roll while below V1
      *
      * @for AircraftCommander
      * @method runAbort
+     * @param aircraft {AircraftModel}
      * @return {array} [success of operation, readback]
      */
-    runAbort() {
-        return [false, "the 'abort' command has been deprecated, please see documentation for help"];
+    runAbort(aircraft) {
+        const isRolling = aircraft.flightPhase === FLIGHT_PHASE.TAKEOFF && !aircraft.isAirborne();
+        const isLinedUp = aircraft.flightPhase === FLIGHT_PHASE.LINE_UP;
+
+        if (!aircraft.isDeparture() || aircraft.isAirborne()) {
+            return [false, 'unable to cancel a takeoff, we\'re not on the runway'];
+        }
+
+        if (!isRolling && !isLinedUp && aircraft.flightPhase !== FLIGHT_PHASE.WAITING) {
+            return [false, 'unable to cancel a takeoff, we\'re not at the runway yet'];
+        }
+
+        if (isRolling && aircraft.speed >= takeoffDecisionSpeed(aircraft.model.speed)) {
+            return [false, 'unable, past V1, we\'re going'];
+        }
+
+        aircraft.cancelTakeoff();
+
+        if (isRolling) {
+            return [true, 'stopping, rejecting takeoff'];
+        }
+
+        return [true, isLinedUp ? 'cancelling takeoff, vacating the runway' : 'holding position, cancelling takeoff'];
+    }
+
+    /**
+     * Line up on the runway and wait for the takeoff clearance
+     *
+     * @for AircraftCommander
+     * @method runLineUp
+     * @param aircraft {AircraftModel}
+     * @return {array} [success of operation, readback]
+     */
+    runLineUp(aircraft) {
+        const runway = aircraft.fms.departureRunwayModel;
+
+        if (aircraft.flightPhase === FLIGHT_PHASE.LINE_UP) {
+            return [false, 'we\'re already lined up'];
+        }
+
+        if (aircraft.flightPhase !== FLIGHT_PHASE.WAITING) {
+            return [false, 'unable to line up, we\'re not at the holding point'];
+        }
+
+        if (!runway.isAircraftNextInQueue(aircraft.id)) {
+            return [false, 'unable to line up, there is traffic ahead of us in the queue'];
+        }
+
+        if (!aircraft.pilot.hasDepartureClearance) {
+            return [false, 'unable to line up, we never received an IFR clearance'];
+        }
+
+        if (aircraft.takeoffNotBefore > TimeKeeper.accumulatedDeltaTime) {
+            return [false, 'unable to line up, we\'re not ready after the cancelled takeoff'];
+        }
+
+        aircraft.lineUp(runway);
+
+        return [true, { log: `lining up Runway ${runway.name}`, say: `lining up Runway ${radio_runway(runway.name)}` }];
     }
 
     /**
@@ -308,6 +369,10 @@ export default class AircraftCommander {
      */
     runHold(aircraft, data) {
         const [turnDirection, legLength, fixName, radial] = data;
+
+        if (aircraft.emergency) {
+            return [false, `unable to hold, we are in an emergency, ${aircraft.emergency.description}`];
+        }
 
         if (!fixName) {
             return [false, 'unable to hold over present position, we can only hold over fixes'];
@@ -707,6 +772,10 @@ export default class AircraftCommander {
             return [false, 'unable to take off, we never received an IFR clearance'];
         }
 
+        if (aircraft.takeoffNotBefore > TimeKeeper.accumulatedDeltaTime) {
+            return [false, 'unable to take off, we\'re not ready after the cancelled takeoff'];
+        }
+
         // see #1154, we may have been rerouted since we started taxiing.
         if (!aircraft.fms.isRunwayModelValidForSid(runway)) {
             readback.log = `according to our charts, Runway ${runway.name} ` +
@@ -788,6 +857,15 @@ export default class AircraftCommander {
      */
     runSquawk(aircraft, data) {
         const squawk = data[0];
+
+        if (aircraft.emergency) {
+            return [false, `unable, we are in an emergency, squawking ${EMERGENCY_SQUAWK}`];
+        }
+
+        if (RESERVED_EMERGENCY_SQUAWKS.indexOf(squawk) !== -1) {
+            return [false, `unable to squawk ${squawk}, it is reserved for emergencies`];
+        }
+
         const result = this._onChangeTransponderCode(squawk, aircraft);
         let readback = {
             log: `squawk ${squawk}`,

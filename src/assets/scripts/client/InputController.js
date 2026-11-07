@@ -882,6 +882,11 @@ export default class InputController {
 
                 return true;
 
+            case PARSED_COMMAND_NAME.EMERGENCY:
+                EventBus.trigger(EVENT.EMERGENCY_COMMAND, parsedCommand.args[0]);
+
+                return true;
+
             case PARSED_COMMAND_NAME.AUDIT:
                 EventBus.trigger(EVENT.AUDIT_PANEL_TOGGLE);
 

@@ -1017,6 +1017,32 @@ export default class CanvasController {
     }
 
     /**
+     * Draws a double ring around an aircraft in emergency (squawk 7700)
+     *
+     * POSITIONING: Before calling this method, translate to the AIRCRAFT POSITION
+     *
+     * @for CanvasController
+     * @method _drawAircraftEmergencyRing
+     * @param cc {HTMLCanvasContext}
+     * @param aircraftModel {AircraftModel}
+     * @returns undefined
+     * @private
+     */
+    _drawAircraftEmergencyRing(cc, aircraftModel) {
+        if (!aircraftModel.emergency) {
+            return;
+        }
+
+        cc.strokeStyle = this.theme.RADAR_TARGET.EMERGENCY;
+
+        [1.5, 2].forEach((radiusNm) => {
+            cc.beginPath();
+            cc.arc(0, 0, CanvasStageModel._translateKilometersToPixels(km(radiusNm)), 0, tau());
+            cc.stroke();
+        });
+    }
+
+    /**
      * Draws circle around aircraft with radius as requested by the user
      *
      * POSITIONING: Before calling this method, translate to the AIRCRAFT POSITION
@@ -1068,6 +1094,10 @@ export default class CanvasController {
 
         if (aircraftModel.isControllable) {
             fillStyle = this.theme.RADAR_TARGET.HISTORY_DOT_INSIDE_RANGE;
+        }
+
+        if (aircraftModel.emergency) {
+            fillStyle = this.theme.RADAR_TARGET.EMERGENCY_HISTORY_DOT;
         }
 
         cc.fillStyle = fillStyle;
@@ -1130,6 +1160,7 @@ export default class CanvasController {
         this._drawAircraftVectorLines(cc, aircraftModel);
         this._drawAircraftHalo(cc, radarTargetModel);
         this._drawAircraftConflictRings(cc, radarTargetModel);
+        this._drawAircraftEmergencyRing(cc, aircraftModel);
 
         let radarTargetRadiusKm = this.theme.RADAR_TARGET.RADIUS_KM;
 
@@ -1139,7 +1170,7 @@ export default class CanvasController {
         }
 
         // Draw the radar target (aka aircraft position dot)
-        cc.fillStyle = this.theme.RADAR_TARGET.RADAR_TARGET;
+        cc.fillStyle = aircraftModel.emergency ? this.theme.RADAR_TARGET.EMERGENCY : this.theme.RADAR_TARGET.RADAR_TARGET;
         cc.beginPath();
         cc.arc(0, 0, CanvasStageModel._translateKilometersToPixels(radarTargetRadiusKm), 0, tau());
         cc.fill();
@@ -1550,6 +1581,10 @@ export default class CanvasController {
             white = this.theme.DATA_BLOCK.TEXT_SELECTED;
         }
 
+        if (aircraftModel.emergency) {
+            white = this.theme.DATA_BLOCK.TEXT_EMERGENCY;
+        }
+
         cc.textBaseline = 'middle';
 
         let { dataBlockLeaderDirection } = radarTargetModel;
@@ -1608,9 +1643,13 @@ export default class CanvasController {
             row2text = radarTargetModel.buildDataBlockRowTwoSecondaryInfo();
         }
 
-        const fillStyle = aircraftModel.isControllable ?
+        let fillStyle = aircraftModel.isControllable ?
             this.theme.DATA_BLOCK.TEXT_IN_RANGE :
             this.theme.DATA_BLOCK.TEXT_OUT_OF_RANGE;
+
+        if (aircraftModel.emergency) {
+            fillStyle = this.theme.DATA_BLOCK.TEXT_EMERGENCY;
+        }
 
         cc.fillStyle = fillStyle;
 
@@ -1685,6 +1724,10 @@ export default class CanvasController {
                 blue = this.theme.DATA_BLOCK.DEPARTURE_BAR_SELECTED;
                 white = this.theme.DATA_BLOCK.TEXT_SELECTED;
             }
+        }
+
+        if (aircraftModel.emergency) {
+            green = this.theme.DATA_BLOCK.BACKGROUND_EMERGENCY;
         }
 
         // Draw datablock shapes

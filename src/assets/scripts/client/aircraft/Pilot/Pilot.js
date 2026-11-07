@@ -228,7 +228,8 @@ export default class Pilot {
 
         const readback = {};
         const runwayOrPresent = (
-            aircraftModel.flightPhase === FLIGHT_PHASE.WAITING || aircraftModel.flightPhase === FLIGHT_PHASE.TAKEOFF
+            aircraftModel.flightPhase === FLIGHT_PHASE.WAITING || aircraftModel.flightPhase === FLIGHT_PHASE.TAKEOFF ||
+            aircraftModel.flightPhase === FLIGHT_PHASE.LINE_UP
         ) ? 'runway' : 'present';
         readback.log = `fly ${runwayOrPresent} heading`;
         readback.say = `fly ${runwayOrPresent} heading`;

@@ -23,6 +23,9 @@ export const GAME_EVENTS_POINT_VALUES = {
     ARRIVAL: 10,
     COLLISION: -1000,
     DEPARTURE: 10,
+    EMERGENCY_DECLARED: 0,
+    EMERGENCY_DEADLINE_MISSED: -300,
+    EMERGENCY_LANDING: 50,
     EXTREME_CROSSWIND_OPERATION: -15,
     EXTREME_TAILWIND_OPERATION: -75,
     GO_AROUND: -50,
@@ -32,7 +35,9 @@ export const GAME_EVENTS_POINT_VALUES = {
     LOCALIZER_INTERCEPT_ABOVE_GLIDESLOPE: -10,
     NOT_CLEARED_ON_ROUTE: -25,
     SEPARATION_LOSS: -200,
+    TAKEOFF_CANCEL_UNJUSTIFIED: -50,
     NO_TAKEOFF_SEPARATION: -200,
+    RESTRICTED_AREA_ENTRY: -200,
     RUNWAY_INCURSION: -500,
     WAKE_SEPARATION_LOSS: -100,
     MINIMUM_ALTITUDE_VIOLATION: -150
@@ -47,6 +52,30 @@ export const GAME_EVENTS = {
     ARRIVAL: 'ARRIVAL',
     COLLISION: 'COLLISION',
     DEPARTURE: 'DEPARTURE',
+    /**
+     * An aircraft declared an emergency (squawk 7700); scores nothing, it is counted for the reports
+     *
+     * @memberof GAME_EVENTS
+     * @property EMERGENCY_DECLARED
+     * @type {string}
+     */
+    EMERGENCY_DECLARED: 'EMERGENCY_DECLARED',
+    /**
+     * An aircraft in emergency did not land before its deadline (or left the airspace)
+     *
+     * @memberof GAME_EVENTS
+     * @property EMERGENCY_DEADLINE_MISSED
+     * @type {string}
+     */
+    EMERGENCY_DEADLINE_MISSED: 'EMERGENCY_DEADLINE_MISSED',
+    /**
+     * An aircraft in emergency landed before its deadline (on top of the normal arrival points)
+     *
+     * @memberof GAME_EVENTS
+     * @property EMERGENCY_LANDING
+     * @type {string}
+     */
+    EMERGENCY_LANDING: 'EMERGENCY_LANDING',
     EXTREME_CROSSWIND_OPERATION: 'EXTREME_CROSSWIND_OPERATION',
     EXTREME_TAILWIND_OPERATION: 'EXTREME_TAILWIND_OPERATION',
     GO_AROUND: 'GO_AROUND',
@@ -68,6 +97,14 @@ export const GAME_EVENTS = {
     NOT_CLEARED_ON_ROUTE: 'NOT_CLEARED_ON_ROUTE',
     SEPARATION_LOSS: 'SEPARATION_LOSS',
     NO_TAKEOFF_SEPARATION: 'NO_TAKEOFF_SEPARATION',
+    /**
+     * An aircraft entered a restricted area
+     *
+     * @memberof GAME_EVENTS
+     * @property RESTRICTED_AREA_ENTRY
+     * @type {string}
+     */
+    RESTRICTED_AREA_ENTRY: 'RESTRICTED_AREA_ENTRY',
     /**
      * Two aircraft used the same runway at the same time: a landing or a takeoff
      * started while the runway was occupied
@@ -92,7 +129,16 @@ export const GAME_EVENTS = {
      * @property MINIMUM_ALTITUDE_VIOLATION
      * @type {string}
      */
-    MINIMUM_ALTITUDE_VIOLATION: 'MINIMUM_ALTITUDE_VIOLATION'
+    MINIMUM_ALTITUDE_VIOLATION: 'MINIMUM_ALTITUDE_VIOLATION',
+    /**
+     * A takeoff was cancelled with the runway free and no reason to protect it; a justified
+     * cancellation scores nothing
+     *
+     * @memberof GAME_EVENTS
+     * @property TAKEOFF_CANCEL_UNJUSTIFIED
+     * @type {string}
+     */
+    TAKEOFF_CANCEL_UNJUSTIFIED: 'TAKEOFF_CANCEL_UNJUSTIFIED'
 };
 
 /**
@@ -104,6 +150,9 @@ const GAME_EVENTS_DESCRIPTION = {
     ARRIVAL: 'Aircraft landed successfully',
     COLLISION: 'Multiple aircraft collided',
     DEPARTURE: 'Departing aircraft switched to center',
+    EMERGENCY_DECLARED: 'Aircraft declared an emergency (squawk 7700)',
+    EMERGENCY_DEADLINE_MISSED: 'Aircraft in emergency did not land in time',
+    EMERGENCY_LANDING: 'Aircraft in emergency landed in time',
     EXTREME_CROSSWIND_OPERATION: 'Aircraft operated with extreme crosswind',
     EXTREME_TAILWIND_OPERATION: 'Aircraft operated with extreme tailwind',
     GO_AROUND: 'Aircraft had to go around',
@@ -113,7 +162,9 @@ const GAME_EVENTS_DESCRIPTION = {
     LOCALIZER_INTERCEPT_ABOVE_GLIDESLOPE: 'Aircraft intercepted localizer above glidescope',
     NOT_CLEARED_ON_ROUTE: 'Aircraft left airspace without being on route',
     SEPARATION_LOSS: 'Aircraft violated separation requirements',
+    TAKEOFF_CANCEL_UNJUSTIFIED: 'Takeoff cancelled without a safety reason',
     NO_TAKEOFF_SEPARATION: 'Aircraft violated same runway separation requirements',
+    RESTRICTED_AREA_ENTRY: 'Aircraft entered a restricted area',
     RUNWAY_INCURSION: 'Aircraft used an occupied runway',
     WAKE_SEPARATION_LOSS: 'Aircraft violated wake turbulence separation',
     MINIMUM_ALTITUDE_VIOLATION: 'Aircraft descended below the minimum vectoring altitude'

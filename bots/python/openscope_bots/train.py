@@ -28,7 +28,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from .env import EnvConfig, ParallelEnvs
+from .env import EnvConfig, ParallelEnvs, resolve_airports
 from .evaluate import run_bot_b_episode
 from .fitness import mean_cost, score_summary
 from .imitation import run_imitation
@@ -45,9 +45,10 @@ QUICK_OVERRIDES = {
     "imitation": {"collect_decisions": 200, "epochs": 1, "dagger_iterations": 1, "dagger_decisions": 100,
                   "episode_minutes": 10},
     "ppo": {"rollout_steps": 16, "epochs": 1, "minibatches": 2, "checkpoint_every": 1, "evaluate_every": 2},
-    "curriculum": [{"name": "quick", "updates": 2, "env": {"airports": ["lemd"], "traffic_scale": [0.5, 0.5],
-                                                           "episode_minutes": 5}}],
-    "evaluation": {"airports": ["lemd"], "seeds": [101], "minutes": 5},
+    "env": {"airports": ["lemd", "lemg"], "emergency_rate": [0.1, 0.1]},
+    "curriculum": [{"name": "quick", "updates": 2, "env": {"airports": ["lemd", "lemg"], "traffic_scale": [0.5, 0.5],
+                                                           "emergency_rate": [0.1, 0.1], "episode_minutes": 5}}],
+    "evaluation": {"airports": ["lemd"], "seeds": [101], "minutes": 5, "emergency_rate": 0.1},
 }
 
 
@@ -66,13 +67,14 @@ def pick_device(name: str) -> torch.device:
 
 def make_evaluator(config: dict[str, Any], device: torch.device):
     evaluation = config["evaluation"]
-    episodes = [{"airport": a, "seed": s} for a in evaluation["airports"] for s in evaluation["seeds"]]
+    episodes = [{"airport": a, "seed": s} for a in resolve_airports(evaluation["airports"]) for s in evaluation["seeds"]]
 
     def evaluate(model: PolicyNetwork) -> dict[str, Any]:
         with SimulatorPool(min(len(episodes), config["envs"])) as pool:
             summaries = pool.map(
                 lambda client, ep: run_bot_b_episode(client, model, device, ep["airport"], ep["seed"],
-                                                     evaluation["minutes"]),
+                                                     evaluation["minutes"],
+                                                     emergency_rate=evaluation.get("emergency_rate")),
                 episodes,
             )
         scores = [score_summary(summary) for summary in summaries]

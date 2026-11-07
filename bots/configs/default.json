@@ -4,8 +4,9 @@
     "device": "auto",
     "envs": 8,
     "env": {
-        "airports": ["lemd", "eddm"],
+        "airports": "all",
         "traffic_scale": [1.0, 1.0],
+        "emergency_rate": [0.01, 0.05],
         "episode_minutes": 60,
         "decision_seconds": 10,
         "random_wind_probability": 0.0,
@@ -19,13 +20,13 @@
     },
     "imitation": {
         "episode_minutes": 40,
-        "collect_decisions": 20000,
+        "collect_decisions": 40000,
         "epochs": 10,
         "batch_size": 64,
         "learning_rate": 0.0003,
         "noop_weight": 0.2,
         "dagger_iterations": 3,
-        "dagger_decisions": 6000
+        "dagger_decisions": 10000
     },
     "ppo": {
         "rollout_steps": 128,
@@ -43,24 +44,42 @@
     },
     "curriculum": [
         {
-            "name": "light traffic at LEMD",
+            "name": "light traffic at the reference airports, some emergencies",
             "updates": 100,
-            "env": { "airports": ["lemd"], "traffic_scale": [0.4, 0.6], "episode_minutes": 30 }
+            "env": {
+                "airports": ["lemd", "lemg", "eddm"],
+                "traffic_scale": [0.4, 0.6],
+                "emergency_rate": [0.02, 0.05],
+                "episode_minutes": 30
+            }
         },
         {
-            "name": "both airports, medium traffic, some wind",
-            "updates": 200,
-            "env": { "airports": ["lemd", "eddm"], "traffic_scale": [0.6, 0.9], "episode_minutes": 45, "random_wind_probability": 0.2 }
+            "name": "every airport, medium traffic, some wind, frequent emergencies",
+            "updates": 300,
+            "env": {
+                "airports": "all",
+                "traffic_scale": [0.6, 0.9],
+                "emergency_rate": [0.03, 0.1],
+                "episode_minutes": 45,
+                "random_wind_probability": 0.2
+            }
         },
         {
-            "name": "full traffic",
-            "updates": 400,
-            "env": { "airports": ["lemd", "eddm"], "traffic_scale": [0.9, 1.2], "episode_minutes": 60, "random_wind_probability": 0.3 }
+            "name": "every airport, full traffic, winds, realistic and frequent emergencies",
+            "updates": 600,
+            "env": {
+                "airports": "all",
+                "traffic_scale": [0.9, 1.2],
+                "emergency_rate": [0.01, 0.08],
+                "episode_minutes": 60,
+                "random_wind_probability": 0.3
+            }
         }
     ],
     "evaluation": {
-        "airports": ["lemd", "eddm"],
+        "airports": ["lemd", "lemg", "eddm", "egll", "kjfk", "rjtt"],
         "seeds": [101, 102],
-        "minutes": 45
+        "minutes": 45,
+        "emergency_rate": 0.05
     }
 }

@@ -59,6 +59,7 @@ export default class MetricsCollector {
         this.landings = 0;
         this.takeoffs = 0;
         this.goArounds = 0;
+        this.rejectedTakeoffs = 0;
         this.separationLossSeconds = 0;
         this.fuelKg = 0;
         this._arrivalTimesInAirspace = [];
@@ -141,6 +142,17 @@ export default class MetricsCollector {
     }
 
     /**
+     * A takeoff roll that was stopped does not count as a takeoff
+     *
+     * @for MetricsCollector
+     * @method recordRejectedTakeoff
+     */
+    recordRejectedTakeoff() {
+        this.takeoffs -= 1;
+        this.rejectedTakeoffs += 1;
+    }
+
+    /**
      * @for MetricsCollector
      * @method recordGoAround
      */
@@ -182,6 +194,7 @@ export default class MetricsCollector {
             takeoffs: this.takeoffs,
             movementsPerHour: (this.landings + this.takeoffs) / hours,
             goArounds: this.goArounds,
+            rejectedTakeoffs: this.rejectedTakeoffs,
             separationLossSeconds: this.separationLossSeconds,
             averageArrivalTimeInAirspaceSeconds: average(this._arrivalTimesInAirspace),
             averageArrivalTrackMiles: average(this._arrivalTrackMiles),

@@ -7,16 +7,16 @@
  * so stdout only ever carries protocol messages.
  *
  * Methods:
- * - `reset({ airport, seed, wind })`               -> observation (wind: `{ angle, speed }`, optional)
+ * - `reset({ airport, seed, wind, trafficScale, emergencyRate })` -> observation (wind: `{ angle, speed }`, optional)
  * - `step({ seconds, commands: [[callsign, text]] })` -> `{ observation, commandResults }`
  *   (commands are issued before the time advances)
  * - `command({ callsign, text })`                  -> `{ success, message }`
  * - `observe()`                                    -> observation
  * - `airports()`                                   -> list of airports that can be loaded
- * - `runBotEpisode({ bot, parameters, airport, seed, minutes, wind, trafficScale, trace })` -> episode summary
+ * - `runBotEpisode({ bot, parameters, airport, seed, minutes, wind, trafficScale, emergencyRate, trace })` -> episode summary
  * - `botParameterSpace()`                          -> Bot A parameters with their tuning ranges
  * - `rlSpec()`                                     -> sizes of the encoded observation and action names
- * - `rlReset({ airport, seed, wind, trafficScale, decisionSeconds, episodeSeconds, withExpert, rewardWeights })`
+ * - `rlReset({ airport, seed, wind, trafficScale, emergencyRate, decisionSeconds, episodeSeconds, withExpert, rewardWeights })`
  * - `rlStep({ actions })`                          -> encoded observation, reward, done, info
  *   (`actions`: one action index per aircraft slot, or `'expert'` to let Bot A act)
  * - `close()`
@@ -54,10 +54,11 @@ const rlEnvironment = new RlEnvironment(simulator);
 
 const methods = {
     reset: ({
-        airport = 'lemd', seed = 0, wind = null, trafficScale = 1
+        airport = 'lemd', seed = 0, wind = null, trafficScale = 1, emergencyRate = null
     } = {}) => simulator.reset(airport, seed, {
         wind,
-        trafficScale
+        trafficScale,
+        emergencyRate
     }),
     step: ({ seconds = simulator.stepSeconds, commands = [] } = {}) => {
         const commandResults = commands.map(([callsign, text]) => simulator.command(callsign, text));
@@ -69,7 +70,8 @@ const methods = {
     observe: () => simulator.observe(),
     airports: () => require('../../assets/airports/airportLoadList.json'), // eslint-disable-line global-require
     runBotEpisode: ({
-        bot = 'A', parameters = {}, airport = 'lemd', seed = 0, minutes = 60, wind = null, trafficScale = 1, trace = false
+        bot = 'A', parameters = {}, airport = 'lemd', seed = 0, minutes = 60, wind = null, trafficScale = 1,
+        emergencyRate = null, trace = false
     } = {}) => {
         const tracks = {};
         const { summary, violations } = runEpisode({
@@ -79,6 +81,7 @@ const methods = {
             minutes,
             wind,
             trafficScale,
+            emergencyRate,
             simulator,
             onDecision: trace ? (decisions, observation) => {
                 observation.aircraft.forEach((aircraft) => {

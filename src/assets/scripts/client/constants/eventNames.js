@@ -29,6 +29,15 @@ export const EVENT = {
     AUDIT_PANEL_TOGGLE: 'audit-panel-toggle',
 
     /**
+     * The player typed `emergency [callsign]`: that aircraft (or a random one) declares an emergency
+     *
+     * @memberof EVENT
+     * @property EMERGENCY_COMMAND
+     * @type {string}
+     */
+    EMERGENCY_COMMAND: 'emergency-command',
+
+    /**
      * Add an aircraft to the simulation
      *
      * @memberof EVENT
@@ -347,6 +356,24 @@ export const AIRCRAFT_EVENT = {
      * @type {string}
      */
     TAKEOFF: 'takeoff',
+
+    /**
+     * Triggered when an aircraft lines up on the runway
+     *
+     * @memberof AIRCRAFT_EVENT
+     * @property LINE_UP
+     * @type {string}
+     */
+    LINE_UP: 'line-up',
+
+    /**
+     * Triggered when a takeoff is cancelled: at the holding point, lined up or during the roll
+     *
+     * @memberof AIRCRAFT_EVENT
+     * @property TAKEOFF_CANCELLED
+     * @type {string}
+     */
+    TAKEOFF_CANCELLED: 'takeoff-cancelled',
 
     /**
      * Trigged when the aircraft enters the approach

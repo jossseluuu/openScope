@@ -10,40 +10,42 @@ ver la guía [bot-training.md](bot-training.md).
 2. [Estado](#estado)
 3. [Cómo activar los bots](#cómo-activar-los-bots)
 4. [Arquitectura](#arquitectura)
-5. [Bot A: reglas expertas y metaheurísticas](#bot-a-reglas-expertas-y-metaheurísticas)
-6. [Bot B: aprendizaje por refuerzo](#bot-b-aprendizaje-por-refuerzo)
-7. [Escudo de seguridad](#escudo-de-seguridad)
-8. [Acciones](#acciones)
-9. [La observación](#la-observación-qué-ve-un-bot)
-10. [Reglas, prioridades y puntuación](#reglas-prioridades-y-puntuación)
-11. [Uso desde programas (Python y JavaScript)](#uso-desde-programas)
-12. [Resultados del Bot A](#resultados-del-bot-a)
-13. [Mapa de archivos](#mapa-de-archivos)
-14. [Limitaciones conocidas](#limitaciones-conocidas)
+5. [Los bots](#los-bots)
+6. [Escudo de seguridad](#escudo-de-seguridad)
+7. [Acciones](#acciones)
+8. [La observación](#la-observación-qué-ve-un-bot)
+9. [Reglas, prioridades y puntuación](#reglas-prioridades-y-puntuación)
+10. [Uso desde programas (Python y JavaScript)](#uso-desde-programas)
+11. [Mapa de archivos](#mapa-de-archivos)
+12. [Limitaciones conocidas](#limitaciones-conocidas)
 
 ## Qué es
 
-Dos programas que hacen de controlador aéreo y gestionan **todo** el tráfico de
+Tres programas que hacen de controlador aéreo y gestionan **todo** el tráfico de
 un aeropuerto:
 
 - **Llegadas:** secuenciación, esperas, vectores e ILS.
 - **Salidas:** autorización, rodaje, despegue y salida.
 - **Conflictos** entre todos ellos.
+- **Emergencias** (squawk 7700): prioridad, vectores directos y pista libre.
+  Ver [emergencias.md](emergencias.md).
 
-| | Bot A | Bot B |
-|---|---|---|
-| Enfoque | Reglas expertas + optimización metaheurística | Aprendizaje por refuerzo (PPO) |
-| Cómo decide | Planifica secuencias y resuelve conflictos con algoritmos | Red neuronal entrenada con millones de decisiones |
-| Dónde se ejecuta | JavaScript: navegador y simulador | Entrena en Python/PyTorch; juega en el navegador con ONNX |
-| Explicable | Sí: cada orden lleva su motivo | No directamente |
-| Necesita entrenamiento | No; sus parámetros se pueden ajustar con CMA-ES | Sí: unas 6-7 horas en la GPU |
+| | [Bot A](bot-a.md) | [Bot B](bot-b.md) | [Bot C](bot-c.md) |
+|---|---|---|---|
+| Enfoque | Reglas expertas + optimización metaheurística | Aprendizaje por refuerzo (PPO) | Agentes especialistas con supervisores independientes |
+| Cómo decide | Planifica secuencias y resuelve conflictos con algoritmos | Red neuronal entrenada con millones de decisiones | Un agente responsable por avión; por ahora con la planificación del Bot A |
+| Dónde se ejecuta | JavaScript: navegador y simulador | Entrena en Python/PyTorch; juega en el navegador con ONNX | JavaScript: navegador y simulador |
+| Explicable | Sí: cada orden lleva su motivo | No directamente | Sí: cada orden se audita y se juzga |
+| Necesita entrenamiento | No; sus parámetros se pueden ajustar con CMA-ES | Sí: unas 9-10 horas en la GPU | No, de momento |
 
-Los dos están sujetos a las mismas reglas (OACI, EASA/RECAT-EU, FAA) y al mismo
+Los tres están sujetos a las mismas reglas (OACI, EASA/RECAT-EU, FAA) y al mismo
 **escudo de seguridad**. Solo pueden dar las órdenes que daría un controlador
 humano, con la misma sintaxis y por el mismo camino.
 
-Aeropuertos de referencia: **LEMD** (Madrid-Barajas) y **EDDM** (Múnich).
-Funcionan en cualquier aeropuerto.
+Aeropuertos de referencia: **LEMD** (Madrid-Barajas), **LEMG** (Málaga) y
+**EDDM** (Múnich). Funcionan en cualquier aeropuerto: `tools/sim/check-airports.js`
+los prueba todos y escribe la lista que usa el entrenamiento
+(`bots/configs/airports.json`).
 
 ## Estado
 
@@ -55,7 +57,7 @@ Funcionan en cualquier aeropuerto.
 | 4 | Ajuste del Bot A con CMA-ES | ✅ programado; ejecutarlo es opcional |
 | 5 | Entorno Gymnasium, imitación del Bot A y DAgger | ✅ |
 | 6 | PPO con curriculum, escudo y comparación A contra B | ✅ programado; **falta entrenar** |
-| 7 | Bots en el juego del navegador (`bot a`, `bot b`, `bot off`) | ✅ (`bot b` necesita un modelo entrenado) |
+| 7 | Bots en el juego del navegador (`bot a`, `bot b`, `bot c`, `bot off`) | ✅ (`bot b` necesita un modelo entrenado) |
 
 ## Cómo activar los bots
 
@@ -67,6 +69,7 @@ Escribe en la barra de órdenes (la misma donde das las autorizaciones):
 |---|---|
 | `bot a` | El Bot A toma el control de todo el tráfico |
 | `bot b` | El Bot B toma el control (carga `assets/bots/botB.onnx`) |
+| `bot c` | El Bot C toma el control, con sus supervisores (ver [bot-c.md](bot-c.md)) |
 | `bot off` | Recuperas el control |
 
 - Las órdenes del bot aparecen en el registro como `[bot A] IBE1234 fh r 270 - ...`,
@@ -149,111 +152,26 @@ El catálogo de acciones, el escudo, el codificador de rasgos y la recompensa
 están escritos una sola vez, en JavaScript. Así el Bot A, el entrenamiento y el
 navegador usan exactamente la misma lógica.
 
-## Bot A: reglas expertas y metaheurísticas
+## Los bots
 
-Cada 5 s (`src/assets/scripts/client/bot/botA/BotA.js`) hace, en este orden:
+Cada bot tiene su documento:
 
-1. **Seguridad.** Aplica las acciones que impone el escudo de seguridad.
-2. **Conflictos (CD&R).** Predice las trayectorias 2 minutos hacia delante. Si
-   dos aviones van a perder la separación, elige la maniobra de menor coste:
-   parar un ascenso o descenso, cambiar de nivel o, como último recurso, un
-   viraje. Antes de darla **comprueba que funciona**: que separa a la pareja y
-   no crea un conflicto con un tercero. Si ninguna lo consigue, elige la que más
-   retrasa la pérdida. Mantiene la maniobra hasta que reanudar la ruta ya no
-   recrearía el conflicto. Las maniobras laterales y verticales se recuerdan por
-   separado, para que una no borre a la otra.
-   - La predicción de los aviones que suben o bajan por el procedimiento
-     (`dvs` / `cvs`) reproduce la del simulador: respetan la siguiente
-     restricción "a o por encima" y "a o por debajo", y empiezan a bajar en su
-     punto de inicio de descenso.
-   - Dos aviones en la misma final se espacian por la secuencia. En finales
-     paralelas se exige el mínimo de aproximaciones dependientes del simulador
-     (1, 1,5 o 2 NM en diagonal según la distancia entre ejes, 3 NM si es mayor).
-3. **Salidas (DMAN).**
-   - Saca aviones del aparcamiento mientras haya sitio en la cola del punto de
-     espera (máximo 4 por pista).
-   - En cada pista despega primero la salida que más lleva esperando de entre
-     las que pueden irse ya.
-   - Para poder irse, una salida necesita pista libre, el tiempo de estela tras
-     la anterior, 2 minutos si sigue la misma ruta (1 si diverge) y que ninguna
-     llegada vaya a necesitar la pista.
-   - Desde pistas paralelas, exige rutas iniciales divergentes al menos 15°.
-4. **Llegadas (AMAN).**
-   - Estima la hora de llegada de cada avión siguiendo su ruta o su circuito de
-     vectores.
-   - Calcula la secuencia de aterrizaje de cada pista: separación de estela,
-     tiempo de ocupación de pista y huecos para salidas en pistas mixtas.
-   - Mejora el orden con **recocido simulado** bajo *Constrained Position
-     Shifting*: cada avión puede adelantar o retrasar como mucho 2 puestos.
-     Los pesados pesan más porque gastan más combustible esperando.
-   - Reparte las llegadas entre pistas paralelas (`e 26R`) cuando la otra
-     ofrece un hueco claramente antes y está de su lado.
-5. **Absorber el retraso** que pide la secuencia:
-   - **Reduce la velocidad.** Busca por bisección la velocidad que cuadra la
-     hora.
-   - **Manda a espera** si el retraso es grande. Cada avión va a un nivel libre
-     de la pila (separados 1000 ft), bajan conforme se libera el de abajo y
-     sale primero el de abajo. Solo usa fijos a más de 10 NM del límite del
-     espacio aéreo.
-   - **Alarga el tramo de viento en cola** cuando el avión va con vectores
-     (la "trombón").
-6. **Vectores al ILS.**
-   - Funciona como una secuencia que solo avanza: viento en cola, base,
-     interceptación y autorización ILS.
-   - Solo vira a base cuando el espaciado con **todos** los aviones que van por
-     delante será suficiente al llegar al localizador.
-   - Intercepta por debajo de la senda de planeo, a 30°.
-   - Da primero el rumbo y después la autorización ILS, porque un rumbo
-     posterior la cancelaría.
-   - Si se queda alto o se pasa del localizador, rompe la aproximación y vuelve
-     al viento en cola.
-7. **En final.** Mantiene el espaciado con la velocidad, bajando hasta la de
-   aterrizaje si es necesario.
-
-**Comprobación de niveles.** Toda altitud que piden la secuencia, la espera o
-los vectores pasa antes por una comprobación: se predice el ascenso o descenso
-completo, no solo el nivel final, y un nivel que otro avión está dejando solo se
-ocupa cuando ya está libre (si el de delante se nivelara, seguiría habiendo
-separación). Si el nivel pedido no es seguro, el avión se queda en el nivel
-seguro más cercano a él y lo vuelve a intentar en el siguiente ciclo. En una
-espera, un avión solo baja al nivel de abajo cuando el que lo ocupaba lo ha
-dejado de verdad.
-
-**Rupturas de aproximación.** Cuando el escudo rompe una aproximación, el avión
-mantiene el rumbo de ruptura 45 s y después se le vectoriza en un circuito
-nuevo, en lugar de volver enseguida al localizador. En base, si el tráfico de la
-final se ha acercado más de lo previsto, se alarga el viento en cola.
-
-Todos los márgenes y umbrales son **parámetros**, con su rango de ajuste
-(`botA/botAParameters.js`). La Fase 4 los optimiza con CMA-ES.
-
-## Bot B: aprendizaje por refuerzo
-
-- **Entrada.** Hasta 48 aviones × 50 rasgos, más 5 rasgos globales (ver
-  [la observación](#la-observación-qué-ve-un-bot)).
-- **Red.** Un *transformer* de 3 capas sobre la lista de aviones, con una cabeza
-  de política por avión y otra de valor, unos 480.000 parámetros.
-- **Salida.** Una acción del catálogo para cada avión en cada decisión (cada 10 s).
-- **Entrenamiento.** Imitación del Bot A, después DAgger y después PPO con un
-  curriculum: de poco tráfico en LEMD a tráfico completo en LEMD y EDDM con
-  viento variable.
-- **Recompensa.** Construida a partir del Rulebook, ponderada por niveles
-  (seguridad −10, separación −3, procedimiento −0,5, frustrada −1, aterrizaje o
-  salida +1…).
-- **En el navegador.** Se exporta a ONNX y se ejecuta con ONNX Runtime Web.
-
-Cómo entrenarlo: [bot-training.md](bot-training.md).
+- **[Bot A](bot-a.md):** reglas expertas y metaheurísticas, con sus resultados.
+- **[Bot B](bot-b.md):** aprendizaje por refuerzo.
+- **[Bot C](bot-c.md):** agentes especialistas y supervisores.
 
 ## Escudo de seguridad
 
-`src/assets/scripts/client/bot/safetyShield.js`, común a los dos bots:
+`src/assets/scripts/client/bot/safetyShield.js`, común a todos los bots:
 
 - **Prohíbe:**
   - despegar con la pista ocupada, sin la separación de estela o temporal con
     la salida anterior, o con una llegada demasiado cerca;
   - asignar una altitud por debajo de la mínima de vectores donde está el avión
     o en su trayectoria durante los próximos 2 minutos (o de 1500 ft sobre el
-    aeropuerto donde no hay datos de terreno).
+    aeropuerto donde no hay datos de terreno);
+  - subir una llegada por encima del techo del espacio aéreo;
+  - mandar a esperar a un avión en emergencia.
 - **Impone:** si dos aviones en la misma final están por debajo del mínimo, el
   de detrás hace frustrada (a menos de 6 NM) o rompe la aproximación con un
   viraje de 45° (más lejos).
@@ -262,13 +180,13 @@ El Bot B no puede saltárselo: las acciones prohibidas reciben probabilidad cero
 
 ## Acciones
 
-Una por avión y decisión, 64 en total (`src/assets/scripts/client/bot/actionSpace.js`):
+Una por avión y decisión, 66 en total (`src/assets/scripts/client/bot/actionSpace.js`):
 
 | Grupo | Acciones | Orden que generan |
 |---|---|---|
 | Nada | 1 | — |
 | Rumbo | ±5, 10, 20, 30, 45, 60, 90° sobre el rumbo asignado | `fh l 250` / `fh r 300` |
-| Altitud | 2000 a 24000 ft, cada 1000 | `a 50` |
+| Altitud | 2000 a 24000 ft, cada 1000 | `a 50` (`a 50 ex` si un avión en emergencia baja 1000 ft o más) |
 | Velocidad | 140 a 300 kt, cada 10 | `sp 210` |
 | Directo | al siguiente fijo de la ruta | `pd FAFEQ` |
 | Procedimiento | descender por la STAR / subir por la SID | `dvs` / `cvs` |
@@ -278,6 +196,8 @@ Una por avión y decisión, 64 en total (`src/assets/scripts/client/bot/actionSp
 | Frustrada | | `ga` |
 | Rodaje | autorización, rodaje y subida por la SID | `caf taxi 36L cvs` |
 | Despegue | | `cto` |
+| Alinearse | el siguiente de la cola entra en pista y espera | `lineup` |
+| Cancelar despegue | en espera, alineado, o en carrera por debajo de V1 | `abort` |
 
 Para la referencia completa de órdenes, ver [aircraft-commands.md](aircraft-commands.md).
 
@@ -313,8 +233,10 @@ y CO₂).
 | Situación | `isControllable`, `isOnGround`, `isTaxiing`, `taxiRemainingSeconds`, `isEstablishedOnCourse`, `hasApproachClearance`, `hasDepartureClearance`, `isHoldAssigned`, `conflicts` |
 | Prestaciones | `speedLimits` (mínima, aterrizaje, máxima) y `ceiling` |
 | Ruta | `route`, `nextWaypoint`, `waypoints` (posición, restricciones, rumbo de los tramos de vector), `arrivalRunway`, `departureRunway` |
-| Autorización vigente | `clearance` (modos y valores de altitud, rumbo y velocidad) |
+| Autorización vigente | `clearance` (modos y valores de altitud, rumbo y velocidad, y `expedite`) |
+| Emergencia | `squawk` y `emergency` (`type`, `description`, `declaredAt`, `deadline`, `remainingSeconds`), o `null` |
 | Terreno | `minimumVectoringAltitude` (donde está) y `minimumVectoringAltitudeAhead` (la más alta en su trayectoria durante los próximos 2 minutos) |
+| Espacio aéreo | `airspaceFloor`, `airspaceFloorAhead`, `airspaceFloorAround`, `airspaceCeiling`, `airspaceCeilingAhead` |
 
 En el simulador cada observación incluye además `violations` (reglas
 incumplidas desde la anterior), `scoreEvents` y `radio`.
@@ -327,7 +249,7 @@ La normativa completa está en [realism.md](realism.md). Las prioridades son
 | Nivel | Reglas |
 |---|---|
 | 0 Seguridad | incursión en pista, impacto contra el terreno, vectores bajo la altitud mínima, colisión |
-| 1 Separación | radar, final de aproximación, estela en llegadas y salidas, llegada-salida |
+| 1 Separación | radar, final de aproximación, estela en llegadas y salidas, llegada-salida, plazo de una emergencia |
 | 2 Procedimiento | límites de viento en pista, salida sin ruta, interceptación sobre la senda |
 | 3 Eficiencia | frustradas, aterrizajes, salidas, retrasos, millas recorridas |
 | 4 Entorno y carga | combustible, CO₂ y número de órdenes |
@@ -335,7 +257,7 @@ La normativa completa está en [realism.md](realism.md). Las prioridades son
 El mismo orden se usa para:
 - la recompensa del Bot B;
 - el coste que minimiza el ajuste del Bot A (`bots/python/openscope_bots/fitness.py`);
-- la comparación entre los dos bots.
+- la comparación entre los bots.
 
 ## Uso desde programas
 
@@ -361,47 +283,27 @@ const { BOTS, runEpisode } = require('./tools/sim/botRunner');
 const { summary } = runEpisode({ bot: BOTS.A({}), airport: 'lemd', seed: 1, minutes: 60 });
 ```
 
-## Resultados del Bot A
-
-Bot A con los parámetros por defecto (sin ajustar), episodios de 60 minutos con
-el tráfico normal de cada aeropuerto, semillas 1 a 3:
-
-| | LEMD | EDDM |
-|---|---|---|
-| Colisiones, incursiones en pista, impactos contra el terreno, vectores bajo la altitud mínima | 0 | 0 |
-| Llegadas que abandonan el espacio aéreo | 0 | 0 |
-| Aterrizajes por hora | 20 | 20-22 |
-| Despegues por hora | 21-25 | 25 |
-| Frustradas por hora | 0 | 0-2 |
-| Pérdidas de separación (radar y estela) por hora | 4-11 | 5-6 |
-
-Antes de la comprobación de niveles y de la predicción VNAV, las pérdidas de
-separación radar eran de 18-32 por hora en LEMD y de 35-65 en EDDM, con los mismos
-aterrizajes. Las que quedan son sobre todo aviones que se juntan en el viento en
-cola o al salir de las esperas, y aviones en finales paralelas sin escalonar.
-
-Se probó a secuenciar juntas las pistas paralelas con un escalonamiento entre
-ellas, y empeoró las dos cosas (más pérdidas y menos aterrizajes): los vectores no
-entregan los aviones con la precisión que eso exige.
-
 ## Mapa de archivos
 
 | Ruta | Contenido |
 |---|---|
 | `src/assets/scripts/client/bot/BotApi.js` | interfaz: observación y órdenes |
-| `src/assets/scripts/client/bot/BotController.js` | `bot a` / `bot b` / `bot off` en el juego |
+| `src/assets/scripts/client/bot/BotController.js` | `bot a` / `bot b` / `bot c` / `bot off` en el juego |
 | `src/assets/scripts/client/bot/actionSpace.js` | catálogo de acciones |
 | `src/assets/scripts/client/bot/safetyShield.js` | escudo de seguridad |
 | `src/assets/scripts/client/bot/botRules.js` | reglas de despegue, espaciado y altitud mínima |
 | `src/assets/scripts/client/bot/botGeometry.js` | geometría: final, rumbos, espacio aéreo |
 | `src/assets/scripts/client/bot/botA/` | Bot A: secuenciación, planificador de llegadas, conflictos, parámetros |
+| `src/assets/scripts/client/bot/botC/` | Bot C: agentes y supervisión, ver [bot-c.md](bot-c.md) |
 | `src/assets/scripts/client/bot/rl/` | codificador de rasgos, recompensa y ejecución del Bot B en el navegador |
 | `src/assets/scripts/client/realism/` | realismo y Rulebook |
 | `src/assets/scripts/headless/` | simulador sin navegador y entorno de RL |
-| `tools/sim/` | `run-bot.js`, `demo.js`, servidor para Python |
+| `tools/sim/` | `run-bot.js`, `demo.js`, `check-airports.js`, servidor para Python |
 | `bots/python/openscope_sim/` | cliente de Python del simulador |
 | `bots/python/openscope_bots/` | ajuste del A, entrenamiento, evaluación y exportación del B |
 | `bots/configs/default.json` | configuración de entrenamiento |
+| `bots/configs/airports.json` | aeropuertos verificados para entrenar (`check-airports.js --write`) |
+| `src/assets/scripts/client/realism/EmergencyController.js` | emergencias |
 | `bots/params/` | parámetros ajustados del Bot A |
 | `bots/runs/` | resultados de entrenamiento (no se guardan en git) |
 | `assets/bots/` | modelo del Bot B para el juego |
@@ -409,10 +311,9 @@ entregan los aviones con la precisión que eso exige.
 
 ## Limitaciones conocidas
 
-- El Bot B está programado pero **sin entrenar**: no habrá `bot b` en el juego
-  hasta completar [bot-training.md](bot-training.md).
-- El Bot A todavía pierde la separación unas 5 veces por hora (ver
-  [resultados](#resultados-del-bot-a)).
+- Las limitaciones propias de cada bot están en [bot-a.md](bot-a.md#limitaciones),
+  [bot-b.md](bot-b.md#limitaciones) y [bot-c.md](bot-c.md#limitaciones).
+- Las emergencias no cambian las prestaciones del avión: son prioridad y plazo.
 - No se simula el rodaje por calles: es un tiempo de espera por pista.
 - Las frustradas siguen el rumbo actual, no el procedimiento publicado.
 - Las altitudes mínimas de vectores se calculan a partir de un terreno

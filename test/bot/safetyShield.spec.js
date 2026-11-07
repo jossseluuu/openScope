@@ -1,7 +1,9 @@
 import ava from 'ava';
 
 import SafetyShield from '../../src/assets/scripts/client/bot/safetyShield';
-import { ACTIONS, ACTION_INDEX, ACTION_TYPE } from '../../src/assets/scripts/client/bot/actionSpace';
+import {
+    ACTIONS, ACTION_INDEX, ACTION_TYPE, altitudeAction
+} from '../../src/assets/scripts/client/bot/actionSpace';
 import { createAircraft, createObservation } from './_observationFixture';
 
 ava('the shield forbids a takeoff on an occupied runway', (t) => {
@@ -22,6 +24,28 @@ ava('the shield forbids altitudes below the minimum vectoring altitude', (t) => 
     ACTIONS.filter((action) => action.type === ACTION_TYPE.ALTITUDE).forEach((action) => {
         t.is(mask[action.index], action.value >= 6000);
     });
+});
+
+ava('the shield keeps arrivals out of the gaps between airspace sectors', (t) => {
+    const aircraft = createAircraft({
+        altitude: 9000,
+        clearance: {
+            altitudeMode: 'HOLD', altitude: 7000, headingMode: 'HOLD', heading: 270
+        }
+    });
+    const observation = createObservation([aircraft]);
+    const square = [{ x: -60, y: -60 }, { x: 60, y: -60 }, { x: 60, y: 60 }, { x: -60, y: 60 }];
+
+    // class B shelves: up to 4000 ft and from 8000 to 13000 ft, nothing in between
+    observation.airport.airspace = [{ floor: 0, ceiling: 4000, polygon: square }, { floor: 8000, ceiling: 13000, polygon: square }];
+
+    const shield = new SafetyShield();
+    const mask = shield.getActionMask(aircraft, observation);
+
+    t.false(mask[altitudeAction(6000)]);
+    t.true(mask[altitudeAction(9000)]);
+    // cleared into the gap: moved to the closest level inside
+    t.is(shield.getRequiredActions(observation)[aircraft.callsign], altitudeAction(9000));
 });
 
 ava('the shield sends around a follower too close on short final', (t) => {

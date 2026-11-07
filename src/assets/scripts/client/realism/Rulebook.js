@@ -79,6 +79,15 @@ export const RULE = {
         description: 'wake turbulence separation between departures',
         reference: 'ICAO Doc 4444 5.8.3; RECAT-EU; FAA JO 7110.65 3-9-6'
     },
+    // an aircraft in distress weighs like separation: it is never worth breaking separation for it,
+    // but no efficiency gain makes up for leaving it airborne
+    EMERGENCY_DEADLINE: {
+        id: 'EMERGENCY_DEADLINE',
+        tier: RULE_TIER.SEPARATION,
+        gameEvent: GAME_EVENTS.EMERGENCY_DEADLINE_MISSED,
+        description: 'aircraft in emergency not landed within its deadline',
+        reference: 'ICAO Doc 4444 15.1.1, 15.1.3 (priority to aircraft in emergency); FAA JO 7110.65 10-2-5'
+    },
     ARRIVAL_DEPARTURE: {
         id: 'ARRIVAL_DEPARTURE',
         tier: RULE_TIER.SEPARATION,
@@ -92,6 +101,13 @@ export const RULE = {
         gameEvent: GAME_EVENTS.HIGH_TAILWIND_OPERATION,
         description: 'runway used beyond its tailwind or crosswind limit',
         reference: 'ICAO Doc 4444 7.2.3'
+    },
+    TAKEOFF_CANCEL_UNJUSTIFIED: {
+        id: 'TAKEOFF_CANCEL_UNJUSTIFIED',
+        tier: RULE_TIER.PROCEDURE,
+        gameEvent: GAME_EVENTS.TAKEOFF_CANCEL_UNJUSTIFIED,
+        description: 'takeoff cancelled without a safety reason',
+        reference: 'ICAO Doc 4444 7.9; cancellation of a takeoff clearance'
     },
     GO_AROUND: {
         id: 'GO_AROUND',

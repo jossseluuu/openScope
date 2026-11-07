@@ -34,8 +34,31 @@ export const DEFAULT_RULE_MARGINS = {
     // clearance kept above the minimum vectoring altitude
     minimumAltitudeBufferFt: 0,
     // departures from parallel runways on the same initial track
-    parallelDepartureSeconds: 60
+    parallelDepartureSeconds: 60,
+    // added to the same-route interval when the follower is faster and would catch up
+    fasterFollowerSeconds: 60
 };
+
+/**
+ * Divergence of the initial tracks that makes one minute enough between two departures from
+ * the same runway (ICAO Doc 4444 5.8.2 b): 45 degrees "immediately after take-off"; less than
+ * that, they are on the same route as far as the interval is concerned
+ *
+ * @property SAME_RUNWAY_DIVERGENCE_DEGREES
+ * @type {number}
+ * @final
+ */
+export const SAME_RUNWAY_DIVERGENCE_DEGREES = 45;
+
+/**
+ * A follower whose maximum speed is this much higher than the leader's catches it up
+ * on the same initial track (ICAO Doc 4444 5.6.2.1 uses 40 kt for 3 minutes)
+ *
+ * @property FASTER_FOLLOWER_KT
+ * @type {number}
+ * @final
+ */
+const FASTER_FOLLOWER_KT = 30;
 
 /**
  * Parallel runways closer than this share wake turbulence (2500 ft)
@@ -195,6 +218,24 @@ export function airspaceMinimumAltitude(aircraft) {
 }
 
 /**
+ * Highest altitude that keeps an arrival inside the controlled airspace, here and on the track
+ * ahead: above the ceiling it leaves the airspace (and the game). Departures may climb out of it.
+ *
+ * @function airspaceMaximumAltitude
+ * @param aircraft {object}
+ * @return {number} ft, Infinity when unknown or for departures
+ */
+export function airspaceMaximumAltitude(aircraft) {
+    const ceilings = [aircraft.airspaceCeiling, aircraft.airspaceCeilingAhead].filter((value) => Number.isFinite(value));
+
+    if (aircraft.category === 'departure' || ceilings.length === 0) {
+        return Infinity;
+    }
+
+    return Math.floor((Math.min(...ceilings) - AIRSPACE_FLOOR_MARGIN_FT) / 1000) * 1000;
+}
+
+/**
  * Lowest altitude that may be assigned to an airborne aircraft
  *
  * @function minimumAssignableAltitude
@@ -256,7 +297,44 @@ export function findNextArrival(physicalName, observation, runwayIndex) {
 }
 
 /**
- * Whether the first fixes of two departures' routes diverge by at least 15 degrees. From parallel
+ * Whether a departure may enter the runway: nobody else on it and no arrival too close to land.
+ * `extraSeconds` asks for more room, for an aircraft that will wait on the runway.
+ *
+ * @function checkRunwayEntry
+ * @param departure {object}
+ * @param observation {object}
+ * @param runwayIndex {RunwayIndex}
+ * @param [margins] {object}
+ * @param [extraSeconds] {number}
+ * @return {object} `{ ok, reason }`
+ */
+export function checkRunwayEntry(departure, observation, runwayIndex, margins = DEFAULT_RULE_MARGINS, extraSeconds = 0) {
+    const runwayName = departure.departureRunway || observation.airport.departureRunway;
+    const physicalName = runwayIndex.physicalName[runwayName];
+    const { realism } = observation;
+    const occupied = realism.runwayOccupancy.find((runway) => runway.runway === physicalName);
+
+    if (occupied && occupied.occupants.some((occupant) => occupant.callsign !== departure.callsign)) {
+        return { ok: false, reason: 'runway occupied' };
+    }
+
+    const arrival = findNextArrival(physicalName, observation, runwayIndex);
+
+    if (arrival) {
+        const seconds = margins.departureRunwayOccupancySeconds + margins.arrivalDepartureMarginSeconds + extraSeconds;
+        const minimumNm = Math.max(realism.separationMinima.arrivalDepartureNm, arrival.groundSpeed * seconds / 3600);
+
+        if (arrival.distanceToThreshold < minimumNm) {
+            return { ok: false, reason: `arrival ${arrival.aircraft.callsign} too close` };
+        }
+    }
+
+    return { ok: true, reason: '' };
+}
+
+/**
+ * Whether the first fixes of two departures' routes diverge by at least `minimumDegrees` (15 degrees
+ * for simultaneous departures from parallel runways, ICAO Doc 4444 6.7.3.2.3). From parallel
  * runways they must also move apart: the departure from the left runway has to turn left of the
  * other one, otherwise their tracks cross.
  *
@@ -265,9 +343,10 @@ export function findNextArrival(physicalName, observation, runwayIndex) {
  * @param second {object}
  * @param runwayIndex {RunwayIndex}
  * @param observation {object}
+ * @param [minimumDegrees] {number}
  * @return {boolean}
  */
-export function areDivergingDepartures(first, second, runwayIndex, observation) {
+export function areDivergingDepartures(first, second, runwayIndex, observation, minimumDegrees = 15) {
     const initialTrack = (aircraft) => {
         const runway = runwayIndex.runways[aircraft.departureRunway || observation.airport.departureRunway];
         const fix = (aircraft.waypoints || []).find((waypoint) => waypoint.x !== null);
@@ -284,7 +363,7 @@ export function areDivergingDepartures(first, second, runwayIndex, observation) 
     // signed: positive when the second turns right of the first
     const divergence = headingDifference(firstTrack, secondTrack);
 
-    if (Math.abs(divergence) < 15) {
+    if (Math.abs(divergence) < minimumDegrees) {
         return false;
     }
 
@@ -317,15 +396,15 @@ export function areDivergingDepartures(first, second, runwayIndex, observation) 
  * @return {object} `{ ok, reason }`
  */
 export function checkTakeoff(departure, observation, runwayIndex, margins = DEFAULT_RULE_MARGINS) {
+    const runwayCheck = checkRunwayEntry(departure, observation, runwayIndex, margins);
+
+    if (!runwayCheck.ok) {
+        return runwayCheck;
+    }
+
     const runwayName = departure.departureRunway || observation.airport.departureRunway;
     const physicalName = runwayIndex.physicalName[runwayName];
     const { realism } = observation;
-
-    const occupied = realism.runwayOccupancy.find((runway) => runway.runway === physicalName);
-
-    if (occupied && occupied.occupants.some((occupant) => occupant.callsign !== departure.callsign)) {
-        return { ok: false, reason: 'runway occupied' };
-    }
 
     for (let i = 0; i < realism.lastTakeoffs.length; i++) {
         const { runway, callsign, secondsAgo } = realism.lastTakeoffs[i];
@@ -347,28 +426,21 @@ export function checkTakeoff(departure, observation, runwayIndex, margins = DEFA
         }
 
         const wakeSeconds = getDepartureWakeSeparationSeconds(wakeType(leader), wakeType(departure), realism.wakeScheme);
-        const sameRoute = runway === physicalName && firstRouteFix(leader) === firstRouteFix(departure);
+        // one minute only when the tracks diverge by 45 degrees right after takeoff, two otherwise
+        const isDiverging = firstRouteFix(leader) !== firstRouteFix(departure) &&
+            areDivergingDepartures(leader, departure, runwayIndex, observation, SAME_RUNWAY_DIVERGENCE_DEGREES);
+        const isFaster = (departure.speedLimits ? departure.speedLimits.max : 0) >=
+            (leader.speedLimits ? leader.speedLimits.max : 0) + FASTER_FOLLOWER_KT;
         let routeSeconds = 0;
 
         if (runway === physicalName) {
-            routeSeconds = sameRoute ? margins.sameRouteDepartureSeconds : margins.divergingDepartureSeconds;
+            routeSeconds = isDiverging ?
+                margins.divergingDepartureSeconds :
+                margins.sameRouteDepartureSeconds + (isFaster ? margins.fasterFollowerSeconds : 0);
         }
 
         if (secondsAgo < Math.max(wakeSeconds, routeSeconds)) {
             return { ok: false, reason: `spacing behind ${callsign}` };
-        }
-    }
-
-    const arrival = findNextArrival(physicalName, observation, runwayIndex);
-
-    if (arrival) {
-        const minimumNm = Math.max(
-            realism.separationMinima.arrivalDepartureNm,
-            arrival.groundSpeed * (margins.departureRunwayOccupancySeconds + margins.arrivalDepartureMarginSeconds) / 3600
-        );
-
-        if (arrival.distanceToThreshold < minimumNm) {
-            return { ok: false, reason: `arrival ${arrival.aircraft.callsign} too close` };
         }
     }
 

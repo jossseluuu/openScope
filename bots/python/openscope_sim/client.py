@@ -73,14 +73,17 @@ class SimulatorClient:
         seed: int = 0,
         wind: Optional[tuple[float, float]] = None,
         traffic_scale: float = 1.0,
+        emergency_rate: Optional[float] = None,
     ) -> Observation:
         """Start a new episode and return the first observation.
 
         `wind` is an optional (direction in degrees, speed in knots) surface wind that
         replaces the airport default; the runway configuration is chosen from it.
         `traffic_scale` multiplies the rate of every spawn pattern.
+        `emergency_rate` is the probability that a flight declares an emergency (None: 0.01).
         """
-        params: dict[str, Any] = {"airport": airport, "seed": seed, "trafficScale": traffic_scale}
+        params: dict[str, Any] = {"airport": airport, "seed": seed, "trafficScale": traffic_scale,
+                                  "emergencyRate": emergency_rate}
         if wind is not None:
             params["wind"] = wind_param(wind)
         return self._call("reset", params)
@@ -114,6 +117,7 @@ class SimulatorClient:
         wind: Optional[tuple[float, float]] = None,
         traffic_scale: float = 1.0,
         trace: bool = False,
+        emergency_rate: Optional[float] = None,
     ) -> dict[str, Any]:
         """Let a JavaScript bot (Bot A) control a whole episode and return its summary."""
         return self._call(
@@ -126,6 +130,7 @@ class SimulatorClient:
                 "parameters": parameters or {},
                 "wind": wind_param(wind) if wind is not None else None,
                 "trafficScale": traffic_scale,
+                "emergencyRate": emergency_rate,
                 "trace": trace,
             },
         )
