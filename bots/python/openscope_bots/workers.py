@@ -40,7 +40,13 @@ class SimulatorPool:
     def close(self, wait: bool = True) -> None:
         self._executor.shutdown(wait=wait, cancel_futures=not wait)
         for client in self._all:
-            client.close()
+            if wait:
+                client.close()
+            else:
+                # Other threads may still be in the middle of an episode on these simulators: a polite
+                # "close" request would read from the same pipe as them and mix up the replies. Killing
+                # the processes makes those threads stop with a SimulatorError instead.
+                client.kill()
 
     def __enter__(self) -> "SimulatorPool":
         return self

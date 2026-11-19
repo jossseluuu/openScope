@@ -4,6 +4,7 @@ import { ACTION_COUNT, ACTION_INDEX, actionToCommand } from '../actionSpace';
 import {
     FEATURE_COUNT, FEATURE_VERSION, GLOBAL_FEATURE_COUNT, MAX_AIRCRAFT, encodeObservation
 } from './featureEncoder';
+import CommandHistory from './commandHistory';
 
 /**
  * ONNX Runtime Web, loaded on demand the first time Bot B is activated
@@ -81,6 +82,8 @@ export default class BotBRuntime {
     constructor(session) {
         this._session = session;
         this.shield = new SafetyShield();
+        // the network was trained knowing when its own orders were given
+        this.history = new CommandHistory();
     }
 
     /**
@@ -92,7 +95,8 @@ export default class BotBRuntime {
      * @return {Promise<array<object>>} `{ callsign, action, command, reason }`
      */
     decide(observation) {
-        const encoded = encodeObservation(observation, this.shield);
+        this.history.forgetGone(observation);
+        const encoded = encodeObservation(observation, this.shield, this.history);
         const feeds = {
             tokens: new ort.Tensor('float32', Float32Array.from(encoded.tokens), [1, MAX_AIRCRAFT, FEATURE_COUNT]),
             token_mask: new ort.Tensor('float32', Float32Array.from(encoded.tokenMask), [1, MAX_AIRCRAFT]),
@@ -135,8 +139,14 @@ export default class BotBRuntime {
 
             const aircraft = observation.aircraft.find((candidate) => candidate.callsign === callsign);
 
+            const command = actionToCommand(action, aircraft, observation);
+
+            if (command) {
+                this.history.record(callsign, action, observation.time);
+            }
+
             decisions.push({
-                callsign, action, command: actionToCommand(action, aircraft, observation), reason
+                callsign, action, command, reason
             });
         });
 

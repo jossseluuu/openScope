@@ -10,6 +10,9 @@ import {
  */
 
 const PREDICTION_STEP_SECONDS = 10;
+// the first seconds are sampled every `FINE_PREDICTION_STEP_SECONDS` (see `predictLoss`)
+const FINE_PREDICTION_SECONDS = 10;
+const FINE_PREDICTION_STEP_SECONDS = 2;
 const CLIMB_FEET_PER_SECOND = 2000 / 60;
 const DESCENT_FEET_PER_SECOND = 1800 / 60;
 // expedited descents (aircraft in emergency) use the full rate of descent
@@ -226,12 +229,20 @@ export function applyAction(aircraft, action) {
     const definition = ACTIONS[action];
 
     if (definition.type === ACTION_TYPE.ALTITUDE) {
-        // the altitude mode is kept on purpose: predicting the change of level straight away (HOLD)
-        // instead of along the procedure's restrictions made the resolutions measurably worse
-        // (24 episodes of Bot A: score -15335 against -9635)
+        // the engine flies an altitude clearance straight to the level (HOLD). A climb is predicted so:
+        // kept in VNAV, a climb above an "at or below" restriction of the procedure looks level and flies
+        // into the traffic. A descent keeps the mode: predicting it straight away made the resolutions
+        // measurably worse (24 episodes of Bot A: score -15335 against -9635; 30 episodes: -8550 against -7460)
+        const isClimb = definition.value > aircraft.altitude;
+
         return {
             ...aircraft,
-            clearance: { ...aircraft.clearance, altitude: definition.value, expedite: isExpeditedDescent(aircraft, definition.value) }
+            clearance: {
+                ...aircraft.clearance,
+                altitude: definition.value,
+                altitudeMode: isClimb ? 'HOLD' : aircraft.clearance.altitudeMode,
+                expedite: isExpeditedDescent(aircraft, definition.value)
+            }
         };
     }
 
@@ -351,7 +362,9 @@ function pairThresholdNm(a, b, observation, bufferNm) {
  * @return {number|null}
  */
 export function predictLoss(a, b, threshold, verticalFt, horizonSeconds) {
-    for (let t = 0; t <= horizonSeconds; t += PREDICTION_STEP_SECONDS) {
+    // a climb or descent starts at once: two aircraft close to each other lose their separation in
+    // the first seconds, before they could diverge, so the start is sampled more finely
+    for (let t = 0; t <= horizonSeconds; t += t < FINE_PREDICTION_SECONDS ? FINE_PREDICTION_STEP_SECONDS : PREDICTION_STEP_SECONDS) {
         const stateA = predictState(a, t);
         const stateB = predictState(b, t);
         const horizontal = Math.hypot(stateA.x - stateB.x, stateA.y - stateB.y);
@@ -440,9 +453,10 @@ export function hasPredictedConflict(aircraft, observation, parameters, isIgnore
  * @param target {number}       wanted altitude, ft
  * @param observation {object}
  * @param parameters {object}   uses `conflictBufferNm` and `conflictHorizonSeconds`
+ * @param [isIgnoredPair] {function}  `(a, b) => boolean`, pairs separated by other means
  * @return {number|null} an assignable altitude, or null when even stopping now is unsafe
  */
-export function safeLevelToward(aircraft, target, observation, parameters) {
+export function safeLevelToward(aircraft, target, observation, parameters, isIgnoredPair = () => false) {
     const isDescent = target < aircraft.altitude;
     // the level the aircraft could stop at with the least change, then each level toward the target
     const stop = isDescent ?
@@ -453,9 +467,11 @@ export function safeLevelToward(aircraft, target, observation, parameters) {
         .sort((first, second) => Math.abs(first - target) - Math.abs(second - target));
 
     for (const level of candidates) {
-        const whatIf = { ...aircraft, clearance: { ...aircraft.clearance, altitude: level } };
+        // an altitude clearance takes the aircraft off the vertical profile of its procedure: it goes
+        // straight to the level (kept in VNAV, a climb above an "at or below" restriction looks level)
+        const whatIf = { ...aircraft, clearance: { ...aircraft.clearance, altitude: level, altitudeMode: 'HOLD' } };
 
-        if (!hasPredictedConflict(whatIf, observation, parameters, () => false, true)) {
+        if (!hasPredictedConflict(whatIf, observation, parameters, isIgnoredPair, true)) {
             return level;
         }
     }
@@ -578,6 +594,21 @@ function turnAway(mover, other, turnDegrees) {
     return headingChangeAction(relativeBearing > 0 ? -turnDegrees : turnDegrees);
 }
 
+/**
+ * A fallback resolution may not lead to a loss of separation with a third aircraft within this time
+ *
+ * @property NEW_LOSS_HORIZON_SECONDS
+ * @type {number}
+ * @final
+ */
+const NEW_LOSS_HORIZON_SECONDS = 60;
+
+/**
+ * Whether an altitude action only repeats the level the aircraft is already cleared to
+ */
+const isUnchanged = (aircraft, action) => ACTIONS[action].type === ACTION_TYPE.ALTITUDE &&
+    ACTIONS[action].value === aircraft.clearance.altitude && aircraft.clearance.altitudeMode !== 'VNAV';
+
 const canManeuver = (aircraft) => aircraft.isControllable && !isOnFinal(aircraft) && aircraft.flightPhase !== 'TAKEOFF';
 
 /**
@@ -689,21 +720,29 @@ export function chooseResolution(conflict, minimumAltitude, parameters, observat
     const threshold = observation ? pairThresholdNm(a, b, observation, parameters.conflictBufferNm) :
         3 + parameters.conflictBufferNm;
     const candidates = resolutionCandidates(a, b, minimumAltitude, parameters);
+    const unbuffered = { ...parameters, conflictBufferNm: 0 };
     let fallback = null;
     let fallbackTime = -Infinity;
     const isUnsafeTurn = (aircraft, whatIf, kind) => kind === 'lateral' && (isBelowTerrainAround(aircraft) ||
         (observation && isTrackLeavingAirspace(whatIf, observation, parameters.conflictHorizonSeconds)));
-    const thirdPartyTime = (whatIf, other) => (observation ? earliestPredictedConflict(
+    const thirdPartyTime = (whatIf, other, options = parameters) => (observation ? earliestPredictedConflict(
         whatIf,
         observation,
-        parameters,
+        options,
         (first, second) => second.callsign === other.callsign,
         true
     ) : null);
+    // a fallback that flies into a third aircraft soon makes a new loss of separation out of a
+    // conflict that may still be solved later: doing nothing is better
+    const makesNewLoss = (whatIf, other) => {
+        const time = thirdPartyTime(whatIf, other, unbuffered);
+
+        return time !== null && time < NEW_LOSS_HORIZON_SECONDS;
+    };
     const orBeyondHorizon = (time) => (time === null ? parameters.conflictHorizonSeconds : time);
 
     for (const candidate of candidates) {
-        if (!isAllowed(candidate.mover, candidate.action)) {
+        if (!isAllowed(candidate.mover, candidate.action) || isUnchanged(candidate.mover, candidate.action)) {
             continue;
         }
 
@@ -726,7 +765,7 @@ export function chooseResolution(conflict, minimumAltitude, parameters, observat
         // the first loss of any pair: solving this conflict by flying into a third aircraft buys nothing
         const time = Math.min(orBeyondHorizon(lossTime), orBeyondHorizon(otherTime));
 
-        if (time > fallbackTime) {
+        if (time > fallbackTime && !makesNewLoss(whatIf, candidate.other)) {
             fallback = resolution;
             fallbackTime = time;
         }
@@ -737,7 +776,8 @@ export function chooseResolution(conflict, minimumAltitude, parameters, observat
             first, firstAction, second, secondAction, kind
         } = candidate;
 
-        if (!isAllowed(first, firstAction) || !isAllowed(second, secondAction)) {
+        if (!isAllowed(first, firstAction) || !isAllowed(second, secondAction) ||
+            isUnchanged(first, firstAction) || isUnchanged(second, secondAction)) {
             continue;
         }
 
@@ -764,7 +804,7 @@ export function chooseResolution(conflict, minimumAltitude, parameters, observat
 
         const time = Math.min(orBeyondHorizon(lossTime), orBeyondHorizon(firstOtherTime), orBeyondHorizon(secondOtherTime));
 
-        if (time > fallbackTime) {
+        if (time > fallbackTime && !makesNewLoss(firstWhatIf, second) && !makesNewLoss(secondWhatIf, first)) {
             fallback = resolution;
             fallbackTime = time;
         }

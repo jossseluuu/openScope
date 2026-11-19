@@ -17,7 +17,7 @@ import numpy as np
 import torch
 
 from .env import EnvConfig, ParallelEnvs
-from .model import PolicyNetwork, distribution_terms, save_checkpoint
+from .model import PolicyNetwork, distribution_terms, load_checkpoint, save_checkpoint, slot_terms
 
 
 @dataclass
@@ -34,6 +34,14 @@ class PPOConfig:
     max_grad_norm: float = 0.5
     checkpoint_every: int = 10
     evaluate_every: int = 25
+    # stop the epochs of an update once the policy moved this much (mean KL per aircraft); 0 = off
+    target_kl: float = 0.0
+    # penalty on KL(policy || imitation network) per aircraft, keeps PPO refining what imitation
+    # learned instead of drifting away from it; 0 = off
+    reference_kl: float = 0.0
+    # first updates train only the value head (it starts untrained after imitation), so the policy
+    # isn't pushed around by meaningless advantages
+    value_warmup_updates: int = 0
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "PPOConfig":
@@ -57,7 +65,7 @@ def choose_actions(model: PolicyNetwork, observation: dict[str, np.ndarray], dev
         actions = logits.argmax(-1)
     else:
         actions = torch.distributions.Categorical(logits=logits).sample()
-    log_prob, _, _ = distribution_terms(logits, actions, action_mask)
+    log_prob, _, _ = slot_terms(logits, actions, action_mask)
     return actions, log_prob, value
 
 
@@ -70,8 +78,15 @@ class PPOTrainer:
         out_dir: Path,
         device: torch.device,
         evaluate: Optional[Callable[[PolicyNetwork], dict[str, Any]]] = None,
+        reference: Optional[PolicyNetwork] = None,
     ) -> None:
         self.model = model
+        # frozen imitation network for `reference_kl`
+        self.reference = reference
+        if reference is not None:
+            reference.eval()
+            for parameter in reference.parameters():
+                parameter.requires_grad_(False)
         self.envs = envs
         self.config = config
         self.out_dir = out_dir
@@ -109,10 +124,14 @@ class PPOTrainer:
 
     # ---------------------------------------------------------------- training
 
-    def train(self, curriculum: list[dict[str, Any]], base_env: dict[str, Any]) -> None:
-        """Run the curriculum stages in order, skipping the updates already done (resume)."""
+    def train(self, curriculum: list[dict[str, Any]], base_env: dict[str, Any],
+              max_updates: Optional[int] = None) -> None:
+        """Run the curriculum stages in order, skipping the updates already done (resume).
+        `max_updates` stops earlier (a bounded trial); the checkpoint is saved either way."""
         stage_start = 0
         for stage in curriculum:
+            if max_updates is not None and self.update >= max_updates:
+                break
             stage_end = stage_start + int(stage["updates"])
             if self.update >= stage_end:
                 stage_start = stage_end
@@ -121,7 +140,7 @@ class PPOTrainer:
             self.envs.set_config(EnvConfig.from_dict({**base_env, **stage.get("env", {}), "with_expert": False}))
             self._observation, _ = self.envs.reset()
             self._returns[:] = 0
-            while self.update < stage_end:
+            while self.update < stage_end and (max_updates is None or self.update < max_updates):
                 self._train_one_update(stage.get("name", ""))
             stage_start = stage_end
         self.save()
@@ -151,7 +170,9 @@ class PPOTrainer:
         print(
             f"update {self.update} [{stage_name}] reward/step {row['mean_reward']:.3f} "
             f"episode return {row['episode_return'] if row['episode_return'] == '' else round(row['episode_return'], 1)} "
-            f"entropy {losses['entropy']:.2f} ({elapsed:.1f} s)"
+            f"entropy {losses['entropy']:.2f} clip {losses['clip_fraction']:.2f} "
+            f"kl/imitation {losses['reference_kl']:.3f}{' (value warm-up)' if losses['value_warmup'] else ''} "
+            f"({elapsed:.1f} s)"
         )
 
         if self.update % self.config.checkpoint_every == 0:
@@ -223,36 +244,76 @@ class PPOTrainer:
         self.model.train()
         size = batch["actions"].shape[0]
         minibatch = max(1, size // cfg.minibatches)
-        totals = {"policy_loss": 0.0, "value_loss": 0.0, "entropy": 0.0, "clip_fraction": 0.0}
+        warmup = self.update < cfg.value_warmup_updates
+        totals = dict.fromkeys(("policy_loss", "value_loss", "entropy", "clip_fraction", "approx_kl",
+                                "reference_kl"), 0.0)
         count = 0
+        stopped_early = False
         for _ in range(cfg.epochs):
             permutation = torch.randperm(size, device=self.device)
+            epoch_kl, epoch_batches = 0.0, 0
             for start in range(0, size, minibatch):
                 index = permutation[start:start + minibatch]
-                logits, values = self.model(batch["tokens"][index], batch["token_mask"][index],
-                                            batch["action_mask"][index], batch["global"][index])
-                log_probs, entropy, _ = distribution_terms(logits, batch["actions"][index], batch["action_mask"][index])
+                tokens, token_mask = batch["tokens"][index], batch["token_mask"][index]
+                action_mask, global_features = batch["action_mask"][index], batch["global"][index]
+                logits, values = self.model(tokens, token_mask, action_mask, global_features)
+                log_probs, all_log_probs, has_choice = slot_terms(logits, batch["actions"][index], action_mask)
+                choice = has_choice.float()
+                slots = choice.sum().clamp(min=1.0)
+
+                # every aircraft with a choice shares the advantage of the decision
                 advantages = batch["advantages"][index]
                 advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-                ratio = torch.exp(log_probs - batch["log_probs"][index])
-                policy_loss = -torch.min(
-                    ratio * advantages, torch.clamp(ratio, 1 - cfg.clip, 1 + cfg.clip) * advantages
-                ).mean()
+                advantages = advantages.unsqueeze(-1)
+                log_ratio = log_probs - batch["log_probs"][index]
+                ratio = torch.exp(log_ratio)
+                surrogate = torch.min(ratio * advantages, torch.clamp(ratio, 1 - cfg.clip, 1 + cfg.clip) * advantages)
+                policy_loss = -(surrogate * choice).sum() / slots
+
+                probs = all_log_probs.exp()
+                entropy = -(probs * all_log_probs.clamp(min=-30)).sum(-1)
+                entropy_mean = (entropy * choice).sum() / slots
+
+                reference_kl = torch.zeros((), device=self.device)
+                if self.reference is not None and cfg.reference_kl > 0:
+                    with torch.no_grad():
+                        reference_logits, _ = self.reference(tokens, token_mask, action_mask, global_features)
+                        reference_log_probs = torch.log_softmax(reference_logits, dim=-1)
+                    kl = (probs * (all_log_probs - reference_log_probs).clamp(-30, 30)).sum(-1)
+                    reference_kl = (kl * choice).sum() / slots
+
                 value_loss = 0.5 * (values - batch["returns"][index]).pow(2).mean()
-                entropy_mean = entropy.mean()
-                loss = policy_loss + cfg.value * value_loss - cfg.entropy * entropy_mean
+                if warmup:
+                    loss = cfg.value * value_loss
+                else:
+                    loss = (policy_loss + cfg.value * value_loss - cfg.entropy * entropy_mean
+                            + cfg.reference_kl * reference_kl)
 
                 self.optimizer.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), cfg.max_grad_norm)
                 self.optimizer.step()
 
+                with torch.no_grad():
+                    # http://joschu.net/blog/kl-approx.html
+                    approx_kl = (((ratio - 1) - log_ratio) * choice).sum() / slots
+                    clipped = (((ratio - 1).abs() > cfg.clip).float() * choice).sum() / slots
                 totals["policy_loss"] += policy_loss.item()
                 totals["value_loss"] += value_loss.item()
                 totals["entropy"] += entropy_mean.item()
-                totals["clip_fraction"] += ((ratio - 1).abs() > cfg.clip).float().mean().item()
+                totals["clip_fraction"] += clipped.item()
+                totals["approx_kl"] += approx_kl.item()
+                totals["reference_kl"] += reference_kl.item()
+                epoch_kl += approx_kl.item()
+                epoch_batches += 1
                 count += 1
-        return {key: value / max(1, count) for key, value in totals.items()}
+            if not warmup and cfg.target_kl > 0 and epoch_kl / max(1, epoch_batches) > cfg.target_kl:
+                stopped_early = True
+                break
+        result = {key: value / max(1, count) for key, value in totals.items()}
+        result["value_warmup"] = int(warmup)
+        result["stopped_early"] = int(stopped_early)
+        return result
 
     def _track_episodes(self, rewards: np.ndarray, dones: np.ndarray, infos: list[dict[str, Any]]) -> None:
         self._returns += rewards
@@ -272,9 +333,19 @@ class PPOTrainer:
             self._returns[index] = 0.0
 
     def _log(self, row: dict[str, Any]) -> None:
-        is_new = not self._log_path.exists()
-        with open(self._log_path, "a", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=list(row.keys()))
-            if is_new:
-                writer.writeheader()
-            writer.writerow(row)
+        # Excel locks the file while it is open: keep the rows and write them once it is closed,
+        # instead of stopping a training run over a log file.
+        self._pending_rows = getattr(self, "_pending_rows", []) + [row]
+        try:
+            is_new = not self._log_path.exists()
+            with open(self._log_path, "a", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=list(row.keys()))
+                if is_new:
+                    writer.writeheader()
+                writer.writerows(self._pending_rows)
+        except PermissionError:
+            if len(self._pending_rows) == 1:
+                print(f"{self._log_path.name} is locked (open in Excel?): rows are kept until it is closed",
+                      flush=True)
+            return
+        self._pending_rows = []

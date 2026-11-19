@@ -11,7 +11,7 @@
         "decision_seconds": 10,
         "random_wind_probability": 0.0,
         "max_wind_kt": 20,
-        "reward_weights": {}
+        "reward_weights": {"tier0": -30, "tier1": -10, "aircraftCollision": -30}
     },
     "model": {
         "width": 128,
@@ -21,22 +21,37 @@
     "imitation": {
         "episode_minutes": 40,
         "collect_decisions": 40000,
-        "epochs": 10,
-        "batch_size": 64,
-        "learning_rate": 0.0003,
-        "noop_weight": 0.2,
-        "dagger_iterations": 3,
-        "dagger_decisions": 10000
+        "epochs": 25,
+        "batch_size": 128,
+        "learning_rate": 0.0005,
+        "noop_weight": 1.0,
+        "validation_fraction": 0.1,
+        "dagger_iterations": 5,
+        "dagger_decisions": 10000,
+        "dagger_epochs": 10,
+        "noop_calibration_ratio": 1.0,
+        "check": {
+            "airports": ["lemd", "lemg", "eddm"],
+            "seeds": [7, 8],
+            "minutes": 30,
+            "traffic_scale": 0.5,
+            "emergency_rate": 0.03,
+            "min_landing_ratio": 0.8,
+            "max_extra_tier1_per_episode": 1.0
+        }
     },
     "ppo": {
         "rollout_steps": 128,
-        "learning_rate": 0.00025,
+        "learning_rate": 0.0001,
         "gamma": 0.99,
         "gae_lambda": 0.95,
         "clip": 0.2,
-        "epochs": 4,
+        "epochs": 2,
         "minibatches": 4,
-        "entropy": 0.01,
+        "entropy": 0.003,
+        "target_kl": 0.02,
+        "reference_kl": 0.5,
+        "value_warmup_updates": 10,
         "value": 0.5,
         "max_grad_norm": 0.5,
         "checkpoint_every": 10,
@@ -77,7 +92,7 @@
         }
     ],
     "evaluation": {
-        "airports": ["lemd", "lemg", "eddm", "egll", "kjfk", "rjtt"],
+        "airports": ["lemd", "lemg", "eddm", "egcc", "kjfk", "rjtt"],
         "seeds": [101, 102],
         "minutes": 45,
         "emergency_rate": 0.05

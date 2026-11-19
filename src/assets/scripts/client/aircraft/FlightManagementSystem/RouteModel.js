@@ -239,7 +239,13 @@ export default class RouteModel extends BaseModel {
             let [heading] = last;
             const [, lastWpt] = last;
 
-            if (lastWpt !== null && wpt.name === waypointName.toUpperCase()) {
+            // vector/heading waypoints have no position, so they can't provide an inbound course
+            if (
+                lastWpt !== null &&
+                lastWpt.positionModel &&
+                wpt.positionModel &&
+                wpt.name === waypointName.toUpperCase()
+            ) {
                 heading = wpt.positionModel.bearingFromPosition(lastWpt.positionModel);
             }
 

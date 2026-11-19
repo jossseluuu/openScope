@@ -147,6 +147,19 @@ salvo cuando Torre cancela o manda una frustrada por su cuenta.
 
 Solo cambia EDDM: la diferencia es pequeña y no demuestra que el Bot C sea mejor.
 
+**Con el planificador de noviembre de 2026** (unión al ILS sobre el terreno y resolución
+de conflictos revisada, ver [Bot A](bot-a.md#resultados)), mismo protocolo:
+
+| | LEMD norte | LEMD sur | EDDM | LEMG | KLAX | Total | Aterrizajes | Pérdidas radar |
+|---|---|---|---|---|---|---|---|---|
+| Bot A | 1750 | −2050 | 240 | 1100 | −4985 | −3945 | 494 | 43 |
+| Bot C | 1480 | −950 | 240 | 1090 | −7840 | −5980 | 501 | 57 |
+
+Ninguna colisión ni salida del espacio aéreo con el Bot C. Las diferencias con el Bot A
+vienen de que Torre cancela o manda frustradas por su cuenta y eso cambia el resto del
+episodio: mejor en LEMD sur, peor en KLAX. Con 6 episodios por escenario no se puede decir
+que uno sea mejor que el otro.
+
 Auditoría de esos episodios: 36 935 órdenes buenas, 3983 dudosas, 772 malas, 0 fuera de
 competencia, 1212 alertas y 4203 traspasos.
 

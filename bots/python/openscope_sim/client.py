@@ -15,6 +15,8 @@ from __future__ import annotations
 import itertools
 import json
 import subprocess
+import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
 
@@ -46,6 +48,8 @@ class SimulatorClient:
         node_executable: str = "node",
     ) -> None:
         self._ids = itertools.count(1)
+        # what Node writes to stderr is kept to explain why the simulator died (e.g. out of memory)
+        self._stderr = tempfile.TemporaryFile()
         self._process = subprocess.Popen(
             [
                 node_executable,
@@ -58,7 +62,7 @@ class SimulatorClient:
             cwd=REPO_ROOT,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=self._stderr,
             text=True,
             encoding="utf-8",
             bufsize=1,
@@ -157,16 +161,30 @@ class SimulatorClient:
         if self._process.poll() is None:
             try:
                 self._call("close")
-            except (SimulatorError, BrokenPipeError, OSError):
+            except (SimulatorError, BrokenPipeError, OSError, ValueError):
+                # the simulator is being shut down anyway; a garbled or missing goodbye doesn't matter
                 pass
-            self._process.wait(timeout=10)
-        for stream in (self._process.stdin, self._process.stdout, self._process.stderr):
+            try:
+                self._process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                self._process.kill()
+                self._process.wait()
+        for stream in (self._process.stdin, self._process.stdout, self._stderr):
             if stream is not None and not stream.closed:
                 try:
                     stream.close()
                 except OSError:
                     # Flushing into a dead process (e.g. after Ctrl+C reached it too) fails; nothing left to do.
                     pass
+
+    def kill(self) -> None:
+        """Stop the simulator without the protocol; safe while another thread is waiting on it."""
+        if self._process.poll() is None:
+            self._process.kill()
+            try:
+                self._process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                pass
 
     def __enter__(self) -> "SimulatorClient":
         return self
@@ -190,7 +208,30 @@ class SimulatorClient:
 
     def _read_message(self) -> dict[str, Any]:
         assert self._process.stdout is not None
-        line = self._process.stdout.readline()
-        if not line:
-            raise SimulatorError("simulator process exited")
-        return json.loads(line)
+        # Only protocol messages should arrive here, but a stray line (something in Node printing to
+        # stdout) must not kill a training run that has been going for hours: skip it and report it.
+        for _ in range(100):
+            line = self._process.stdout.readline()
+            if not line:
+                raise SimulatorError(f"simulator process exited (code {self._process.poll()}){self._stderr_tail()}")
+            try:
+                message = json.loads(line)
+            except ValueError:
+                message = None
+            if isinstance(message, dict):
+                return message
+            print(f"[openscope_sim] skipped non-protocol line from the simulator: {line[:300]!r}",
+                  file=sys.stderr, flush=True)
+        raise SimulatorError(f"simulator kept writing non-protocol lines{self._stderr_tail()}")
+
+    def _stderr_tail(self, characters: int = 2000) -> str:
+        """Last lines Node wrote to stderr, to explain why it stopped."""
+        try:
+            self._stderr.flush()
+            self._stderr.seek(0, 2)
+            size = self._stderr.tell()
+            self._stderr.seek(max(0, size - characters))
+            text = self._stderr.read().decode("utf-8", errors="replace").strip()
+        except (OSError, ValueError):
+            return ""
+        return f":\n{text}" if text else ""

@@ -6,6 +6,34 @@
 
 # openScope Air Traffic Control Simulator
 
+## About this fork: AI air traffic controllers
+
+This fork adds AI controllers that run an entire airport (arrivals, approach,
+landing, taxi, takeoff and departure) using only the commands a human controller can
+give, under real ICAO, EASA and FAA separation rules. The documentation of the fork is
+in Spanish.
+
+- **Realism layer:** per-airport regulatory profiles, radar, wake turbulence and
+  parallel-approach separation, terrain clearance and minimum vectoring altitudes,
+  and squawk 7700 emergencies ([emergencias.md](documentation/emergencias.md)).
+- **New airports:** Madrid-Barajas (LEMD) and Málaga (LEMG), from the Spanish AIP
+  ([LEMD guide](documentation/airport-guides/lemd.md),
+  [LEMG guide](documentation/airport-guides/lemg.md)).
+- **Headless simulator:** deterministic and faster than real time, driven from Python
+  as a Gymnasium-style environment ([tools/sim](tools/sim/README.md)).
+- **Bot A**, expert rules and metaheuristics ([bot-a.md](documentation/bot-a.md)).
+- **Bot B**, reinforcement learning with PPO, exported to ONNX for the browser
+  ([bot-b.md](documentation/bot-b.md)).
+- **Bot C**, specialist agents with supervisors that audit every instruction
+  ([bot-c.md](documentation/bot-c.md)).
+- Training guide: [bot-training.md](documentation/bot-training.md); shared reference:
+  [bot-information.md](documentation/bot-information.md).
+
+In the game, type `bot a`, `bot b` or `bot c` in the command bar to hand control to a
+bot, and `bot off` to take it back.
+
+---
+
 Visit http://openscope.io to begin playing now!
 
 If you're just getting started, try the tutorial and see the [command reference](documentation/commands.md) for a full list of commands you can use. For information on each airport, see the [airport guide](documentation/airport-guides/airport-guide-directory.md).

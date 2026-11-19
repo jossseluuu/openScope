@@ -442,6 +442,37 @@ export function samplePath(points, lengthNm, stepNm = 1) {
 }
 
 /**
+ * Highest value of `getValue(x, y)` along a path, sampled every `stepNm` over its first `lengthNm`
+ * and at its end when the whole path is covered (e.g. the minimum vectoring altitude under the
+ * path an aircraft is going to fly)
+ *
+ * @function highestAlongPath
+ * @param points {array<object>}
+ * @param getValue {function}  `(x, y)` -> number|null
+ * @param [lengthNm] {number}
+ * @param [stepNm] {number}
+ * @return {number|null} null when there is no value anywhere
+ */
+export function highestAlongPath(points, getValue, lengthNm = Infinity, stepNm = 1) {
+    const samples = samplePath(points, lengthNm, stepNm);
+    let highest = null;
+
+    if (lengthNm === Infinity && points.length > 1) {
+        samples.push(points[points.length - 1]);
+    }
+
+    samples.forEach((point) => {
+        const value = getValue(point.x, point.y);
+
+        if (value !== null && value !== undefined && (highest === null || value > highest)) {
+            highest = value;
+        }
+    });
+
+    return highest;
+}
+
+/**
  * Levels that stay inside the controlled airspace at every point, `marginFt` above and below
  *
  * @function levelsInsideAirspace

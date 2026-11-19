@@ -67,6 +67,15 @@ const MVA_AROUND_NM = 6;
 const MVA_CACHE_CELL_KM = 2;
 
 /**
+ * Size of the grid behind `observation.airport.minimumVectoringAltitudeAt()`, in km
+ *
+ * @property MVA_QUERY_CELL_KM
+ * @type {number}
+ * @final
+ */
+const MVA_QUERY_CELL_KM = 1;
+
+/**
  * Sampled minimum vectoring altitudes by airport ICAO, then by grid cell; kept across
  * episodes, since a training process flies the same airports again and again
  *
@@ -168,7 +177,14 @@ export default class BotApi {
             ...parsedCommand.args.filter(([command]) => command === FLIGHT_PHASE.TAKEOFF)
         ];
         const responses = _map(commands, ([command, ...args]) => {
-            const result = this._aircraftController.aircraftCommander.run(aircraftModel, command, args);
+            let result;
+
+            try {
+                result = this._aircraftController.aircraftCommander.run(aircraftModel, command, args);
+            } catch (error) {
+                // an engine bug in one command must not abort a long bot/training run
+                return { success: false, message: `${command} failed: ${error.message || error}` };
+            }
 
             if (!result) {
                 return { success: true, message: '' };
@@ -195,7 +211,7 @@ export default class BotApi {
         const airportModel = AirportController.airport_get();
         const wind = airportModel.getWindAtAltitude();
 
-        return {
+        const airport = {
             icao: airportModel.icao.toUpperCase(),
             elevation: round(airportModel.elevation),
             magneticNorth: toDegrees(airportModel.magneticNorth),
@@ -212,6 +228,45 @@ export default class BotApi {
                 this._buildRunwayObservation(oppositeRunwayModel)
             ])
         };
+
+        // a query, not data: not enumerable, so it is left out when the observation is serialized
+        // (the Python bridge) and the encoded features of Bot B do not change
+        Object.defineProperty(airport, 'minimumVectoringAltitudeAt', {
+            enumerable: false,
+            value: (x, y) => this._getMinimumVectoringAltitudeNear([km(x), km(y)])
+        });
+
+        return airport;
+    }
+
+    /**
+     * Minimum vectoring altitude near a position, from its own cache on a `MVA_QUERY_CELL_KM` grid:
+     * finer than the one of the observation, because the bots plan descents along a path with it
+     *
+     * @for BotApi
+     * @method _getMinimumVectoringAltitudeNear
+     * @param position {array<number>} relative position, km
+     * @return {number|null} ft, null without terrain data
+     * @private
+     */
+    _getMinimumVectoringAltitudeNear([x, y]) {
+        const cacheName = `${AirportController.airport_get().icao}|query`;
+
+        if (!MVA_CACHE.has(cacheName)) {
+            MVA_CACHE.set(cacheName, new Map());
+        }
+
+        const values = MVA_CACHE.get(cacheName);
+        const column = Math.round(x / MVA_QUERY_CELL_KM);
+        const row = Math.round(y / MVA_QUERY_CELL_KM);
+        const key = column * 100000 + row;
+
+        if (!values.has(key)) {
+            values.set(key, this._aircraftController.realismController
+                .getMinimumVectoringAltitude([column * MVA_QUERY_CELL_KM, row * MVA_QUERY_CELL_KM]));
+        }
+
+        return values.get(key);
     }
 
     /**

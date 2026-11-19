@@ -2,6 +2,7 @@ import BotA from '../client/bot/botA/BotA';
 import SafetyShield from '../client/bot/safetyShield';
 import { ACTION_COUNT, ACTION_INDEX, actionToCommand } from '../client/bot/actionSpace';
 import { MAX_AIRCRAFT, encodeObservation, getEncodingSpec } from '../client/bot/rl/featureEncoder';
+import CommandHistory from '../client/bot/rl/commandHistory';
 import { computeReward } from '../client/bot/rl/rewardFunction';
 
 /**
@@ -78,6 +79,7 @@ export default class RlEnvironment {
         });
         this.expert = this.options.withExpert ? new BotA(this.options.expertParameters) : null;
         this._episodeReturn = 0;
+        this.history = new CommandHistory();
 
         return this._buildResult({ reward: 0, components: {} }, false);
     }
@@ -120,6 +122,7 @@ export default class RlEnvironment {
 
             if (command) {
                 this.simulator.command(callsign, command);
+                this.history.record(callsign, action, observation.time);
                 commandCount += 1;
             }
         }
@@ -160,7 +163,8 @@ export default class RlEnvironment {
     _buildResult(rewardResult, done) {
         const observation = this._observation;
 
-        this._encoded = encodeObservation(observation, this.shield);
+        this.history.forgetGone(observation);
+        this._encoded = encodeObservation(observation, this.shield, this.history);
         this._lastExpertActions = this.expert ? this._expertActions(observation, this._encoded) : null;
 
         return {

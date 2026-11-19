@@ -1,6 +1,7 @@
 import { ACTION_COUNT } from '../actionSpace';
 import { minimumAssignableAltitude } from '../botRules';
 import { distanceInsideAirspace, headingDifference, secondsToRestrictedArea } from '../botGeometry';
+import { COMMAND_GROUPS } from './commandHistory';
 
 /**
  * Fixed-size numeric encoding of an observation, used as the input of Bot B's
@@ -14,6 +15,12 @@ import { distanceInsideAirspace, headingDifference, secondsToRestrictedArea } fr
  * enters a restricted area, version 5 dropped the feature of departures returning in
  * emergency, because only arrivals declare emergencies, and version 6 added the phases of an
  * aircraft lined up on the runway and of a rejected takeoff.
+ *
+ * Version 7 added what a controller knows besides the radar picture, which imitation of Bot A
+ * showed the network couldn't do without (it matched about 20 % of Bot A's actions, even on its
+ * own training data): how long ago each kind of order was given (`CommandHistory`), the assigned
+ * heading and the altitude/speed modes, and each arrival's place in the landing sequence of its
+ * runway with the distance to the aircraft ahead and behind.
  */
 
 /**
@@ -23,7 +30,7 @@ import { distanceInsideAirspace, headingDifference, secondsToRestrictedArea } fr
  * @type {number}
  * @final
  */
-export const FEATURE_VERSION = 6;
+export const FEATURE_VERSION = 7;
 
 /**
  * @property MAX_AIRCRAFT
@@ -57,7 +64,11 @@ export const FEATURE_NAMES = [
     'has_next_fix', 'next_fix_dx', 'next_fix_dy',
     'conflict', 'runway_occupied', 'runway_last_takeoff', 'inside_airspace',
     'emergency', 'emergency_remaining',
-    'restricted_area_ahead'
+    'restricted_area_ahead',
+    'cleared_heading_sin', 'cleared_heading_cos', 'cleared_heading_turn',
+    'altitude_mode_vnav', 'speed_mode_vnav',
+    ...COMMAND_GROUPS.map((group) => `recent_${group}_order`),
+    'landing_order', 'landing_gap_ahead', 'landing_gap_behind'
 ];
 
 /**
@@ -84,6 +95,10 @@ export const GLOBAL_FEATURE_NAMES = ['wind_x', 'wind_y', 'aircraft_count', 'cont
 export const GLOBAL_FEATURE_COUNT = GLOBAL_FEATURE_NAMES.length;
 
 const RESTRICTED_AREA_HORIZON_SECONDS = 120;
+// landing order: positions past this one look the same; gaps in nm, beyond this they look the same
+const LANDING_ORDER_SCALE = 10;
+const LANDING_GAP_SCALE_NM = 10;
+const NO_RECENCY = COMMAND_GROUPS.map(() => 0);
 
 const clip = (value, limit = 5) => (Number.isFinite(value) ? Math.max(-limit, Math.min(limit, value)) : 0);
 const oneHot = (values, value) => values.map((candidate) => (candidate === value ? 1 : 0));
@@ -113,6 +128,58 @@ export function orderAircraft(observation) {
         .slice(0, MAX_AIRCRAFT);
 }
 
+const arrivalRunwayOf = (aircraft, observation) => aircraft.arrivalRunway || observation.airport.arrivalRunway;
+
+/**
+ * Place of every airborne arrival in the landing sequence of its runway, by distance to the
+ * threshold, with the distance to the arrival ahead and behind
+ *
+ * @function landingSequence
+ * @param observation {object}
+ * @param runwayIndex {RunwayIndex}
+ * @return {object} callsign -> `{ order, gapAhead, gapBehind }` (gaps in nm, null when none)
+ */
+export function landingSequence(observation, runwayIndex) {
+    const streams = {};
+
+    observation.aircraft.forEach((aircraft) => {
+        if (aircraft.category !== 'arrival' || aircraft.isOnGround) {
+            return;
+        }
+
+        const runwayName = arrivalRunwayOf(aircraft, observation);
+        const frame = runwayIndex.frames[runwayName];
+
+        if (!frame) {
+            return;
+        }
+
+        if (!streams[runwayName]) {
+            streams[runwayName] = [];
+        }
+
+        streams[runwayName].push({
+            callsign: aircraft.callsign,
+            distance: Math.hypot(aircraft.x - frame.threshold.x, aircraft.y - frame.threshold.y)
+        });
+    });
+
+    const sequence = {};
+
+    Object.values(streams).forEach((stream) => {
+        stream.sort((a, b) => a.distance - b.distance);
+        stream.forEach((entry, index) => {
+            sequence[entry.callsign] = {
+                order: index,
+                gapAhead: index > 0 ? entry.distance - stream[index - 1].distance : null,
+                gapBehind: index < stream.length - 1 ? stream[index + 1].distance - entry.distance : null
+            };
+        });
+    });
+
+    return sequence;
+}
+
 /**
  * Features of one aircraft
  *
@@ -120,9 +187,11 @@ export function orderAircraft(observation) {
  * @param aircraft {object}
  * @param observation {object}
  * @param runwayIndex {RunwayIndex}
+ * @param [history] {CommandHistory}  orders given so far (no history: as if none were given)
+ * @param [sequence] {object}         `landingSequence()` of the observation (computed when missing)
  * @return {array<number>} `FEATURE_COUNT` numbers
  */
-export function encodeAircraft(aircraft, observation, runwayIndex) {
+export function encodeAircraft(aircraft, observation, runwayIndex, history = null, sequence = null) {
     const { realism } = observation;
     const runwayName = aircraft.category === 'departure' ?
         aircraft.departureRunway || observation.airport.departureRunway :
@@ -136,6 +205,10 @@ export function encodeAircraft(aircraft, observation, runwayIndex) {
     const { clearance } = aircraft;
     const restrictedAhead = aircraft.isOnGround ? null :
         secondsToRestrictedArea(aircraft, observation.airport.restrictedAreas, RESTRICTED_AREA_HORIZON_SECONDS);
+    const clearedHeading = Number.isFinite(clearance.heading) ? clearance.heading : null;
+    const recency = history ? history.recency(aircraft.callsign, observation.time) : NO_RECENCY;
+    const place = (sequence || landingSequence(observation, runwayIndex))[aircraft.callsign];
+    const gap = (value) => (value === null ? 1 : clip(value / LANDING_GAP_SCALE_NM, 1));
 
     return [
         ...oneHot(CATEGORIES, aircraft.category),
@@ -175,7 +248,16 @@ export function encodeAircraft(aircraft, observation, runwayIndex) {
         clip(distanceInsideAirspace(aircraft, observation.airport.airspace) / 30),
         aircraft.emergency ? 1 : 0,
         aircraft.emergency ? clip(aircraft.emergency.remainingSeconds / 1800, 1) : 0,
-        restrictedAhead ? 1 - restrictedAhead.seconds / RESTRICTED_AREA_HORIZON_SECONDS : 0
+        restrictedAhead ? 1 - restrictedAhead.seconds / RESTRICTED_AREA_HORIZON_SECONDS : 0,
+        clearedHeading === null ? 0 : Math.sin(clearedHeading * DEG),
+        clearedHeading === null ? 0 : Math.cos(clearedHeading * DEG),
+        clearedHeading === null ? 0 : headingDifference(clearedHeading, aircraft.heading) / 180,
+        clearance.altitudeMode === 'VNAV' ? 1 : 0,
+        clearance.speedMode === 'VNAV' ? 1 : 0,
+        ...recency,
+        place ? clip((place.order + 1) / LANDING_ORDER_SCALE, 1) : 0,
+        place ? gap(place.gapAhead) : 0,
+        place ? gap(place.gapBehind) : 0
     ];
 }
 
@@ -185,18 +267,20 @@ export function encodeAircraft(aircraft, observation, runwayIndex) {
  * @function encodeObservation
  * @param observation {object}
  * @param shield {SafetyShield}  provides the runway index and the action masks
+ * @param [history] {CommandHistory}  orders given so far
  * @return {object} `{ tokens, tokenMask, actionMask, global, callsigns }` with flat arrays
  */
-export function encodeObservation(observation, shield) {
+export function encodeObservation(observation, shield, history = null) {
     const runwayIndex = shield.getRunwayIndex(observation);
     const aircraftList = orderAircraft(observation);
+    const sequence = landingSequence(observation, runwayIndex);
     const tokens = new Array(MAX_AIRCRAFT * FEATURE_COUNT).fill(0);
     const tokenMask = new Array(MAX_AIRCRAFT).fill(0);
     const actionMask = new Array(MAX_AIRCRAFT * ACTION_COUNT).fill(0);
     const callsigns = new Array(MAX_AIRCRAFT).fill(null);
 
     aircraftList.forEach((aircraft, slot) => {
-        const features = encodeAircraft(aircraft, observation, runwayIndex);
+        const features = encodeAircraft(aircraft, observation, runwayIndex, history, sequence);
         const mask = shield.getActionMask(aircraft, observation);
 
         for (let i = 0; i < FEATURE_COUNT; i++) {

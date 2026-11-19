@@ -40,9 +40,21 @@ Cada 5 s (`src/assets/scripts/client/bot/botA/BotA.js`) hace, en este orden:
    un tercero. Si mover a un avión no basta, **coordina a los dos** con órdenes
    complementarias: uno sube y otro baja, uno acelera y otro frena, o giran
    alejándose. Si nada lo evita del todo, da lo que más retrasa la primera pérdida
-   de cualquier pareja: **siempre actúa**. Mantiene la maniobra hasta que reanudar la ruta ya no
+   de cualquier pareja, salvo si eso lo mete en una pérdida real con un tercero
+   en menos de 60 s: entonces no hace nada, porque crearía una pérdida nueva.
+   Mantiene la maniobra hasta que reanudar la ruta ya no
    recrearía el conflicto. Las maniobras laterales y verticales se recuerdan por
    separado, para que una no borre a la otra.
+   - Nunca da como resolución el nivel que el avión ya tiene autorizado: no
+     cambia nada.
+   - La predicción mira cada 2 s los primeros 10 s y cada 10 s después: un
+     ascenso o descenso empieza enseguida, y dos aviones a 2 NM pierden la
+     separación en 3 s, antes de que una predicción más gruesa lo vea.
+   - Una orden de altitud se predice como la vuela el simulador, directa al
+     nivel (modo HOLD). En los ascensos esto es clave: en VNAV, una restricción
+     "a o por debajo" de la STAR hacía creer que el avión no subía, y subía
+     contra el tráfico. En los descensos se mantiene la predicción por el
+     procedimiento, que se midió mejor.
    - La predicción de los aviones que suben o bajan por el procedimiento
      (`dvs` / `cvs`) reproduce la del simulador: respetan la siguiente
      restricción "a o por encima" y "a o por debajo", y empiezan a bajar en su
@@ -77,7 +89,10 @@ Cada 5 s (`src/assets/scripts/client/bot/botA/BotA.js`) hace, en este orden:
      Shifting*: cada avión puede adelantar o retrasar como mucho 2 puestos.
      Los pesados pesan más porque gastan más combustible esperando.
    - Reparte las llegadas entre pistas paralelas (`e 26R`) cuando la otra
-     ofrece un hueco claramente antes y está de su lado.
+     ofrece un hueco claramente antes y está de su lado. Solo entre paralelas que
+     admiten aproximaciones simultáneas: dos pistas demasiado juntas (24R/24L y
+     25L/25R en KLAX, a unos 700 ft) exigen la mínima radar completa entre las
+     dos finales, no añaden capacidad y sus llegadas se cruzan.
    - **Emergencias primero**: tras optimizar, el avión en emergencia pasa
      delante de todos salvo los que ya están en el localizador o virando hacia
      él. Ver [emergencias.md](emergencias.md#bot-a).
@@ -94,8 +109,16 @@ Cada 5 s (`src/assets/scripts/client/bot/botA/BotA.js`) hace, en este orden:
    - El punto de unión no es fijo. Cada ciclo se prueba cada 0,5 NM, desde la
      unión más cercana permitida (`minimumJoinDistanceNm`, 8 NM, y nunca tan
      cerca que no dé tiempo a capturar la senda desde abajo) hasta la más lejana
-     del circuito. Se elige la que aterriza más cerca de la hora asignada sin
-     adelantarse a ella.
+     del circuito. Se elige la que aterriza más cerca de la hora asignada:
+     **aterrizar antes es aceptable** (cada segundo de adelanto cuenta solo un
+     cuarto), aterrizar después es lo que se evita.
+   - **El terreno se mira a lo largo de la trayectoria**, no alrededor: la
+     altitud de unión es la mayor entre la del circuito y la altitud mínima de
+     vectores en la base y en el tramo de interceptación. Una unión solo vale si
+     el avión puede estar nivelado por debajo de la senda 2 NM antes, bajando de
+     forma progresiva por el camino. Antes, en LEMG, las llegadas se quedaban a
+     7000 ft por el terreno de los 6 NM de alrededor y se unían a 24 NM; ahora se
+     unen a unas 12 NM.
    - Cada unión candidata se comprueba contra **todos** los aviones del
      localizador: los que ya están en final, en su posición real, y los que van
      a unirse por delante en la secuencia o ya están en base. Se simula el
@@ -109,16 +132,23 @@ Cada 5 s (`src/assets/scripts/client/bot/botA/BotA.js`) hace, en este orden:
    - Con mucho tráfico la unión se aleja (se alarga la cola). Si no hay ningún
      hueco, el avión espera en el viento en cola más largo.
    - **Acortar** (unirse más cerca que la unión nominal de `interceptDistanceNm`,
-     10 NM) es arriesgado. Solo se hace si recupera más de
-     `shortJoinPenaltySeconds` (60 s) a un avión que va tarde, y exige
-     `shortJoinBufferNm` (1 NM) más de espaciado.
+     10 NM) es arriesgado. Solo se hace si el avión va más de
+     `shortJoinPenaltySeconds` (60 s) tarde o si ninguna unión más larga cabe sin
+     mover a los de delante o detrás, y exige `shortJoinBufferNm` (1 NM) más de
+     espaciado.
+   - Vira a base cuando lo que queda hasta la unión basta para bajar a la altitud
+     de interceptación, no a una altitud fija.
+   - Un avión que ya está cerca del eje y vuela hacia la pista desde más allá de
+     la unión sigue hacia el localizador: un viento en cola le haría dar la vuelta.
    - Los aviones que llegan desde más lejos que el punto de base (por ejemplo
      desde RUDBI o FAFEQ en LEMD norte) no dan la vuelta por el viento en cola:
      van directos al punto de base (tramo *inbound*) y se unen donde haga falta.
    - Funciona como una secuencia que solo avanza: viento en cola o *inbound*,
      base, interceptación y autorización ILS. En viento en cola e *inbound* el
-     avión se mantiene por encima de la altitud mínima de vectores de los 6 NM
-     de alrededor, para que cualquier viraje sea seguro.
+     avión se mantiene por encima de la altitud mínima de vectores de las
+     próximas 8 NM de su trayectoria (2 NM en base e interceptación), con un
+     pequeño margen a cada lado. Solo sin datos de terreno se usa la de los 6 NM
+     de alrededor.
    - Intercepta por debajo de la senda de planeo, a 30°.
    - Da primero el rumbo y después la autorización ILS, porque un rumbo
      posterior la cancelaría.
@@ -176,7 +206,15 @@ ocupa cuando ya está libre (si el de delante se nivelara, seguiría habiendo
 separación). Si el nivel pedido no es seguro, el avión se queda en el nivel
 seguro más cercano a él y lo vuelve a intentar en el siguiente ciclo. En una
 espera, un avión solo baja al nivel de abajo cuando el que lo ocupaba lo ha
-dejado de verdad.
+dejado de verdad. Si una resolución lo movió a otro nivel libre de la pila, se
+queda en él en lugar de volver a su nivel atravesando el tráfico.
+
+**Suelo de un sector más alto por delante.** El escudo obliga a subir a una
+llegada que vuela hacia un sector con el suelo más alto. Esa subida también pasa
+por la comprobación de niveles. Si el tráfico de arriba no deja subir nada y
+además el terreno por delante supera al avión (la sierra de Guadarrama en LEMD
+sur), vira hacia el aeropuerto. Con solo un suelo más alto mantiene su derrota:
+virarlo hacia el tráfico del aeropuerto costaba más (KLAX, EDDM).
 
 **Rupturas de aproximación.** Cuando el escudo rompe una aproximación, el avión
 mantiene el rumbo de ruptura 45 s y después se le vectoriza en un circuito
@@ -264,7 +302,9 @@ Con un 10 % de emergencias (mucho más que el 1 % del juego): de 126 declaradas,
 Se probaron y **descartaron** por medición: escalonar 1000 ft las finales
 paralelas (−16 530 frente a −12 755), dar el nivel antes que el rumbo a los aviones
 en VNAV (−12 755 frente a −9635) y predecir las resoluciones en modo HOLD
-(−15 335 frente a −9635).
+(−15 335 frente a −9635). En noviembre, con el resto del bot cambiado, predecir en
+HOLD **solo los ascensos** sí mejoró mucho (ver más abajo); en los descensos sigue
+siendo peor.
 
 **Resolución coordinada (31 de octubre de 2026).** 30 episodios de 60 minutos,
 semillas 4 a 9, en LEMD norte, LEMD sur (180/15), EDDM, LEMG y KLAX, sin emergencias.
@@ -293,17 +333,54 @@ Sigue sin resolver: en LEMD sur, un avión que reanuda el descenso tras 240 s se
 que tiene 1000 ft debajo y pierde la separación a unos 930-949 ft, a veces varias veces
 seguidas con la misma pareja.
 
-**Todos los aeropuertos** (`check-airports.js`, 20 minutos, semilla 1): 66 activos,
-0 fallos, 58 con tráfico suficiente para entrenar. Los 20 minutos son pocos para
-aterrizar, así que sirve para detectar fallos, no para medir rendimiento.
+**Unión al ILS sobre el terreno y pérdidas de separación (17 de noviembre de
+2026).** Mismo protocolo: 30 episodios de 60 minutos, semillas 4 a 9, LEMD norte,
+LEMD sur (180/15), EDDM, LEMG y KLAX, sin emergencias.
+
+| | LEMD norte | LEMD sur | EDDM | LEMG | KLAX | Total |
+|---|---|---|---|---|---|---|
+| Antes (resolución coordinada) | 535 | −11 360 | −5910 | −400 | −21 825 | −38 960 |
+| **Ahora** | 1750 | −2050 | 240 | 1100 | −4985 | **−3945** |
+
+| | Antes | Ahora |
+|---|---|---|
+| Pérdidas de separación radar | 221 | 43 |
+| Pérdidas de estela | 10 | 5 |
+| Aterrizajes | 466 | 494 |
+| Despegues entregados | 537 | 539 |
+| Salidas del espacio aéreo | 1 | 1 |
+| Vectores bajo la altitud mínima | 0 | 5 |
+| Colisiones (aviones o terreno) | 0 | 0 |
+| LEMG: minutos y NM por llegada | 27,6 / 106 | 24,0 / 96 |
+
+De dónde sale la mejora, en orden de medición: la unión al ILS sobre el terreno
+(−38 960 → −32 860); no repartir llegadas entre paralelas demasiado juntas en
+KLAX, no repetir niveles y no meter a nadie en un tercero (→ −20 090); predecir
+más fino los primeros segundos y no reanudar la STAR en las esperas (→ −14 085);
+y sobre todo **predecir las órdenes de altitud en modo HOLD** (→ −5145). Los
+vectores bajo la altitud mínima son de LEMD sur (3), EDDM y KLAX.
+
+Se probaron y **descartaron** por medición: 30 s mínimos en el viento en cola
+tras volver de la base (pérdidas 39 → 66), virar hacia el aeropuerto también por
+un suelo más alto sin terreno (KLAX 17 → 28 pérdidas), terminar antes una
+resolución vertical si hay terreno por delante (mejor en LEMD sur, peor en EDDM)
+y comprobar la subida inicial de cada despegue contra el tráfico (EDDM 6 → 3
+pérdidas, pero 19 despegues menos y KLAX peor).
+
+**Todos los aeropuertos** (`check-airports.js`, 20 minutos, semilla 1): 58 con
+tráfico suficiente para entrenar, todos sin fallos con la versión de noviembre.
+Los 20 minutos son pocos para aterrizar, así que sirve para detectar fallos, no
+para medir rendimiento.
 
 ## Limitaciones
 
-- Sigue perdiendo la separación unas 4 veces por hora de media, más en LEMD sur, EDDM
-  y sobre todo KLAX.
-- En KLAX, las pérdidas vienen sobre todo de sus pares de pistas paralelas y de las
-  esperas.
-- LEMD sur es el punto débil de la resolución coordinada (ver [resultados](#resultados)).
+- Sigue perdiendo la separación, aunque mucho menos: unas 1,4 veces por hora de
+  media en estos cinco escenarios. Casi todas en KLAX (esperas en niveles altos,
+  aviones nivelados contra otros que bajan por la senda de otra pista) y en LEMD
+  sur. En EDDM quedan salidas que suben contra llegadas vectorizadas.
+- En LEMD sur todavía hay algún vector bajo la altitud mínima cerca de la sierra.
+- Un avión puede alternar entre viento en cola y base varios ciclos seguidos
+  cuando los dos criterios de "demasiado alto" no coinciden.
 - No usa las órdenes `lineup` ni `abort`: eso lo hace Torre en el
   [Bot C](bot-c.md).
 - Las frustradas siguen el rumbo actual, no el procedimiento publicado.

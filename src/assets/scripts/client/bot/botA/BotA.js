@@ -17,6 +17,7 @@ import {
     distance,
     distanceInsideAirspace,
     hasAltitudeGaps,
+    highestAlongPath,
     headingDifference,
     headingVector,
     highestFloorAlongPath,
@@ -37,7 +38,13 @@ import {
 import { getDefaultBotAParameters } from './botAParameters';
 import { createRandom, optimizeSequence, scheduleSequence } from './sequencing';
 import {
-    chooseResolution, detectConflicts, hasPredictedConflict, isTrackLeavingAirspace, safeLevelToward
+    chooseResolution,
+    dependentApproachMinimumNm,
+    detectConflicts,
+    hasPredictedConflict,
+    isTrackLeavingAirspace,
+    predictLoss,
+    safeLevelToward
 } from './conflictResolution';
 import {
     ARRIVAL_MODE,
@@ -239,13 +246,73 @@ const PATTERN_BOUNDARY_MARGIN_NM = 2;
 const PATTERN_SIDE_ADVANTAGE_NM = 3;
 
 /**
- * A join may land the arrival this much before its slot
+ * Landing before the slot is fine, landing after it is not: a second early costs this
+ * fraction of a second late when the join is chosen
  *
- * @property JOIN_EARLY_TOLERANCE_SECONDS
+ * @property JOIN_EARLY_WEIGHT
  * @type {number}
  * @final
  */
-const JOIN_EARLY_TOLERANCE_SECONDS = 20;
+const JOIN_EARLY_WEIGHT = 0.25;
+
+/**
+ * Distance flown on the localizer before the glidepath is captured: the terrain allows a join
+ * only where the aircraft can be level this far before the glidepath comes down to it
+ *
+ * @property JOIN_GLIDEPATH_MARGIN_NM
+ * @type {number}
+ * @final
+ */
+const JOIN_GLIDEPATH_MARGIN_NM = 2;
+
+/**
+ * Margin over the radar minimum under which a conflict between two arrivals spaced by the
+ * pattern is still resolved
+ *
+ * @property PATTERN_CONFLICT_BUFFER_NM
+ * @type {number}
+ * @final
+ */
+const PATTERN_CONFLICT_BUFFER_NM = 0.5;
+
+/**
+ * The terrain under the path an aircraft is cleared down along is sampled every `TERRAIN_PATH_STEP_NM`,
+ * `TERRAIN_PATH_MARGIN_NM` to each side
+ *
+ * @property TERRAIN_PATH_STEP_NM
+ * @type {number}
+ * @final
+ */
+const TERRAIN_PATH_STEP_NM = 0.5;
+const TERRAIN_PATH_MARGIN_NM = 0.4;
+
+/**
+ * An aircraft joins the localizer at least this much below the glidepath
+ *
+ * @property JOIN_BELOW_GLIDEPATH_FT
+ * @type {number}
+ * @final
+ */
+const JOIN_BELOW_GLIDEPATH_FT = 200;
+
+/**
+ * On the base and the intercept leg the aircraft comes down in steps as the terrain under the
+ * next miles of its path allows
+ *
+ * @property TERRAIN_LOOKAHEAD_ON_BASE_NM
+ * @type {number}
+ * @final
+ */
+const TERRAIN_LOOKAHEAD_ON_BASE_NM = 2;
+
+/**
+ * An aircraft flying within this many degrees of the final course is flying toward the runway
+ *
+ * @property TOWARD_RUNWAY_DEGREES
+ * @type {number}
+ * @final
+ */
+const TOWARD_RUNWAY_DEGREES = 45;
 
 /**
  * Arrivals can descend this much steeper than the planned descent profile when vectored
@@ -433,7 +500,24 @@ export default class BotA {
         const required = this.shield.getRequiredActions(observation);
 
         Object.keys(required).forEach((callsign) => {
-            const given = add(callsign, required[callsign], 'safety: spacing on final');
+            // the climb into a sector with a higher floor is checked against the traffic like any other:
+            // climbing into an aircraft above costs as much as leaving the airspace
+            const isFloorClimb = ACTIONS[required[callsign]].type === ACTION_TYPE.ALTITUDE;
+            let given = isFloorClimb ?
+                addChecked(callsign, required[callsign], 'safety: higher airspace floor ahead') :
+                add(callsign, required[callsign], 'safety: spacing on final');
+
+            const aircraft = context.byCallsign[callsign];
+
+            // traffic above leaves no room to climb at all, and the terrain ahead also rises above the
+            // aircraft (e.g. the Sierra de Guadarrama north of Madrid): turn back toward the airport, under
+            // the lower floors and over lower terrain. Under a higher floor alone the aircraft keeps its
+            // track: turning it into the traffic around the airport costs more (KLAX, EDDM)
+            if (isFloorClimb && given === null && !decisions[callsign] && aircraft &&
+                (aircraft.minimumVectoringAltitudeAhead || 0) > aircraft.altitude) {
+                given = add(callsign, headingAction(aircraft, bearing(aircraft, { x: 0, y: 0 })),
+                    'safety: higher airspace floor and terrain ahead, traffic above: turn back');
+            }
 
             if (given !== null && ACTIONS[given].type === ACTION_TYPE.HEADING) {
                 this._breakOff(callsign, given, context);
@@ -578,7 +662,9 @@ export default class BotA {
             return action;
         }
 
-        const level = safeLevelToward(aircraft, target, observation, this.parameters);
+        const level = safeLevelToward(
+            aircraft, target, observation, this.parameters, (a, b) => this._isKeptApartByPattern(a, b, observation)
+        );
 
         if (level === null || (type === ACTION_TYPE.ALTITUDE && level === target)) {
             return level === null ? ACTION_INDEX.NOOP : action;
@@ -621,9 +707,11 @@ export default class BotA {
 
     _resolveConflicts(context, add) {
         const { observation, time } = context;
-        // the pattern spaces arrivals to the same runway, unless a loss is imminent
+        // the pattern spaces arrivals to the same runway with the spacing required on final, which is
+        // less than the margin kept between any two other aircraft: between them, only a loss that
+        // is really coming is resolved
         const conflicts = detectConflicts(observation, this.parameters)
-            .filter((conflict) => conflict.time < IMMINENT_CONFLICT_SECONDS || !this._isSpacedByPattern(conflict.a, conflict.b));
+            .filter((conflict) => !this._isKeptApartByPattern(conflict.a, conflict.b, observation));
 
         conflicts.forEach((conflict) => {
             // only what the shield allows: e.g. no climb above the ceiling of the airspace
@@ -657,6 +745,8 @@ export default class BotA {
 
             Object.keys(memory.resolutions).forEach((kind) => {
                 // a heading kept for long can also lead over higher terrain: resume before getting there
+                // (ending a vertical resolution early for the terrain or a higher floor ahead was measured
+                // too: better at LEMD south, worse at EDDM, worse overall; see phacer.md)
                 const isLeavingAirspace = kind === 'lateral' &&
                     (isTrackLeavingAirspace(aircraft, context.observation, BOUNDARY_RESUME_SECONDS) ||
                         (aircraft.minimumVectoringAltitudeAhead || 0) > aircraft.altitude);
@@ -725,6 +815,21 @@ export default class BotA {
 
         if (kind === 'breakout') {
             // the radar pattern starts over from where the aircraft is now
+            delete memory.resolutions[kind];
+
+            return;
+        }
+
+        // a holding aircraft moved to another level keeps it in the stack when it is free there,
+        // instead of going back through the traffic it was moved away from
+        if (kind === 'vertical' && aircraft.isHoldAssigned && memory.hold) {
+            const level = Math.round(aircraft.altitude / 1000) * 1000;
+
+            if (this._holdingStack(memory.hold.fix, aircraft.callsign, context).indexOf(level) === -1 &&
+                level >= this._holdingBaseLevel(nextFix, aircraft, context)) {
+                memory.hold.level = level;
+            }
+
             delete memory.resolutions[kind];
 
             return;
@@ -1064,7 +1169,11 @@ export default class BotA {
             byRunway[runwayName].forEach((plan) => {
                 const { aircraft } = plan;
                 const memory = this._memoryOf(aircraft.callsign);
-                const parallelName = parallelRunwayName(aircraft, observation);
+                const candidateName = parallelRunwayName(aircraft, observation);
+                // a parallel too close for simultaneous approaches (e.g. 24R/24L at KLAX) needs the full radar
+                // minimum between both finals: it adds no capacity and its arrivals meet those of this runway
+                const parallelName = candidateName && dependentApproachMinimumNm(runwayName, candidateName, observation) <
+                    observation.realism.separationMinima.radarNm ? candidateName : null;
                 const isEmergency = Boolean(aircraft.emergency);
                 const minimumDistance = isEmergency ? EMERGENCY.RUNWAY_CHOICE_MINIMUM_DISTANCE_NM : RUNWAY_CHOICE_MINIMUM_DISTANCE_NM;
                 const checkInterval = isEmergency ? EMERGENCY.RUNWAY_CHOICE_INTERVAL_SECONDS : RUNWAY_CHOICE_INTERVAL_SECONDS;
@@ -1542,6 +1651,81 @@ export default class BotA {
     }
 
     /**
+     * Minimum vectoring altitude under the first `lengthNm` of a path, rounded up to the next
+     * thousand feet. The terrain is judged along the path the aircraft is going to fly, as the
+     * engine does (it checks the minimum where the aircraft is), not all around it. The aircraft
+     * does not fly the path exactly, so the highest value close to each side of it counts.
+     *
+     * @return {number|null} ft, null without terrain data (or without the query, in an old observation)
+     */
+    _terrainLevelAlong(path, context, lengthNm = Infinity) {
+        const query = context.observation.airport.minimumVectoringAltitudeAt;
+
+        if (typeof query !== 'function' || path.length === 0) {
+            return null;
+        }
+
+        const m = TERRAIN_PATH_MARGIN_NM;
+        const nearby = (x, y) => [[0, 0], [-m, -m], [-m, m], [m, -m], [m, m]].reduce((highest, [dx, dy]) => {
+            const value = query(x + dx, y + dy);
+
+            return value !== null && (highest === null || value > highest) ? value : highest;
+        }, null);
+        const highest = highestAlongPath(path, nearby, lengthNm, TERRAIN_PATH_STEP_NM);
+
+        return highest === null ? null : Math.ceil(highest / 1000) * 1000;
+    }
+
+    /**
+     * `pattern` with its intercept altitude raised to the terrain at the join, and whether the
+     * terrain lets the aircraft get there: flying `legs` (the base and the intercept leg, ending
+     * at the join) it comes down progressively. It must cross the localizer below the glidepath,
+     * and each mile before the join it may still be one step of the descent higher. The terrain
+     * at the join itself must leave it level before the glidepath comes down to it.
+     */
+    _patternOverTerrain(pattern, frame, joinAlong, legs, context) {
+        const query = context.observation.airport.minimumVectoringAltitudeAt;
+
+        if (typeof query !== 'function' || legs.length === 0) {
+            return { pattern, isJoinable: true };
+        }
+
+        const levelAt = (point) => Math.ceil((query(point.x, point.y) || 0) / 1000) * 1000;
+        const joinAltitude = Math.max(pattern.interceptAltitude, levelAt(legs[legs.length - 1]));
+        const descent = this.parameters.descentGradientFtPerNm * DESCENT_CAPABILITY_FACTOR;
+        const highestAtJoin = Math.max(joinAltitude, frame.glidepathAltitude(joinAlong) - JOIN_BELOW_GLIDEPATH_FT);
+        let isJoinable = joinAltitude <= frame.glidepathAltitude(joinAlong - JOIN_GLIDEPATH_MARGIN_NM);
+        let beforeJoin = 0;
+
+        for (let k = legs.length - 1; k > 0 && isJoinable; k--) {
+            const from = legs[k];
+            const to = legs[k - 1];
+            const length = distance(from, to);
+
+            for (let flown = 1; flown <= length; flown += 1) {
+                const point = { x: from.x + (to.x - from.x) * flown / length, y: from.y + (to.y - from.y) * flown / length };
+
+                if (levelAt(point) > highestAtJoin + (beforeJoin + flown) * descent) {
+                    isJoinable = false;
+
+                    break;
+                }
+            }
+
+            beforeJoin += length;
+        }
+
+        return {
+            pattern: joinAltitude === pattern.interceptAltitude ? pattern : {
+                ...pattern,
+                interceptAltitude: joinAltitude,
+                downwindAltitude: Math.max(pattern.downwindAltitude, joinAltitude)
+            },
+            isJoinable
+        };
+    }
+
+    /**
      * Radar vectors to the localizer as a forward-only sequence of legs: downwind (or inbound
      * from further out), base, intercept, then the approach clearance. The point where the
      * aircraft joins the localizer is chosen anywhere along it, in the gap of the final stream
@@ -1647,14 +1831,18 @@ export default class BotA {
         const patternAltitude = isOnIntercept ?
             pattern.interceptAltitude :
             Math.max(legFloor, profileAltitude(pathLength(join.path), pattern, p));
-        // the terrain under the downwind may be higher than on final; until the base the aircraft
-        // may still be turned anywhere, so it stays above the terrain all around
-        const terrainAround = leg === PATTERN_LEG.DOWNWIND || leg === PATTERN_LEG.INBOUND ?
-            Math.ceil((aircraft.minimumVectoringAltitudeAround || 0) / 1000) * 1000 :
-            0;
+        // the terrain under the downwind may be higher than on final: the aircraft stays above the
+        // terrain under the next miles of the path it is going to fly, which steps down toward the
+        // join (all around it when the path cannot be looked up)
+        const isFarOut = leg === PATTERN_LEG.DOWNWIND || leg === PATTERN_LEG.INBOUND;
+        const terrainOnPath = this._terrainLevelAlong(
+            join.path.slice(0, -1), context, isFarOut ? PATH_FLOOR_LOOKAHEAD_NM : TERRAIN_LOOKAHEAD_ON_BASE_NM
+        );
+        const terrainAround = isFarOut ? Math.ceil((aircraft.minimumVectoringAltitudeAround || 0) / 1000) * 1000 : 0;
+        const terrainAhead = terrainOnPath === null ? terrainAround : terrainOnPath;
         // terrain and airspace floor: these always win, even if the aircraft has to climb for them
         const safetyMinimum = Math.max(
-            terrainAround,
+            terrainAhead,
             Math.ceil(this._minimumAltitude(aircraft, context.observation) / 1000) * 1000,
             pathFloorLevel(join.path, context.observation.airport.airspace)
         );
@@ -1680,7 +1868,12 @@ export default class BotA {
         // heading first, then the approach clearance (a later heading would cancel it), and only
         // when the aircraft will join the localizer below the glidepath
         const interceptAlong = along - Math.max(0, absoluteLateral) / Math.tan(p.interceptAngle * Math.PI / 180);
-        const isBelowGlidepath = aircraft.altitude <= frame.glidepathAltitude(interceptAlong) - 100;
+        // where it will be when it gets there, if it is still coming down to its cleared level
+        const altitudeAtJoin = Math.max(
+            Math.min(aircraft.altitude, aircraft.clearance.altitude),
+            aircraft.altitude - absoluteLateral / Math.sin(p.interceptAngle * Math.PI / 180) * p.descentGradientFtPerNm
+        );
+        const isBelowGlidepath = altitudeAtJoin <= frame.glidepathAltitude(interceptAlong) - 100;
 
         if (!aircraft.hasApproachClearance && isOnIntercept && isBelowGlidepath &&
             !this._recentlyIssued(aircraft.callsign, ACTION_INDEX.ILS, time)) {
@@ -1712,6 +1905,13 @@ export default class BotA {
             return PATTERN_LEG.INTERCEPT;
         }
 
+        // close to the centerline and flying toward the runway from beyond the join: it continues
+        // onto the localizer, a downwind would turn it around
+        if (absoluteLateral <= pattern.interceptLateral + 1 && along >= pattern.minimumJoinAlong - 1 &&
+            Math.abs(headingDifference(aircraft.heading, frame.course)) <= TOWARD_RUNWAY_DEGREES) {
+            return PATTERN_LEG.INTERCEPT;
+        }
+
         if (along > pattern.baseTurnAlong + 1.5 && absoluteLateral > pattern.interceptLateral + 1) {
             return PATTERN_LEG.INBOUND;
         }
@@ -1740,8 +1940,10 @@ export default class BotA {
         switch (state.leg) {
             case PATTERN_LEG.DOWNWIND: {
                 const { pattern } = chosen;
-                // high aircraft need more track miles to descend
-                const isLowEnough = aircraft.altitude <= pattern.downwindAltitude + 1500;
+                // high aircraft need more track miles to descend: it turns when what is left to the
+                // join is enough to come down to the intercept altitude
+                const isLowEnough = aircraft.altitude - pattern.interceptAltitude <=
+                    (pathLength(chosen.path) - chosen.along) * p.descentGradientFtPerNm * DESCENT_CAPABILITY_FACTOR;
                 const isFarEnough = along >= pattern.baseTurnAlong - 0.5 && absoluteLateral > pattern.interceptLateral + 0.5;
 
                 const isLeavingAirspace = isTrackLeavingAirspace(aircraft, context.observation, BOUNDARY_RESUME_SECONDS);
@@ -1804,13 +2006,9 @@ export default class BotA {
                     return backToDownwind();
                 }
 
-                // too high to join below the glidepath: break off and descend on a new downwind
-                if (canExtend && aircraft.altitude > frame.glidepathAltitude(join.along) + 500) {
-                    return backToDownwind();
-                }
-
-                // much too early: extend on downwind instead
-                if (!isEmergency && join.landingTime < scheduledTime - 120 && along < p.maximumBaseTurnDistanceNm - 3) {
+                // too high to come down to the glidepath by the join: break off and descend on a new downwind
+                if (canExtend && aircraft.altitude - frame.glidepathAltitude(join.along) >
+                    distance(aircraft, join.path[1]) * p.descentGradientFtPerNm * DESCENT_CAPABILITY_FACTOR) {
                     return backToDownwind();
                 }
 
@@ -1862,6 +2060,18 @@ export default class BotA {
     }
 
     /**
+     * Two arrivals spaced by the pattern (see `_isSpacedByPattern`) with no loss of separation
+     * really coming. The pattern spaces them with the spacing required on final, which is less
+     * than the margin kept between any two other aircraft.
+     */
+    _isKeptApartByPattern(a, b, observation) {
+        const { radarNm, verticalFt } = observation.realism.separationMinima;
+
+        return this._isSpacedByPattern(a, b) &&
+            predictLoss(a, b, radarNm + PATTERN_CONFLICT_BUFFER_NM, verticalFt, IMMINENT_CONFLICT_SECONDS) === null;
+    }
+
+    /**
      * Where and when an arrival joins the localizer `joinAlong` nm from the threshold,
      * vectored there from where it is, and when it lands
      *
@@ -1870,13 +2080,15 @@ export default class BotA {
     _evaluateJoin(plan, joinAlong, context) {
         const { aircraft, frame } = plan;
         const p = this.parameters;
-        const pattern = joinPattern(plan.pattern, frame, joinAlong);
-        const path = buildArrivalPath(aircraft, frame, pattern, 0, true);
+        const nominal = joinPattern(plan.pattern, frame, joinAlong);
+        const path = buildArrivalPath(aircraft, frame, nominal, 0, true);
+        // the base and the intercept leg are flown at the intercept altitude: the last three points before the threshold
+        const { pattern, isJoinable } = this._patternOverTerrain(nominal, frame, joinAlong, path.slice(-4, -1), context);
         const joinTime = context.time + timeAlongPath(path.slice(0, -1), aircraft, frame, p, 0, joinAlong);
         const landingTime = joinTime + timeToThreshold(finalState(aircraft, joinAlong, frame.elevation, p.finalSpeed));
 
         return {
-            along: joinAlong, pattern, path, joinTime, landingTime
+            along: joinAlong, pattern, path, joinTime, landingTime, isJoinable
         };
     }
 
@@ -1931,24 +2143,29 @@ export default class BotA {
             lateralOnIntercept / Math.sin(p.interceptAngle * Math.PI / 180);
         const speed = leg === PATTERN_LEG.INTERCEPT ? aircraft.speed : p.baseSpeed;
         const joinTime = context.time + flown / (Math.max(120, speed) * trueAirspeedFactor(aircraft.altitude)) * 3600;
-        const pattern = joinPattern(plan.pattern, frame, Math.max(along, plan.pattern.minimumJoinAlong));
+        const path = [{ x: aircraft.x, y: aircraft.y }, frame.point(along, 0), frame.threshold];
+        const { pattern } = this._patternOverTerrain(
+            joinPattern(plan.pattern, frame, Math.max(along, plan.pattern.minimumJoinAlong)), frame, along, path.slice(1, 2), context
+        );
 
         return {
             along,
             pattern,
-            path: [{ x: aircraft.x, y: aircraft.y }, frame.point(along, 0), frame.threshold],
+            path,
             joinTime,
             landingTime: joinTime + timeToThreshold(finalState(aircraft, along, frame.elevation, p.finalSpeed))
         };
     }
 
     /**
-     * The join that lands the arrival closest to its slot without landing before it, with the
-     * required spacing (wake and radar, including the compression in the last miles) from
-     * everyone on the localizer or already committed to join it. Joins closer than the nominal
-     * one shorten the approach: they need a larger margin and are only taken when they clearly
-     * recover a late arrival. Joins the aircraft cannot descend for are left out. Without a
-     * join the aircraft waits on the longest pattern.
+     * The join that lands the arrival closest to its slot, with the required spacing (wake and
+     * radar, including the compression in the last miles) from everyone on the localizer or
+     * already committed to join it. Landing before the slot is fine (it costs little), landing
+     * after it is what must be avoided. Joins the terrain does not allow (the aircraft could not
+     * be level below the glidepath) or the aircraft cannot descend for are left out. Joins closer
+     * than the nominal one shorten the approach: they need a larger margin and are only taken
+     * when the arrival is late, or when every longer join would get in the way of the others,
+     * ahead or behind. Without a join the aircraft waits on the longest pattern.
      *
      * @return {object} see `_evaluateJoin`, plus `isWaiting`
      */
@@ -1964,29 +2181,52 @@ export default class BotA {
         // an aircraft in emergency takes the earliest landing: shortened approaches are not penalized,
         // and only the arrivals already on the localizer or turning onto it are in its way
         const isEmergency = Boolean(aircraft.emergency);
+        const costOf = (join) => {
+            const change = previousJoinAlong === null ? 0 : Math.abs(join.along - previousJoinAlong);
+            const delay = join.landingTime - scheduledTime;
+            const timeCost = delay >= 0 ? delay : -delay * JOIN_EARLY_WEIGHT;
+
+            return (isEmergency ? join.landingTime : timeCost) + change * JOIN_CHANGE_SECONDS_PER_NM;
+        };
+        const isFlyable = (join) => join.isJoinable &&
+            aircraft.altitude - join.pattern.interceptAltitude <=
+                (pathLength(join.path) - join.along) * p.descentGradientFtPerNm * DESCENT_CAPABILITY_FACTOR;
         let best = null;
-
-        for (let along = pattern.minimumJoinAlong; along <= maximum + 0.01; along += JOIN_STEP_NM) {
+        // whether some join at or beyond the nominal one fits everyone, also those landing later
+        let hasLongJoinForAll = false;
+        const consider = (along, isShort) => {
             const join = this._evaluateJoin(plan, along, context);
-            const isShort = along < pattern.interceptAlong - 0.01;
-            const change = previousJoinAlong === null ? 0 : Math.abs(along - previousJoinAlong);
-            const cost = isEmergency ?
-                join.landingTime + change * JOIN_CHANGE_SECONDS_PER_NM :
-                join.landingTime - scheduledTime + (isShort ? p.shortJoinPenaltySeconds : 0) + change * JOIN_CHANGE_SECONDS_PER_NM;
-            const descentNeeded = aircraft.altitude - join.pattern.interceptAltitude;
-            const descentAvailable = (pathLength(join.path) - along) * p.descentGradientFtPerNm *
-                DESCENT_CAPABILITY_FACTOR;
+            const cost = costOf(join);
+            const buffer = isShort && !isEmergency ? p.shortJoinBufferNm : 0;
 
-            const isTooEarly = !isEmergency && join.landingTime < scheduledTime - JOIN_EARLY_TOLERANCE_SECONDS;
+            if (!isFlyable(join)) {
+                return;
+            }
 
-            if (isTooEarly || (best && cost >= best.cost) ||
-                descentNeeded > descentAvailable ||
-                this._joinSpacingMargin(plan, along, join.joinTime, scheduledTime, context,
-                    isShort && !isEmergency ? p.shortJoinBufferNm : 0, isEmergency) < 0) {
-                continue;
+            if (!isShort && !hasLongJoinForAll &&
+                this._joinSpacingMargin(plan, along, join.joinTime, Infinity, context, 0, isEmergency) >= 0) {
+                hasLongJoinForAll = true;
+            }
+
+            if ((best && cost >= best.cost) ||
+                this._joinSpacingMargin(plan, along, join.joinTime, scheduledTime, context, buffer, isEmergency) < 0) {
+                return;
             }
 
             best = { ...join, cost, isWaiting: false };
+        };
+
+        for (let along = pattern.interceptAlong; along <= maximum + 0.01; along += JOIN_STEP_NM) {
+            consider(along, false);
+        }
+
+        // late: even the best of the longer joins lands well after the slot
+        const isLate = !best || best.landingTime - scheduledTime > p.shortJoinPenaltySeconds;
+
+        if (isEmergency || isLate || !hasLongJoinForAll) {
+            for (let along = pattern.minimumJoinAlong; along < pattern.interceptAlong - 0.01; along += JOIN_STEP_NM) {
+                consider(along, true);
+            }
         }
 
         return best || { ...this._evaluateJoin(plan, maximum, context), isWaiting: true };
