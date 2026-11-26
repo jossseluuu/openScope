@@ -212,7 +212,9 @@ jobs:
 
   e2e:
     name: Navegador (Playwright, Chromium)
-    runs-on: ubuntu-latest
+    # Playwright 1.50 no reconoce Ubuntu 26.04 (el ubuntu-latest actual) y no instala Chromium allí.
+    # Se fija 24.04 hasta subir Playwright a una versión que soporte 26.04 (y el Chromium local con ella).
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v5

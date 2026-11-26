@@ -50,6 +50,10 @@ npm run test:e2e
 que ya esté abierto. Los tests están en `test/e2e/*.e2e.js` (no `*.spec.js`, para que AVA no los coja).
 Las capturas y trazas quedan en `test-results/`, que en CI se sube como artefacto `e2e`.
 
+En CI el trabajo `e2e` corre en `ubuntu-24.04`, no en `ubuntu-latest`: Playwright 1.50.1 no instala Chromium en
+Ubuntu 26.04. Para pasar a `ubuntu-latest` hay que subir `@playwright/test` a una versión que lo soporte y, en
+local, volver a ejecutar `npx playwright install chromium`.
+
 ## Tests unitarios (AVA)
 
 - Los archivos se llaman `*.spec.js` y viven en `test/`, con la misma estructura de carpetas que
