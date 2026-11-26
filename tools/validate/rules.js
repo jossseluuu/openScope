@@ -111,6 +111,144 @@ function allRunwayNames(airport) {
 }
 
 /**
+ * Local flat projection in nm around a reference latitude (good enough for a TMA)
+ *
+ * @function toLocalNm
+ */
+function toLocalNm(point, referenceLat) {
+    return { x: Number(point.lon) * 60 * Math.cos(toRadians(referenceLat)), y: Number(point.lat) * 60 };
+}
+
+/**
+ * Whether a point is inside a polygon (ray casting on the local projection)
+ *
+ * @function isInsidePolygon
+ * @param point {object} {lat, lon}
+ * @param polygon {array<object>} [{lat, lon}]
+ * @return {boolean}
+ */
+function isInsidePolygon(point, polygon) {
+    const p = toLocalNm(point, point.lat);
+    const vertices = polygon.map((vertex) => toLocalNm(vertex, point.lat));
+    let inside = false;
+
+    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i, i += 1) {
+        const a = vertices[i];
+        const b = vertices[j];
+
+        if ((a.y > p.y) !== (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) {
+            inside = !inside;
+        }
+    }
+
+    return inside;
+}
+
+/**
+ * Whether segment a-b goes through a polygon (an end inside, or crossing an edge)
+ *
+ * @function segmentEntersPolygon
+ */
+function segmentEntersPolygon(a, b, polygon) {
+    if (isInsidePolygon(a, polygon) || isInsidePolygon(b, polygon)) {
+        return true;
+    }
+
+    return polygon.some((vertex, i) => segmentsCross(a, b, vertex, polygon[(i + 1) % polygon.length]));
+}
+
+/**
+ * Lowest altitude in ft of a spawn pattern (`altitude` may be a number, a numeric text or [min, max])
+ *
+ * @function lowestSpawnAltitudeFt
+ */
+function lowestSpawnAltitudeFt(altitude) {
+    const values = (Array.isArray(altitude) ? altitude : [altitude]).map(Number).filter((value) => Number.isFinite(value));
+
+    return values.length > 0 ? Math.min(...values) : null;
+}
+
+/**
+ * Lowest altitude in ft a procedure leg restriction lets the aircraft fly at (`A70+`, `A70`, `A70-`,
+ * `A70+|A100-`), null without an altitude restriction. `A70-` alone counts as 7000 ft: the procedure
+ * expects about that
+ *
+ * @function lowestRestrictionAltitudeFt
+ */
+function lowestRestrictionAltitudeFt(leg) {
+    if (!Array.isArray(leg) || typeof leg[1] !== 'string') {
+        return null;
+    }
+
+    const altitudes = leg[1].split('|')
+        .map((part) => part.trim().match(/^A(?:FL)?(\d+)([+-]?)$/i))
+        .filter(Boolean)
+        .map((match) => ({ feet: Number(match[1]) * 100, sign: match[2] }));
+
+    if (altitudes.length === 0) {
+        return null;
+    }
+
+    const floors = altitudes.filter((altitude) => altitude.sign !== '-');
+
+    return Math.min(...(floors.length > 0 ? floors : altitudes).map((altitude) => altitude.feet));
+}
+
+/**
+ * Restricted area ceiling in ft (`"5000ft"`, `"FL180"`, `"Infinity"`)
+ *
+ * @function restrictedCeilingFt
+ */
+function restrictedCeilingFt(height) {
+    const text = String(height).trim();
+
+    if (/^infinity$/i.test(text)) {
+        return Infinity;
+    }
+
+    const flightLevel = text.match(/^FL(\d+)$/i);
+
+    if (flightLevel) {
+        return Number(flightLevel[1]) * 100;
+    }
+
+    const feet = parseFloat(text);
+
+    return Number.isFinite(feet) ? feet : Infinity;
+}
+
+/**
+ * Airspace sectors as {floorFt, ceilingFt, points}
+ *
+ * @function sectorsOf
+ */
+function sectorsOf(airport) {
+    return airport.airspace.map((sector) => ({
+        floorFt: sector.floor * 100,
+        ceilingFt: sector.ceiling * 100,
+        points: sector.poly.map(positionOf)
+    }));
+}
+
+/**
+ * Every leg of a STAR in flying order: each entry transition + body + each runway transition
+ *
+ * @function starLegSequences
+ */
+function starLegSequences(star) {
+    const entries = segmentsOf(star, ['entryPoints']).map((segment) => segment.legs);
+    const body = Array.isArray(star.body) ? star.body : [];
+    const runways = segmentsOf(star, ['rwy']).map((segment) => segment.legs);
+    const sequences = [];
+
+    (entries.length > 0 ? entries : [[]]).forEach((entry) => {
+        (runways.length > 0 ? runways : [[]]).forEach((runway) => sequences.push([...entry, ...body, ...runway]));
+    });
+
+    return sequences;
+}
+
+/**
  * Every rule, in report order
  *
  * @property RULES
@@ -288,6 +426,51 @@ const RULES = [
         }
     },
     {
+        id: 'AP-018',
+        severity: 'error',
+        description: 'En las rutas de aparición, la entrada y la salida de cada SID y STAR existen en el procedimiento',
+        check(airport) {
+            const problems = [];
+            // what the engine accepts (ProcedureModel): SID entry = rwy key, exit = exitPoints key;
+            // STAR entry = entryPoints key, exit = rwy key
+            const ends = (procedure, isSid) => ({
+                entries: Object.keys((isSid ? procedure.rwy : procedure.entryPoints) || {}),
+                exits: Object.keys((isSid ? procedure.exitPoints : procedure.rwy) || {})
+            });
+
+            airport.spawnPatterns.forEach((pattern, index) => {
+                // `..` is a direct leg; procedures appear as `ENTRY.PROCEDURE.EXIT` inside a segment
+                pattern.route.split('..').forEach((segment) => {
+                    const tokens = segment.split('.');
+
+                    tokens.forEach((token, position) => {
+                        const isSid = Object.prototype.hasOwnProperty.call(airport.sids, token);
+                        const isStar = Object.prototype.hasOwnProperty.call(airport.stars || {}, token);
+
+                        if (!isSid && !isStar) {
+                            return;
+                        }
+
+                        const { entries, exits } = ends(isSid ? airport.sids[token] : airport.stars[token], isSid);
+                        const entry = tokens[position - 1];
+                        const exit = tokens[position + 1];
+                        const path = `/spawnPatterns/${index}/route`;
+
+                        if (entry && !entries.includes(entry)) {
+                            problems.push({ path, message: `${token} no tiene la entrada ${entry} (tiene: ${entries.join(', ') || 'ninguna'})` });
+                        }
+
+                        if (exit && !exits.includes(exit)) {
+                            problems.push({ path, message: `${token} no tiene la salida ${exit} (tiene: ${exits.join(', ') || 'ninguna'})` });
+                        }
+                    });
+                });
+            });
+
+            return problems;
+        }
+    },
+    {
         id: 'AP-006',
         severity: 'error',
         description: 'Las aerolíneas y flotas de los spawn patterns existen (con mayúsculas exactas)',
@@ -457,6 +640,158 @@ const RULES = [
                     message: `la configuración "${pattern.runwayConfiguration}" no existe en runwayConfigurations`
                 }));
         }
+    },
+    {
+        id: 'AP-015',
+        severity: 'warning',
+        description: 'Una llegada que aparece dentro del espacio aéreo lo hace entre el suelo y el techo de algún sector',
+        check(airport) {
+            const problems = [];
+            const sectors = sectorsOf(airport);
+
+            airport.spawnPatterns.forEach((pattern, index) => {
+                if (pattern.category !== 'arrival' || typeof pattern.route !== 'string') {
+                    return;
+                }
+
+                const firstFix = pattern.route.split('.')[0];
+                const coordinates = airport.fixes[firstFix];
+                const altitude = lowestSpawnAltitudeFt(pattern.altitude);
+
+                if (!coordinates) {
+                    return; // AP-003/AP-005 report unknown fixes
+                }
+
+                const point = positionOf(coordinates);
+                const containing = sectors.filter((sector) => isInsidePolygon(point, sector.points));
+
+                if (containing.length === 0) {
+                    return; // the engine lets arrivals start outside and fly in
+                }
+
+                if (altitude !== null && !containing.some((sector) => altitude >= sector.floorFt && altitude <= sector.ceilingFt)) {
+                    const ranges = containing.map((sector) => `${sector.floorFt}-${sector.ceilingFt} ft`).join(', ');
+
+                    problems.push({
+                        path: `/spawnPatterns/${index}/altitude`,
+                        message: `la llegada aparece en ${firstFix} a ${altitude} ft, fuera de los sectores de ese punto (${ranges})`
+                    });
+                }
+            });
+
+            return problems;
+        }
+    },
+    {
+        id: 'AP-016',
+        severity: 'warning',
+        description: 'Las restricciones de altitud de las STAR no quedan por debajo del suelo de los sectores en ese punto',
+        check(airport) {
+            const problems = [];
+            const sectors = sectorsOf(airport);
+            const reported = new Set();
+
+            Object.entries(airport.stars || {}).forEach(([key, star]) => {
+                starLegSequences(star).forEach((legs) => {
+                    legs.forEach((leg) => {
+                        const fix = fixNameOfLeg(leg);
+                        const altitude = lowestRestrictionAltitudeFt(leg);
+
+                        if (!fix || altitude === null || !airport.fixes[fix] || reported.has(`${key}/${fix}`)) {
+                            return;
+                        }
+
+                        const point = positionOf(airport.fixes[fix]);
+                        const containing = sectors.filter((sector) => isInsidePolygon(point, sector.points));
+
+                        if (containing.length === 0 || containing.some((sector) => altitude >= sector.floorFt)) {
+                            return;
+                        }
+
+                        reported.add(`${key}/${fix}`);
+                        problems.push({
+                            path: `/stars/${key}`,
+                            message: `${fix} a ${altitude} ft queda por debajo del suelo del espacio aéreo en ese punto ` +
+                                `(${Math.min(...containing.map((sector) => sector.floorFt))} ft)`
+                        });
+                    });
+                });
+            });
+
+            return problems;
+        }
+    },
+    {
+        id: 'AP-017',
+        severity: 'warning',
+        description: 'Ningún tramo de STAR atraviesa una zona restringida por debajo de su techo',
+        check(airport) {
+            const problems = [];
+            const areas = (airport.restricted || [])
+                .map((area, index) => ({ area, index }))
+                .filter(({ area }) => Array.isArray(area.poly) && area.poly.length >= 3)
+                .map(({ area, index }) => ({
+                    index,
+                    name: area.name || `#${index}`,
+                    ceilingFt: restrictedCeilingFt(area.height),
+                    points: area.poly.map(positionOf)
+                }));
+
+            if (areas.length === 0) {
+                return problems;
+            }
+
+            const crossings = new Map(); // area index -> names of the STARs that cross it
+
+            Object.entries(airport.stars || {}).forEach(([key, star]) => {
+                starLegSequences(star).forEach((legs) => {
+                    let previous = null;
+
+                    legs.forEach((leg) => {
+                        const fix = fixNameOfLeg(leg);
+
+                        if (!fix || !airport.fixes[fix]) {
+                            previous = null;
+
+                            return;
+                        }
+
+                        const current = { fix, point: positionOf(airport.fixes[fix]), altitude: lowestRestrictionAltitudeFt(leg) };
+
+                        if (previous) {
+                            areas.forEach((area) => {
+                                // a leg known to be above the area at both ends does not count
+                                const isAbove = previous.altitude !== null && current.altitude !== null &&
+                                    Math.min(previous.altitude, current.altitude) >= area.ceilingFt;
+
+                                if (!isAbove && segmentEntersPolygon(previous.point, current.point, area.points)) {
+                                    if (!crossings.has(area.index)) {
+                                        crossings.set(area.index, new Set());
+                                    }
+
+                                    crossings.get(area.index).add(key);
+                                }
+                            });
+                        }
+
+                        previous = current;
+                    });
+                });
+            });
+
+            areas.filter((area) => crossings.has(area.index)).forEach((area) => {
+                const stars = [...crossings.get(area.index)];
+                const ceiling = Number.isFinite(area.ceilingFt) ? ` (techo ${area.ceilingFt} ft)` : '';
+                const list = stars.length > 4 ? `${stars.slice(0, 4).join(', ')} y ${stars.length - 4} más` : stars.join(', ');
+
+                problems.push({
+                    path: `/restricted/${area.index}`,
+                    message: `la zona ${area.name}${ceiling} la atraviesan las STAR ${list}`
+                });
+            });
+
+            return problems;
+        }
     }
 ];
 
@@ -490,4 +825,6 @@ function buildContext(root, fileIcao, loadList) {
     };
 }
 
-module.exports = { RULES, buildContext, fixNameOfLeg };
+module.exports = {
+    RULES, buildContext, fixNameOfLeg, isInsidePolygon, lowestRestrictionAltitudeFt, restrictedCeilingFt
+};

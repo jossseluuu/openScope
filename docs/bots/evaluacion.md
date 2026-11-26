@@ -21,12 +21,20 @@ El simulador es determinista: con el mismo código y la misma semilla el resulta
 regresión detecta cualquier cambio de comportamiento. El nightly de GitHub Actions la ejecuta cada noche para
 los bots A y C y abre una issue si empeoran. Detalles en [testing](../desarrollo/testing.md#regresión-de-los-bots).
 
-## Líneas base (2026-11-20, commit 773063d0)
+## Líneas base (2026-11-26)
 
-| Bot | Puntuación | Aterrizajes | Despegues | Pérdidas de separación | Pérdidas de estela | Violaciones de espacio aéreo | Tier 0 |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| A | -3945 | 494 | 539 | 43 | 5 | 1 | 5 |
-| C | -5980 | 501 | 538 | 57 | 7 | 0 | 2 |
+Con las redes de seguridad (STCA, TCAS, MSAW, APW) y la nivelación realista VEL-002 activas:
+
+| Bot | Puntuación | Aterrizajes | Despegues | Pérdidas de separación | Pérdidas de estela | Violaciones de espacio aéreo | Tier 0 | RA de TCAS |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| A | -10680 | 505 | 546 | 59 | 8 | 2 | 2 | 18 |
+| C | -9885 | 497 | 546 | 61 | 7 | 1 | 4 | 16 |
+
+La línea base anterior (2026-11-20, commit 773063d0) era A -3945 y C -5980. La bajada no es un fallo:
+con `LEVEL_OFF_BAND_FT: 0` y `--safety-nets off` el Bot A vuelve a dar -3945 exacto en todas las métricas.
+Unos -6300 puntos vienen de VEL-002 (las aeronaves nivelan a 1500 ft/min en los últimos 1000 ft, como en la
+realidad, y el Bot A pierde separación en esa franja) y unos -400 de las redes de seguridad. Mejorar el Bot A
+para VEL-002 está pendiente (`phacer.md`, sección 8b).
 
 ## Bot B
 

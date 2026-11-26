@@ -1,0 +1,78 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://openscope.io/schema/aircraft.schema.json",
+    "title": "Tipo de aeronave de openScope (assets/aircraft/<tipo>.json)",
+    "description": "Escrito a partir de lo que leen AircraftTypeDefinitionModel y AircraftModel. Ver docs/motor/formato-aeronave.md.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["name", "icao", "engines", "weightClass", "category", "ceiling", "rate", "runway", "speed", "capability"],
+    "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "icao": { "type": "string", "pattern": "^[A-Z0-9]{2,4}$" },
+        "engines": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["number", "type"],
+            "properties": {
+                "number": { "type": "integer", "minimum": 1, "maximum": 8 },
+                "type": { "enum": ["J", "T", "P"], "description": "J reactor, T turbohélice, P pistón" }
+            }
+        },
+        "weightClass": { "enum": ["S", "L", "M", "H", "J", "U"] },
+        "category": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["srs", "lahso", "recat"],
+            "properties": {
+                "srs": { "type": ["integer", "null"], "minimum": 1, "maximum": 3 },
+                "lahso": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+                "recat": { "enum": ["A", "B", "C", "D", "E", "F", "H"] },
+                "recatEu": { "enum": ["A", "B", "C", "D", "E", "F"] },
+                "wakeFaa": { "enum": ["SUPER", "HEAVY", "B757", "LARGE", "SMALL"] }
+            }
+        },
+        "ceiling": { "type": "number", "minimum": 1000, "maximum": 70000 },
+        "rate": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["climb", "descent", "accelerate", "decelerate"],
+            "properties": {
+                "climb": { "type": "number", "exclusiveMinimum": 0, "maximum": 10000, "description": "ft/min" },
+                "descent": { "type": "number", "exclusiveMinimum": 0, "maximum": 10000, "description": "ft/min" },
+                "accelerate": { "type": "number", "exclusiveMinimum": 0, "maximum": 20, "description": "kt/s" },
+                "decelerate": { "type": "number", "exclusiveMinimum": 0, "maximum": 20, "description": "kt/s" }
+            }
+        },
+        "runway": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["takeoff", "landing"],
+            "properties": {
+                "takeoff": { "type": "number", "exclusiveMinimum": 0, "maximum": 5, "description": "km" },
+                "landing": { "type": "number", "exclusiveMinimum": 0, "maximum": 5, "description": "km" }
+            }
+        },
+        "speed": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["min", "landing", "cruise", "max"],
+            "properties": {
+                "min": { "type": "number", "exclusiveMinimum": 0 },
+                "landing": { "type": "number", "exclusiveMinimum": 0 },
+                "cruise": { "type": "number", "exclusiveMinimum": 0 },
+                "cruiseM": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 3 },
+                "max": { "type": "number", "exclusiveMinimum": 0 },
+                "maxM": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 3 }
+            }
+        },
+        "capability": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ils", "fix"],
+            "properties": {
+                "ils": { "type": "boolean" },
+                "fix": { "type": "boolean" }
+            }
+        }
+    }
+}

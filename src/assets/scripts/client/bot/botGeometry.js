@@ -409,7 +409,8 @@ export function highestFloorAlongPath(points, airspace, lengthNm = Infinity, ste
  * @return {boolean}
  */
 export function isInsideAirspaceAt(point, altitude, airspace) {
-    return (airspace || []).some(({ floor, ceiling, polygon }) => altitude >= floor && altitude <= ceiling &&
+    // a floor of 0 is the surface, also below sea level (same as AirspaceModel#isPointInside)
+    return (airspace || []).some(({ floor, ceiling, polygon }) => (floor <= 0 || altitude >= floor) && altitude <= ceiling &&
         isInsidePolygon(point, polygon));
 }
 

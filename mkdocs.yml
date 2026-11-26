@@ -102,6 +102,10 @@ nav:
       - Separación de aeronaves: motor/separacion-aeronaves.md
       - Formato de aeronave: motor/formato-aeronave.md
       - Formato de aerolínea: motor/formato-aerolinea.md
+  - Referencia:
+      - Esquema de aeropuerto: referencia/esquema-aeropuerto.md
+      - Esquema de aeronave: referencia/esquema-aeronave.md
+      - Esquema de aerolínea: referencia/esquema-aerolinea.md
   - Especificación:
       - especificacion/index.md
       - Unidades y atmósfera: especificacion/unidades-atmosfera.md

@@ -49,6 +49,9 @@ class EnvConfig:
     # probability of a random surface wind instead of the airport's default
     random_wind_probability: float = 0.0
     max_wind_kt: float = 20
+    # probability of an episode with dynamic weather (wind changes, fog and LVP, thunderstorm cells; task #6)
+    # instead of the static weather of the airport file
+    dynamic_weather_probability: float = 0.0
     with_expert: bool = False
     reward_weights: dict[str, float] = field(default_factory=dict)
 
@@ -106,6 +109,7 @@ class OpenScopeEnv(gym.Env):
             wind=wind,
             trafficScale=float(options.get("traffic_scale", rng.uniform(low, high))),
             emergencyRate=float(options.get("emergency_rate", rng.uniform(emergency_low, emergency_high))),
+            weather=options.get("weather") or ("dynamic" if rng.random() < cfg.dynamic_weather_probability else "static"),
             decisionSeconds=cfg.decision_seconds,
             episodeSeconds=cfg.episode_minutes * 60,
             withExpert=bool(options.get("with_expert", cfg.with_expert)),

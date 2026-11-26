@@ -185,7 +185,10 @@ export default class AirspaceModel extends BaseModel {
      * @return {boolean}
      */
     isPointInside(point, altitude) {
-        if (altitude < this.floor || this.ceiling < altitude) {
+        // ASP-003: a floor of 0 is the surface (SFC), also at airports below sea level (EHAM, -11 ft)
+        const isBelowFloor = this.floor > 0 && altitude < this.floor;
+
+        if (isBelowFloor || this.ceiling < altitude) {
             return false;
         }
 

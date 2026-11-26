@@ -11,7 +11,7 @@ observación de `BotApi`), eligen entre las mismas [66 acciones](matriz-comandos
 | Cómo se activa | `bot a` | `bot b` | `bot c` |
 | Entrenamiento | Ninguno (parámetros ajustables con CMA-ES) | Sí, horas de GPU | Ninguno (comparte el planificador del Bot A) |
 | Explica sus decisiones | Motivo de cada orden | No (panel de auditoría) | Sí: un supervisor por agente y uno global |
-| Resultado (protocolo de 30 episodios, 2026-11-20) | **-3945** puntos · 494 aterrizajes · 43 pérdidas de separación | Sin evaluar con el protocolo (la imitación aún no pasa la puerta frente al Bot A) | **-5980** puntos · 501 aterrizajes · 57 pérdidas |
+| Resultado (protocolo de 30 episodios, 2026-11-26, con redes de seguridad y VEL-002) | **-10680** puntos · 505 aterrizajes · 59 pérdidas de separación | Sin evaluar con el protocolo (la imitación aún no pasa la puerta frente al Bot A) | **-9885** puntos · 497 aterrizajes · 61 pérdidas |
 | Documentación | [Bot A](bot-a.md) | [Bot B](bot-b.md) | [Bot C](bot-c.md) |
 
 ## Para entenderlos

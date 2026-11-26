@@ -178,14 +178,17 @@ def spawn_patterns(icao, book, sids, arrivals, arrival_flows, arrival_runway, de
     for config, routes in departures.items():
         for exit_fix, sid in routes.items():
             rate, airlines = departure_flows[exit_fix]
+            # the route leaves by the SID's own exit point, which is not always the fix of its name
+            # (EHAM KUDAD1Q ends at WOODY): the engine rejects an exit the SID does not have
+            sid_exit = list(sids[sid]['exitPoints'])[0]
             # a point 30 NM beyond the exit, along the last leg, so departures leave the airspace
-            draw = sids[sid]['draw'][0]
-            before = book.fixes[draw[-2]] if len(draw) > 1 else airport_position
-            after = book.fixes[exit_fix]
-            beyond = book.add(f'_{exit_fix}_X', destination(after, bearing_deg(before, after), 30))
+            draw = [name.rstrip('*') for name in sids[sid]['draw'][0]]
+            before = book.fixes[draw[-2]] if len(draw) > 1 and draw[-2] != sid_exit else airport_position
+            after = book.fixes[sid_exit]
+            beyond = book.add(f'_{sid_exit}_X', destination(after, bearing_deg(before, after), 30))
             patterns.append({
                 'origin': icao, 'destination': '', 'category': 'departure',
-                'route': f'{icao}{departure_runway[config]}.{sid}.{exit_fix}..{beyond}',
+                'route': f'{icao}{departure_runway[config]}.{sid}.{sid_exit}..{beyond}',
                 'altitude': '', 'speed': '', 'method': 'random',
                 'runwayConfiguration': config, 'rate': rate, 'airlines': airlines
             })

@@ -16,7 +16,8 @@
  * - `runBotEpisode({ bot, parameters, airport, seed, minutes, wind, trafficScale, emergencyRate, trace })` -> episode summary
  * - `botParameterSpace()`                          -> Bot A parameters with their tuning ranges
  * - `rlSpec()`                                     -> sizes of the encoded observation and action names
- * - `rlReset({ airport, seed, wind, trafficScale, emergencyRate, decisionSeconds, episodeSeconds, withExpert, rewardWeights })`
+ * - `rlReset({ airport, seed, wind, trafficScale, emergencyRate, weather, safetyNets, decisionSeconds, episodeSeconds,
+ *   withExpert, rewardWeights })`
  * - `rlStep({ actions })`                          -> encoded observation, reward, done, info
  *   (`actions`: one action index per aircraft slot, or `'expert'` to let Bot A act)
  * - `close()`

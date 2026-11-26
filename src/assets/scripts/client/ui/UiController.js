@@ -393,6 +393,7 @@ class UiController {
     setupHandlers() {
         this.onAirportChangeHandler = this.onAirportChange.bind(this);
         this.onChatLogDurationChangeHandler = this.onChatLogDurationChange.bind(this);
+        this.onAirportLoadFailedHandler = this.onAirportLoadFailed.bind(this);
 
         return this;
     }
@@ -407,6 +408,7 @@ class UiController {
     enable() {
         this._eventBus.on(EVENT.AIRPORT_CHANGE, this.onAirportChangeHandler);
         this._eventBus.on(EVENT.CHAT_LOG_DURATION_CHANGE, this.onChatLogDurationChangeHandler);
+        this._eventBus.on(EVENT.AIRPORT_LOAD_FAILED, this.onAirportLoadFailedHandler);
 
         // TODO: move these to properly bound handler methods
 
@@ -444,6 +446,7 @@ class UiController {
     disable() {
         this._eventBus.off(EVENT.AIRPORT_CHANGE, this.onAirportChangeHandler);
         this._eventBus.off(EVENT.CHAT_LOG_DURATION_CHANGE, this.onChatLogDurationChangeHandler);
+        this._eventBus.off(EVENT.AIRPORT_LOAD_FAILED, this.onAirportLoadFailedHandler);
         this.$airportSearch.off('keyup', (event) => this._onInitiateAirportSearch(event));
         this.$fastForwards.off('click', (event) => GameController.game_timewarp_toggle(event));
         this.$githubLinkElement.off('click', (event) => this.onClickGithubLink(event));
@@ -559,6 +562,17 @@ class UiController {
      */
     onAirportChange() {
         this.$log.empty();
+    }
+
+    /**
+     * An airport file failed the load-time check: say why in the log (the game stays where it was)
+     *
+     * @for UiController
+     * @method onAirportLoadFailed
+     * @param event {object} `{ icao, problems }`
+     */
+    onAirportLoadFailed({ icao, problems }) {
+        this.ui_log(`No se puede cargar ${icao.toUpperCase()}: ${problems.slice(0, 3).join('; ')}`, true);
     }
 
     /**

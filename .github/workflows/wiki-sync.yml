@@ -29,27 +29,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      # La Wiki no existe hasta que alguien crea su primera página desde GitHub. En ese caso el trabajo
+      # avisa y termina en verde en vez de fallar en cada push.
+      - name: Check that the wiki exists
+        id: wiki
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          url="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+          if git ls-remote "$url" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            message="La Wiki de ${GITHUB_REPOSITORY} no existe todavía. Créala una vez: pestaña Wiki → Create the first page → Save. Después vuelve a lanzar este workflow (Actions → wiki-sync → Run workflow)."
+            echo "::warning title=Wiki sin crear::${message}"
+            echo "### Wiki sin crear" >> "$GITHUB_STEP_SUMMARY"
+            echo "$message" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Checkout wiki
-        uses: actions/checkout@v4
+        if: steps.wiki.outputs.exists == 'true'
+        uses: actions/checkout@v5
         with:
           repository: ${{ github.repository }}.wiki
           path: wiki
 
       - name: Use Node.js 24
-        uses: actions/setup-node@v4
+        if: steps.wiki.outputs.exists == 'true'
+        uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
 
       - name: Install dependencies
+        if: steps.wiki.outputs.exists == 'true'
         run: npm install --no-audit --no-fund
 
       - name: Build wiki pages from docs/
+        if: steps.wiki.outputs.exists == 'true'
         run: node tools/docs/build-wiki.js wiki
 
       - name: Commit and push
+        if: steps.wiki.outputs.exists == 'true'
         working-directory: wiki
         run: |
           git config user.name "github-actions[bot]"

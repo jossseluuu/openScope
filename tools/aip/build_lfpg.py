@@ -147,6 +147,9 @@ LONG_HAUL = [
 ]
 MIXED = EUROPE + [['afr/long', 6], ['ram/short', 2]]
 
+# entry fixes inside TMA parts whose ceiling is FL115 and outside the FL115-FL195 layer (validator AP-015)
+LOW_ENTRIES = {'ENORI', 'KOVAK', 'ROMGO'}
+
 # entry fix: (rate, altitudes, speed, airlines). STAR "W" (west) and "E" (east) for each entry
 ARRIVAL_FLOWS = {
     'ENORI': (3.0, [12000, 15000], 280, MIXED),
@@ -201,7 +204,9 @@ def main():
         arrival_runway[key] = runway
         bearing = bearing_from_arp(book.fixes[entry])
         airlines = LONG_HAUL if 180 <= bearing < 330 else (MIXED if bearing >= 330 or bearing < 120 else EUROPE)
-        arrival_flows[key] = (1.8, [15000, 19000], 280, airlines)
+        # entries under the TMA parts that stop at FL115 and outside the FL115-FL195 layer start inside them
+        altitudes = [10000, 11000] if entry in LOW_ENTRIES else [15000, 19000]
+        arrival_flows[key] = (1.8, altitudes, 280, airlines)
 
     # departures: day SIDs, from the inner runway of the pair on the side of the exit
     departures = {'west': {}, 'east': {}}

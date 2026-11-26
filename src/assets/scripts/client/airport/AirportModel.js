@@ -14,6 +14,7 @@ import MapCollection from './MapCollection';
 import RunwayCollection from './runway/RunwayCollection';
 import StaticPositionModel from '../base/StaticPositionModel';
 import TimeKeeper from '../engine/TimeKeeper';
+import { findAirportJsonProblems } from './airportJsonCheck';
 import { isValidGpsCoordinatePair } from '../base/positionModelHelpers';
 import { getRegulatoryProfileForAirport } from '../realism/regulatoryProfiles';
 import { selectRunwayConfiguration } from '../realism/runwayConfiguration';
@@ -915,6 +916,18 @@ export default class AirportModel {
      * @param response {object}
      */
     onLoadAirportSuccess = (response) => {
+        const problems = findAirportJsonProblems(response);
+
+        if (problems.length > 0) {
+            // stay at the current airport instead of breaking half way through the change
+            console.error(`Airport ${this.icao} not loaded:`, problems);
+            this.eventBus.trigger(EVENT.AIRPORT_LOAD_FAILED, { icao: this.icao, problems });
+            this.loading = false;
+            AirportController.current.set();
+
+            return;
+        }
+
         // cache of airport.json data to be used to hydrate other classes on airport change
         this.data = response;
         this.loading = false;

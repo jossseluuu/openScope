@@ -141,6 +141,16 @@ node tools/sim/run-bot.js --bot A --airport lemd --params bots/params/botA_tuned
 .venv\Scripts\python -m openscope_bots.train --config ../configs/default.json
 ```
 
+O, desde la raíz del proyecto en PowerShell, con el lanzador que además impide que el equipo se
+suspenda, guarda el registro en `bots/runs/botB/entrenamiento-<fecha>.log` y al terminar evalúa y
+exporta a ONNX el mejor modelo:
+
+```powershell
+.ots\entrenar-botB.ps1             # todo, desde la imitación
+.ots\entrenar-botB.ps1 -Resume     # continuar PPO
+.ots\entrenar-botB.ps1 -SkipCheck -MaxUpdates 100   # prueba de PPO aunque no pase la puerta
+```
+
 Lo que ocurre, en orden:
 
 | Fase | Qué hace | Tiempo aproximado |
@@ -157,9 +167,13 @@ ampliar a todos los aeropuertos: unas 36 decisiones por segundo con 8
 simuladores y unos 30 s por actualización; los aeropuertos grandes (KJFK,
 KATL, EGLL…) son algo más lentos.
 
-> **Hay que reentrenar.** La versión 6 de la codificación y las acciones nuevas de
-> alinearse y cancelar despegue cambian la red: un modelo anterior ya no se carga en el juego
-> ni continúa con `--resume`. Empieza desde la imitación.
+> **Hay que reentrenar (versión 8 de la codificación, 2026-11-26).** La red ve ahora las alertas
+> STCA, TCAS (TA/RA y el sentido del RA), MSAW y APW de cada aeronave, la tormenta más cercana y la
+> meteorología global (racha, visibilidad, techo, LVP, modo dinámico, número de tormentas). Un modelo v7
+> ya no se carga en el juego ni continúa con `--resume`: empieza desde la imitación. Los modelos v7 están
+> en `bots/runs/botB/v7_anterior/`. Las etapas 2 y 3 de PPO vuelan con meteorología dinámica en el 25 %
+> y el 50 % de los episodios (`dynamic_weather_probability` en `bots/configs/default.json`); las redes de
+> seguridad están siempre activas, como en el juego.
 
 Todo se guarda en `bots/runs/botB/`:
 

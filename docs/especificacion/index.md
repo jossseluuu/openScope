@@ -10,7 +10,7 @@ Una única fuente de verdad con las constantes físicas y las reglas ATC del sim
 
 ## Resumen
 
-84 reglas: 81 implementado, 2 parcial, 1 referencia; 51 comprobadas contra el código.
+85 reglas: 82 implementado, 2 parcial, 1 referencia; 51 comprobadas contra el código.
 
 | Dominio | Página |
 |---|---|
@@ -88,6 +88,7 @@ Una única fuente de verdad con las constantes físicas y las reglas ATC del sim
 | [DEP-007](operaciones.md#dep-007) | Dos salidas consecutivas de la misma pista con un minuto de separación necesitan rumbos que diverjan al menos 45° | implementado | — |
 | [ASP-001](espacio-aereo-terreno.md#asp-001) | Una aeronave que sale de todos los polígonos de espacio aéreo (lateralmente o por debajo de su suelo) deja de ser controlable y se elimina | implementado | — |
 | [ASP-002](espacio-aereo-terreno.md#asp-002) | Entrar en una zona restringida por debajo de su techo | implementado | — |
+| [ASP-003](espacio-aereo-terreno.md#asp-003) | Un sector con suelo 0 empieza en la superficie (SFC), también en aeropuertos por debajo del nivel del mar | implementado | — |
 | [TER-001](espacio-aereo-terreno.md#ter-001) | Altitud mínima de vectorización (MVA) = terreno más alto en 3 NM alrededor + 1000 ft de franqueamiento | implementado | — |
 | [TER-002](espacio-aereo-terreno.md#ter-002) | Se considera violación de altitud mínima cuando la aeronave está más de 100 ft por debajo de la MVA (resolución del modo C) | implementado | — |
 | [EMG-001](operaciones.md#emg-001) | Probabilidad de que una llegada declare emergencia (opción del juego) | implementado | — |

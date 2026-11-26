@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "http://openscope.io/assets/airports/schema/airport.schema.json",
     "title": "Archivo de aeropuerto de openScope",
-    "description": "Estructura de assets/airports/<icao>.json tal como la lee el motor (AirportModel y modelos relacionados). La coherencia entre partes (fijos usados que existen, pistas recíprocas, rutas, etc.) la comprueban las reglas de tools/validate/rules/.",
+    "description": "Estructura de assets/airports/<icao>.json tal como la lee el motor (AirportModel y modelos relacionados). La coherencia entre partes (fijos usados que existen, pistas recíprocas, rutas, etc.) la comprueban las reglas de tools/validate/rules.js.",
     "type": "object",
     "required": [
         "radio",

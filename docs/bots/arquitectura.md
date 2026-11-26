@@ -76,7 +76,8 @@ flowchart LR
     EX --> WEB["Navegador:<br/>BotBRuntime (onnxruntime-web)"]
 ```
 
-La red recibe la observación codificada (`bot/rl/featureEncoder.js`, versión de features 7: una fila por
-aeronave con su historial de órdenes y la secuencia de aterrizaje, más datos globales). Primero imita al Bot A;
+La red recibe la observación codificada (`bot/rl/featureEncoder.js`, versión de features 8: una fila por
+aeronave con su historial de órdenes, la secuencia de aterrizaje, sus alertas STCA/TCAS/MSAW/APW y la tormenta más
+cercana, más datos globales, incluida la meteorología dinámica). Primero imita al Bot A;
 solo si aterriza al menos el 80 % que él pasa a PPO. Cualquier cambio en la observación o en las acciones obliga
 a reentrenar. Ver [Bot B](bot-b.md) y [entrenamiento](entrenamiento.md).

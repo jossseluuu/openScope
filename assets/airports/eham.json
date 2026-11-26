@@ -640,6 +640,8 @@
         }
     ],
     "fixes": {
+        "_EDUPO_X": ["N51d38m46.44", "E6d26m37.66"],
+        "_IDRID_X": ["N51d41m15.56", "E2d51m36.40"],
         "AGOGO": [
             "N52d29m48.50",
             "E4d54m14.70"
@@ -1516,45 +1518,9 @@
             "N53d10m55.43",
             "E3d56m44.95"
         ],
-        "_IVLUT_X": [
-            "N52d31m58.65",
-            "E4d35m20.10"
-        ],
-        "_KUDAD_X": [
-            "N52d10m01.79",
-            "E4d34m03.00"
-        ],
         "_LOPIK_X": [
             "N51d26m56.26",
             "E5d20m32.42"
-        ],
-        "_NOPSU_X": [
-            "N53d05m11.79",
-            "E4d57m02.90"
-        ],
-        "_NYKER_X": [
-            "N52d43m48.19",
-            "E5d31m43.70"
-        ],
-        "_OGINA_X": [
-            "N52d35m49.69",
-            "E5d03m16.70"
-        ],
-        "_RENDI_X": [
-            "N52d33m40.39",
-            "E5d40m31.50"
-        ],
-        "_SPY_X": [
-            "N52d13m42.80",
-            "E4d12m50.73"
-        ],
-        "_VALKO_X": [
-            "N52d34m15.59",
-            "E3d50m23.40"
-        ],
-        "_VOLLA_X": [
-            "N52d48m49.79",
-            "E4d09m22.30"
         ],
         "_WOODY_X": [
             "N50d57m18.76",
@@ -5192,7 +5158,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM24.KUDAD1Q.KUDAD.._KUDAD_X",
+            "route": "EHAM24.KUDAD1Q.WOODY.._WOODY_X",
             "altitude": "",
             "speed": "",
             "method": "random",
@@ -5378,7 +5344,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM18L.RENDI3E.RENDI.._RENDI_X",
+            "route": "EHAM18L.RENDI3E.EDUPO.._EDUPO_X",
             "altitude": "",
             "speed": "",
             "method": "random",
@@ -5471,7 +5437,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM24.SPY1J.SPY.._SPY_X",
+            "route": "EHAM24.SPY1J.ANDIK.._ANDIK_X",
             "altitude": "",
             "speed": "",
             "method": "random",
@@ -5564,7 +5530,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM24.VALKO3S.VALKO.._VALKO_X",
+            "route": "EHAM24.VALKO3S.IDRID.._IDRID_X",
             "altitude": "",
             "speed": "",
             "method": "random",
@@ -6515,7 +6481,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM36C.IVLUT4W.IVLUT.._IVLUT_X",
+            "route": "EHAM36C.IVLUT4W.EDUPO.._EDUPO_X",
             "altitude": "",
             "speed": "",
             "method": "random",
@@ -6608,7 +6574,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM36L.KUDAD2V.KUDAD.._KUDAD_X",
+            "route": "EHAM36L.KUDAD2V.WOODY.._WOODY_X",
             "altitude": "",
             "speed": "",
             "method": "random",
@@ -6794,7 +6760,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM36C.NOPSU3W.NOPSU.._NOPSU_X",
+            "route": "EHAM36C.NOPSU3W.ANDIK.._ANDIK_X",
             "altitude": "",
             "speed": "",
             "method": "random",
@@ -6887,7 +6853,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM36C.NYKER5W.NYKER.._NYKER_X",
+            "route": "EHAM36C.NYKER5W.ARNEM.._ARNEM_X",
             "altitude": "",
             "speed": "",
             "method": "random",
@@ -6980,7 +6946,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM36C.OGINA4W.OGINA.._OGINA_X",
+            "route": "EHAM36C.OGINA4W.LOPIK.._LOPIK_X",
             "altitude": "",
             "speed": "",
             "method": "random",
@@ -7073,7 +7039,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM36L.RENDI2V.RENDI.._RENDI_X",
+            "route": "EHAM36L.RENDI2V.EDUPO.._EDUPO_X",
             "altitude": "",
             "speed": "",
             "method": "random",
@@ -7166,7 +7132,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM36L.SPY4V.SPY.._SPY_X",
+            "route": "EHAM36L.SPY4V.ANDIK.._ANDIK_X",
             "altitude": "",
             "speed": "",
             "method": "random",
@@ -7259,7 +7225,7 @@
             "origin": "EHAM",
             "destination": "",
             "category": "departure",
-            "route": "EHAM36L.VOLLA3V.VOLLA.._VOLLA_X",
+            "route": "EHAM36L.VOLLA3V.IDRID.._IDRID_X",
             "altitude": "",
             "speed": "",
             "method": "random",

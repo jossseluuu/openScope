@@ -1,0 +1,88 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://openscope.io/schema/airline.schema.json",
+    "title": "Aerolínea de openScope (assets/airlines/<icao>.json)",
+    "description": "Escrito a partir de lo que lee AirlineModel. Ver docs/motor/formato-aerolinea.md.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "icao",
+        "name",
+        "callsign",
+        "fleets"
+    ],
+    "properties": {
+        "icao": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{1,4}$"
+        },
+        "name": {
+            "type": "string",
+            "minLength": 1
+        },
+        "callsign": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Indicativo radiotelefónico"
+                },
+                "callsignFormats": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[#@0-9A-Z]+$"
+                    },
+                    "description": "# dígito, @ letra"
+                },
+                "length": {
+                    "description": "Heredado: el motor no lo lee"
+                },
+                "callsignFormat": {
+                    "description": "Heredado: el motor no lo lee (se usa callsignFormats)"
+                }
+            },
+            "additionalProperties": false
+        },
+        "fleets": {
+            "type": "object",
+            "required": [
+                "default"
+            ],
+            "additionalProperties": {
+                "$ref": "#/$defs/fleet"
+            },
+            "properties": {
+                "default": {
+                    "$ref": "#/$defs/fleet"
+                }
+            }
+        }
+    },
+    "$defs": {
+        "fleet": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": [
+                    {
+                        "type": "string",
+                        "minLength": 2
+                    },
+                    {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                    }
+                ]
+            }
+        }
+    }
+}

@@ -33,7 +33,7 @@ jobs:
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # el commit que ci.yml comprobó
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -41,7 +41,7 @@ jobs:
           fetch-depth: 0
 
       - name: Use Node.js 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -53,7 +53,7 @@ jobs:
         run: npm run build
 
       - name: Use Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -69,7 +69,7 @@ jobs:
         run: touch public/.nojekyll
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: public
 
@@ -82,4 +82,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

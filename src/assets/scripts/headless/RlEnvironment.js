@@ -53,6 +53,8 @@ export default class RlEnvironment {
      * @param [options.wind] {object}
      * @param [options.trafficScale] {number}
      * @param [options.emergencyRate] {number|null}  probability per flight of an emergency
+     * @param [options.weather] {string|null}      'static' (default) or 'dynamic' (task #6)
+     * @param [options.safetyNets] {boolean|null}  STCA, TCAS, MSAW and APW (default on, task #3)
      * @param [options.decisionSeconds] {number}   simulated time between decisions
      * @param [options.episodeSeconds] {number}
      * @param [options.withExpert] {boolean}       compute Bot A's labels
@@ -70,12 +72,16 @@ export default class RlEnvironment {
             trafficScale: 1,
             wind: null,
             emergencyRate: null,
+            weather: null,
+            safetyNets: null,
             ...options
         };
         this._observation = this.simulator.reset(this.options.airport, this.options.seed, {
             wind: this.options.wind,
             trafficScale: this.options.trafficScale,
-            emergencyRate: this.options.emergencyRate
+            emergencyRate: this.options.emergencyRate,
+            weather: this.options.weather,
+            safetyNets: this.options.safetyNets
         });
         this.expert = this.options.withExpert ? new BotA(this.options.expertParameters) : null;
         this._episodeReturn = 0;

@@ -1,8 +1,11 @@
 import ava from 'ava';
 import path from 'path';
 import Ajv2019 from 'ajv/dist/2019';
+import { parseCoordinate } from '../../src/assets/scripts/client/utilities/unitConverters';
 
-const { RULES, buildContext, fixNameOfLeg } = require('../../tools/validate/rules');
+const {
+    RULES, buildContext, fixNameOfLeg, isInsidePolygon, lowestRestrictionAltitudeFt, restrictedCeilingFt
+} = require('../../tools/validate/rules');
 
 const ROOT = path.join(__dirname, '..', '..');
 const loadList = require('../../assets/airports/airportLoadList.json');
@@ -157,4 +160,120 @@ ava('fixNameOfLeg strips fly-over and hold symbols and ignores headings', (t) =>
     t.is(fixNameOfLeg('@SUNED'), 'SUNED');
     t.is(fixNameOfLeg(['SUNED', 'A70+']), 'SUNED');
     t.is(fixNameOfLeg('#270'), null);
+});
+
+ava('LEMD has no warnings from the geometry rules AP-015 to AP-017', (t) => {
+    const warnings = problemsOf(freshLemd()).filter((problem) => ['AP-015', 'AP-016', 'AP-017'].includes(problem.rule));
+
+    t.deepEqual(warnings, []);
+});
+
+/**
+ * A square sector of +-0.2 degrees around a fix
+ */
+const sectorAround = (airport, fix, floor, ceiling) => {
+    const lat = parseCoordinate(airport.fixes[fix][0]);
+    const lon = parseCoordinate(airport.fixes[fix][1]);
+
+    return {
+        floor,
+        ceiling,
+        airspace_class: 'C',
+        poly: [[lat - 0.2, lon - 0.2], [lat + 0.2, lon - 0.2], [lat + 0.2, lon + 0.2], [lat - 0.2, lon + 0.2]]
+    };
+};
+
+ava('AP-015 flags an arrival that appears inside the airspace above every sector there', (t) => {
+    const airport = freshLemd();
+    const index = airport.spawnPatterns.findIndex((pattern) => pattern.category === 'arrival');
+    const firstFix = airport.spawnPatterns[index].route.split('.')[0];
+
+    airport.airspace = [sectorAround(airport, firstFix, 50, 100)];
+    airport.spawnPatterns[index].altitude = 20000;
+
+    t.true(problemsOf(airport).some((problem) => problem.rule === 'AP-015' &&
+        problem.path === `/spawnPatterns/${index}/altitude`));
+
+    airport.spawnPatterns[index].altitude = 8000;
+
+    t.false(problemsOf(airport).some((problem) => problem.rule === 'AP-015' &&
+        problem.path === `/spawnPatterns/${index}/altitude`));
+});
+
+ava('AP-016 flags a STAR restriction below the floor of the airspace at that fix', (t) => {
+    const airport = freshLemd();
+    const [key, star] = Object.entries(airport.stars).find(([, procedure]) => Array.isArray(procedure.body));
+    const fix = 'TESTX';
+
+    airport.fixes[fix] = airport.fixes[Object.keys(airport.fixes)[0]];
+    star.body = [...star.body, [fix, 'A40+']];
+    airport.airspace = [sectorAround(airport, fix, 60, 245)];
+
+    t.true(problemsOf(airport).some((problem) => problem.rule === 'AP-016' && problem.path === `/stars/${key}` &&
+        problem.message.includes(fix)));
+});
+
+ava('AP-017 flags a STAR leg through a restricted area, unless it is above it', (t) => {
+    const airport = freshLemd();
+    const [key, star] = Object.entries(airport.stars).find(([, procedure]) => Array.isArray(procedure.body) &&
+        procedure.body.length >= 2);
+    const [first, second] = star.body.slice(0, 2).map(fixNameOfLeg);
+    const area = sectorAround(airport, first, 0, 0);
+
+    airport.restricted = [{ name: 'TEST-R', height: '5000ft', poly: area.poly }];
+    star.body[0] = [first, 'A40+'];
+    star.body[1] = [second, 'A40+'];
+
+    t.true(problemsOf(airport).some((problem) => problem.rule === 'AP-017' && problem.message.includes('TEST-R') &&
+        problem.message.includes(key)));
+
+    star.body[0] = [first, 'A80+'];
+    star.body[1] = [second, 'A80+'];
+
+    t.false(problemsOf(airport).some((problem) => problem.rule === 'AP-017' && problem.message.includes(key)));
+});
+
+ava('isInsidePolygon works on a simple square', (t) => {
+    const square = [{ lat: 0, lon: 0 }, { lat: 1, lon: 0 }, { lat: 1, lon: 1 }, { lat: 0, lon: 1 }];
+
+    t.true(isInsidePolygon({ lat: 0.5, lon: 0.5 }, square));
+    t.false(isInsidePolygon({ lat: 1.5, lon: 0.5 }, square));
+});
+
+ava('lowestRestrictionAltitudeFt reads at-or-above, at, at-or-below and windows', (t) => {
+    t.is(lowestRestrictionAltitudeFt(['FIX', 'A70+']), 7000);
+    t.is(lowestRestrictionAltitudeFt(['FIX', 'A110+|A150-|S300-']), 11000);
+    t.is(lowestRestrictionAltitudeFt(['FIX', 'A130-|S250-']), 13000);
+    t.is(lowestRestrictionAltitudeFt(['FIX', 'S250-']), null);
+    t.is(lowestRestrictionAltitudeFt('FIX'), null);
+});
+
+ava('restrictedCeilingFt reads feet, flight levels and Infinity', (t) => {
+    t.is(restrictedCeilingFt('5000ft'), 5000);
+    t.is(restrictedCeilingFt('FL180'), 18000);
+    t.is(restrictedCeilingFt('Infinity'), Infinity);
+});
+
+ava('AP-018 flags a spawn route that leaves a SID by an exit it does not have', (t) => {
+    const airport = freshLemd();
+    const index = airport.spawnPatterns.findIndex((pattern) => pattern.category === 'departure');
+    const tokens = airport.spawnPatterns[index].route.split('..')[0].split('.');
+
+    tokens[2] = 'NOEXIT';
+    airport.spawnPatterns[index].route = tokens.join('.');
+    airport.fixes.NOEXIT = airport.fixes[Object.keys(airport.fixes)[0]];
+
+    t.true(errorsOf(airport).some((problem) => problem.rule === 'AP-018' && problem.message.includes('NOEXIT')));
+});
+
+ava('AP-018 flags a spawn route that enters a STAR by an entry it does not have', (t) => {
+    const airport = freshLemd();
+    const index = airport.spawnPatterns.findIndex((pattern) => pattern.category === 'arrival');
+    const tokens = airport.spawnPatterns[index].route.split('.');
+
+    tokens[0] = 'NOENTRY';
+    airport.spawnPatterns[index].route = tokens.join('.');
+    airport.fixes.NOENTRY = airport.fixes[Object.keys(airport.fixes)[0]];
+
+    t.true(errorsOf(airport).some((problem) => problem.rule === 'AP-018' && problem.message.includes('NOENTRY')));
 });

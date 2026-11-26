@@ -14,7 +14,7 @@
 | **Escudo de seguridad** | Capa común a los bots que prohíbe acciones peligrosas e impone las obligatorias |
 | **FAF** | Fijo de aproximación final |
 | **FCFS** | Primero en llegar, primero en ser servido |
-| **Features** | Números con los que se describe la observación a la red del Bot B (versión 7) |
+| **Features** | Números con los que se describe la observación a la red del Bot B (versión 8) |
 | **FL** | Nivel de vuelo, en centenas de pies de altitud de presión |
 | **ILS / localizador / senda** | Sistema de aterrizaje por instrumentos: guiado lateral (localizador) y vertical (senda de planeo) |
 | **LVP** | Procedimientos de baja visibilidad |

@@ -8,6 +8,8 @@ comando y las mismas corren en GitHub Actions (ver [CI/CD](ci.md)).
 | Unitarios | `npm run test:unit` | Funciones y modelos del motor, bots y auditoría (AVA) | 1 min | Cada PR y push |
 | Unitarios + cobertura | `npm test` | Lo mismo, con informe de cobertura de nyc en `coverage/` | 1 min | Cada PR y push |
 | Aeropuertos | `npm run validate:airports` | Schema y reglas de coherencia de cada aeropuerto activo (ver [validador](../aeropuertos/validador.md)) | 5 s | Cada PR y push |
+| Aeronaves y aerolíneas | `npm run validate:fleet` | Schema de cada tipo y aerolínea, y que las flotas usan tipos que existen | 2 s | Cada PR y push |
+| Navegador (E2E) | `npm run test:e2e` | Carga la build en Chromium, espera al tráfico, cambia a LEMG con `airport lemg` y comprueba que la consola no tiene errores | 10 s (más la build) | Cada PR y push |
 | Headless | `npm run test:headless` | El Bot A vuela 20 min en LEMD, LEMG, EDDM, KLAX y EGCC sin que el simulador falle | 30 s | Cada PR y push |
 | Python | `npm run test:py` | Herramientas de entrenamiento, cliente del simulador y exportación ONNX | 25 s | Cada PR y push |
 | Regresión rápida de bots | `npm run test:bots` | Bot A en 10 episodios comparado con su línea base | 3 min | — (solo local) |
@@ -30,8 +32,23 @@ comando y las mismas corren en GitHub Actions (ver [CI/CD](ci.md)).
 
   | Bot | Puntuación | Aterrizajes | Despegues | Pérdidas de separación | Pérdidas de estela | Tier 0 |
   |---|---:|---:|---:|---:|---:|---:|
-  | A | -3945 | 494 | 539 | 43 | 5 | 5 |
-  | C | -5980 | 501 | 538 | 57 | 7 | 2 |
+  | A | -10680 | 505 | 546 | 59 | 8 | 2 |
+  | C | -9885 | 497 | 546 | 61 | 7 | 4 |
+
+  Actualizadas el 2026-11-26 (redes de seguridad y VEL-002; ver [evaluación](../bots/evaluacion.md#líneas-base-2026-11-26)).
+  Tests unitarios ese día: 1649 en verde.
+
+## Navegador (Playwright)
+
+```sh
+npm run build                  # el test usa public/
+npx playwright install chromium   # solo la primera vez
+npm run test:e2e
+```
+
+`playwright.config.js` arranca el servidor de `public/` en el puerto 3003 (o `E2E_PORT`) y reutiliza uno
+que ya esté abierto. Los tests están en `test/e2e/*.e2e.js` (no `*.spec.js`, para que AVA no los coja).
+Las capturas y trazas quedan en `test-results/`, que en CI se sube como artefacto `e2e`.
 
 ## Tests unitarios (AVA)
 

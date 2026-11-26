@@ -63,6 +63,16 @@ export const EVENT = {
     AIRPORT_CHANGE: 'airport-change',
 
     /**
+     * An airport file failed the load-time check (`airportJsonCheck`); the game stays at the current
+     * airport. Payload: `{ icao, problems }`
+     *
+     * @memberof EVENT
+     * @property AIRPORT_LOAD_FAILED
+     * @type {string}
+     */
+    AIRPORT_LOAD_FAILED: 'airport-load-failed',
+
+    /**
      * @memberof EVENT
      * @property CHAT_LOG_DURATION_CHANGE
      * @type {string}

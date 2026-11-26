@@ -14989,10 +14989,7 @@
             "destination": "LFPG",
             "category": "arrival",
             "route": "ENORI.ENORI9W.LFPG27R",
-            "altitude": [
-                15000,
-                19000
-            ],
+            "altitude": [10000, 11000],
             "speed": 280,
             "method": "random",
             "runwayConfiguration": "west",
@@ -15237,10 +15234,7 @@
             "destination": "LFPG",
             "category": "arrival",
             "route": "KOVAK.KOVAK9W.LFPG26L",
-            "altitude": [
-                15000,
-                19000
-            ],
+            "altitude": [10000, 11000],
             "speed": 280,
             "method": "random",
             "runwayConfiguration": "west",
@@ -15805,10 +15799,7 @@
             "destination": "LFPG",
             "category": "arrival",
             "route": "ROMGO.ROMGO9W.LFPG26L",
-            "altitude": [
-                15000,
-                19000
-            ],
+            "altitude": [10000, 11000],
             "speed": 280,
             "method": "random",
             "runwayConfiguration": "west",
@@ -17639,10 +17630,7 @@
             "destination": "LFPG",
             "category": "arrival",
             "route": "ENORI.ENORI9E.LFPG09L",
-            "altitude": [
-                15000,
-                19000
-            ],
+            "altitude": [10000, 11000],
             "speed": 280,
             "method": "random",
             "runwayConfiguration": "east",
@@ -17887,10 +17875,7 @@
             "destination": "LFPG",
             "category": "arrival",
             "route": "KOVAK.KOVAK9E.LFPG08R",
-            "altitude": [
-                15000,
-                19000
-            ],
+            "altitude": [10000, 11000],
             "speed": 280,
             "method": "random",
             "runwayConfiguration": "east",
@@ -18455,10 +18440,7 @@
             "destination": "LFPG",
             "category": "arrival",
             "route": "ROMGO.ROMGO9E.LFPG08R",
-            "altitude": [
-                15000,
-                19000
-            ],
+            "altitude": [10000, 11000],
             "speed": 280,
             "method": "random",
             "runwayConfiguration": "east",

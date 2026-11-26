@@ -69,25 +69,27 @@
             }
         },
         {
-            "name": "every airport, medium traffic, some wind, frequent emergencies",
+            "name": "every airport, medium traffic, some wind and dynamic weather, frequent emergencies",
             "updates": 300,
             "env": {
                 "airports": "all",
                 "traffic_scale": [0.6, 0.9],
                 "emergency_rate": [0.03, 0.1],
                 "episode_minutes": 45,
-                "random_wind_probability": 0.2
+                "random_wind_probability": 0.2,
+                "dynamic_weather_probability": 0.25
             }
         },
         {
-            "name": "every airport, full traffic, winds, realistic and frequent emergencies",
+            "name": "every airport, full traffic, winds, dynamic weather in half the episodes, realistic and frequent emergencies",
             "updates": 600,
             "env": {
                 "airports": "all",
                 "traffic_scale": [0.9, 1.2],
                 "emergency_rate": [0.01, 0.08],
                 "episode_minutes": 60,
-                "random_wind_probability": 0.3
+                "random_wind_probability": 0.3,
+                "dynamic_weather_probability": 0.5
             }
         }
     ],

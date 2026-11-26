@@ -21,9 +21,12 @@
     "test:bots": "node tools/sim/regression.js --bot A --quick",
     "test:py": "cd bots/python && python -m unittest discover -s tests",
     "validate:airports": "node tools/validate/validate-airports.js",
-    "docs:generate": "node tools/docs/generate-spec.js && node tools/docs/generate-bot-docs.js",
-    "docs:check": "node tools/docs/generate-spec.js --check && node tools/docs/generate-bot-docs.js --check",
-    "docs:mermaid": "node tools/docs/check-mermaid.js"
+    "docs:generate": "node tools/docs/generate-spec.js && node tools/docs/generate-bot-docs.js && node tools/docs/generate-schema-docs.js",
+    "docs:check": "node tools/docs/generate-spec.js --check && node tools/docs/generate-bot-docs.js --check && node tools/docs/generate-schema-docs.js --check",
+    "docs:mermaid": "node tools/docs/check-mermaid.js",
+    "validate:fleet": "node tools/validate/validate-fleet.js",
+    "validate:assets": "npm run validate:airports -- --quiet && npm run validate:fleet",
+    "test:e2e": "playwright test"
   },
   "repository": {
     "type": "git",
@@ -96,6 +99,7 @@
     "@babel/preset-env": "7.4.4",
     "@babel/preset-react": "7.0.0",
     "@babel/register": "7.4.4",
+    "@playwright/test": "1.50.1",
     "ajv": "8.17.1",
     "ava": "1.4.1",
     "babel-eslint": "10.0.1",

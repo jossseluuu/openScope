@@ -1,7 +1,7 @@
 # phacer.md — Plan de trabajo del fork de openScope
 
 > Documento vivo. Aquí se guarda todo lo pendiente, en curso y descartado, para poder retomarlo en cualquier sesión.
-> Última revisión: 2026-11-20.
+> Última revisión: 2026-11-26.
 
 ---
 
@@ -196,7 +196,11 @@ gantt
 > - **`tools/sim/regression.js`** ejecuta el protocolo de 30 episodios y compara con `bots/baselines/bot<A|C>.json`. El simulador es determinista (misma semilla → mismo resultado exacto), así que la tolerancia es pequeña: puntuación -2 % del valor absoluto, y ningún aumento de tier 0. Líneas base: **Bot A -3945** (494 aterrizajes, 539 despegues, 43 pérdidas, 5 de estela, tier0 5), igual que la medición «vF» del 17-11, y **Bot C -5980** (501 / 538 / 57 / 7 / tier0 2). Unos 10 min por bot con 7 procesos.
 > - Python: no hacía falta pytest, porque los tests usan `unittest` (15 en verde). Creado `bots/python/requirements.txt`, que no existía (torch 2.11.0, numpy 2.4.6, gymnasium 1.4.0, onnx 1.23.2, onnxruntime 1.31.1).
 > - Documentación: `docs/desarrollo/testing.md`.
-> - Pendiente: E2E con Playwright; tests de `SpawnScheduler.arrivalSpawn` y de `AircraftConflict`; capa de assets con #7.
+> - ~~Pendiente: E2E con Playwright; tests de `SpawnScheduler.arrivalSpawn` y de `AircraftConflict`; capa de assets con #7.~~ **Hecho el 2026-11-26:**
+>   - E2E: `@playwright/test` 1.50.1 (coincide con el Chromium 1155 instalado), `playwright.config.js`, `test/e2e/load.e2e.js` (carga, tráfico, `airport lemg`, consola sin errores, captura), `npm run test:e2e` y trabajo `e2e` en `ci.yml`. Los archivos son `*.e2e.js` para que AVA no los coja.
+>   - `test/aircraft/AircraftConflict.spec.js` (14: 3 NM / 1000 ft, conflicto a +1 NM, divergencia y rumbos opuestos, paralelas, colisión, caja de 8 NM) y `test/trafficGenerator/SpawnScheduler.arrivalSpawn.spec.js` (8: hueco libre, cola, tope de 10 min, reintentos).
+>   - Capa de assets: `npm run validate:fleet` y `validate:assets`.
+>   - **1649 tests pasan** (antes 1475), 17 omitidos, 14 `todo`.
 
 **Objetivo:** que cualquier cambio se pueda comprobar en minutos, en local y en CI, con capas desde tests unitarios hasta el simulador completo.
 
@@ -248,7 +252,7 @@ gantt
 > - README: insignias de este fork en vez de las del openScope original (y quitada la de Coveralls).
 > - Lint-diff probado sobre el último commit de bots: solo 2 avisos `max-len`. Los errores `linebreak-style` son de la copia de trabajo en Windows: el repo guarda LF, así que en CI no aparecen. **Ya no hace falta `.gitattributes`.**
 > - Documentación: `docs/desarrollo/ci.md`, con los pasos de protección de `main`.
-> - Pendiente: trabajos `assets` (#7), `mermaid` y `docs` (#8/#9), E2E (#4), `release.yml`; **protección de `main` en GitHub (la configura el usuario)**.
+> - Pendiente: ~~trabajos `assets` (#7), `mermaid` y `docs` (#8/#9), E2E (#4), `release.yml`~~ (hechos; el trabajo `assets` valida también aeronaves y aerolíneas desde el 2026-11-26); **protección de `main` en GitHub (la configura el usuario)**.
 
 **Objetivo:** cada PR y cada push a `main` pasan lint, tests, validación de assets y build. `main` se despliega solo (simulador + documentación + Wiki).
 
@@ -294,7 +298,7 @@ flowchart LR
 - [ ] `nightly.yml` (cron 03:00 UTC + manual): `check-airports` de todos los aeropuertos y regresión de bots reducida (6 episodios, el runner tiene 2 núcleos y 6 h como máximo). Resultado en el resumen del job; si empeora, abre una issue con la plantilla `bot-regression`.
 - [ ] `release.yml`: en tag `v*`, crea una release con el fragmento correspondiente de `CHANGELOG.md` y el ZIP de `public/`.
 - [ ] `.github/dependabot.yml`: actualizaciones semanales de GitHub Actions; npm solo para avisos de seguridad (las dependencias del motor son antiguas y se actualizan a mano).
-- [ ] Fijar versiones de las actions por versión mayor (`actions/checkout@v4`, `actions/setup-node@v4`, `actions/setup-python@v5`).
+- [x] Fijar versiones de las actions por versión mayor. **2026-11-26:** todas en versiones con Node 24 (GitHub avisa de que Node 20 está obsoleto): `checkout@v5`, `setup-node@v5`, `setup-python@v6`, `upload-artifact@v6`, `upload-pages-artifact@v5`, `deploy-pages@v5`, `ghaction-github-labeler@v6`. Además `wiki-sync.yml` termina en verde con un aviso si la Wiki aún no existe.
 - [ ] Decidir sobre Coveralls: propuesta, quitarlo y publicar la cobertura en el resumen del job.
 - [ ] `.gitattributes` (`* text=auto eol=lf` para `.js`/`.json`/`.md`): decidirlo con el usuario, porque cambia todos los archivos en el primer commit.
 - [ ] Documentar en `docs/desarrollo/ci.md` y añadir insignias de estado al README.
@@ -314,7 +318,14 @@ flowchart LR
 > - **Datos corregidos:** RJAA (coordenada de `_NRE045021`), LTBA (16 coordenadas de mapa con d/m invertidos), EGNM (polilínea de 121 puntos → 120 segmentos), KIAD (`n/fastGA` sin peso → 1) y EDDF (fijo `tau` → `TAU`). Los cuatro primeros vuelan en headless; EGNM puntúa -2825 con y sin el arreglo (problema previo de tráfico, no del mapa).
 > - **Resultado:** 66 aeropuertos activos con 0 errores y 10 con avisos (SID/STAR con `icao` distinto de la clave en EGCC, EICK, KCLT, KJAX y RJAA; sectores de grosor cero en KEWR y KLAX; un polígono que se cruza en KLAX; rumbo 15° desviado en KMCO). 38 de los 40 desactivados no pasan el schema (formato antiguo de mapas).
 > - Retirado `@openscope/validator` y el script roto `validator`. Trabajo `assets` en `ci.yml`. 16 tests en `test/tools/validateAirports.spec.js`. Documentación en `docs/aeropuertos/validador.md`.
-> - Pendiente: validar en `AirportController` en la build de desarrollo; schemas de `aircraft/*.json` y `airlines/*.json`; reglas que necesitan geometría con la ruta (aparición dentro del espacio aéreo, STAR por encima del suelo, rutas que cruzan zonas restringidas); conversor del formato antiguo de mapas; campos de #6 y #13 cuando existan; generar `docs/referencia/formato-aeropuerto.md` desde el schema.
+> - ~~Pendiente: validar en `AirportController`…; schemas de aeronaves y aerolíneas; reglas geométricas; conversor; referencia generada.~~ **Hecho el 2026-11-26:**
+>   - Reglas geométricas AP-015 (llegada que aparece dentro del espacio aéreo, entre suelo y techo), AP-016 (restricción de STAR bajo el suelo) y AP-017 (STAR que cruza una zona restringida, un aviso por zona). Destaparon un error real en LFPG (llegadas por ENORI, KOVAK y ROMGO a 15 000 ft, fuera de todo sector): ahora a 10 000-11 000 ft, también en `build_lfpg.py`. Los 45 avisos restantes son sobre todo STAR que cruzan zonas militares (EIDW, OMDB, OMAA…).
+>   - **AP-018 (error):** entrada y salida de cada SID/STAR en las rutas de aparición, como `ProcedureModel`. Nació de EHAM (ver 8b).
+>   - `tools/validate/validate-fleet.js` + schemas en `tools/validate/schema/` (no en `assets/`, porque la build junta todos los JSON de esas carpetas): AC-001/002, AL-001/002/003. Corrigió `ttw.json` (`callsignFormats` como texto).
+>   - `airport/airportJsonCheck.js`: comprobación ligera sin ajv en `AirportModel.onLoadAirportSuccess` (también en producción); si falla, el juego se queda en el aeropuerto actual y lo dice en el registro.
+>   - `tools/validate/convert-old-maps.js` (prueba sin `--write`). Probado con EGLL y KDFW: los mapas quedan bien, pero esos aeropuertos tienen más problemas del formato antiguo (SID sin `exitPoints`, STAR sin `draw`, altitudes de spawn) y el diff es enorme (+48 000 líneas en KDFW): **no se ha aplicado en bloque**.
+>   - `tools/docs/generate-schema-docs.js` → `docs/referencia/esquema-{aeropuerto,aeronave,aerolinea}.md`, en `docs:generate`/`docs:check` y en la navegación de MkDocs.
+>   - Campos de #13: no aplica (descartado).
 
 **Objetivo:** ningún aeropuerto llega al simulador (ni a `main`) sin cumplir el formato y unas reglas de coherencia. Hoy un error en el JSON se descubre jugando o con un bot que falla.
 
@@ -651,7 +662,7 @@ Además, como complemento: **MSAW** (aviso de altitud mínima de seguridad) y **
 > - Tormentas: nacen, crecen, se mueven con el viento a 10 000 ft y mueren; se dibujan en el radar; aviso `CB` y petición de desvío a 60 s; `WEATHER_PENETRATION` -100. Para los bots son zonas restringidas (el Bot A las esquiva con su lógica de zonas restringidas).
 > - Comando `metar` / `atis`. Bloque opcional `weather.climatology` en el JSON del aeropuerto (en el schema).
 > - Opción «Weather» (dinámica por defecto en el navegador); headless estática salvo `--weather dynamic` (protocolo comparable). `tools/sim/weather-demo.js` muestra la evolución sin navegador (probado: tormentas, neblina, niebla con LVP).
-> - **Turbulencia (6d):** no se implementó como sistema propio. Las tormentas ya avisan de turbulencia fuerte al entrar. Queda como posible mejora: turbulencia en aire claro y mecánica.
+> - **Turbulencia (6d):** no se implementó como sistema propio. Las tormentas ya avisan de turbulencia fuerte al entrar. Queda como posible mejora (no bloquea nada): turbulencia en aire claro y mecánica. Si se hace, cambia la observación: habría que subir a features v9 antes del reentreno.
 > - Tests: 12 en `test/weather/`. Documentación: `docs/motor/meteorologia.md`, `docs/guia-jugador/meteorologia.md`, hoja MET-001..011.
 
 **Objetivo:** el tiempo cambia durante la partida y afecta a las aeronaves, a las pistas en uso, a los mínimos de aproximación y a las decisiones del controlador y de los bots.
@@ -897,7 +908,7 @@ sequenceDiagram
 - [~] **Estado del entrenamiento del Bot B (revisado 2026-11-20):** en `bots/runs/botB/` hay imitación (`bc.pt`, `dagger_1..5.pt`, `imitation.pt`), `ppo_prueba1` y `ppo_prueba2` (100 actualizaciones, estable: KL ~0,03-0,05, entropía ~1,2). **La prueba 3 nunca se lanzó:** no existe `ppo_prueba3`, y el `config.json` de la última ejecución tiene `reward_weights: {}`. `bots/configs/default.json` ya tiene los pesos alineados con el juego (tier0 -30, tier1 -10, aircraftCollision -30): está lista para lanzarse. La puerta de imitación sigue **sin pasar**: 12/22 aterrizajes frente al Bot A (55 %, necesita 80 %), +5,17 tier1 por episodio (máximo 1,0). Última medición en 18 episodios: Bot A 56 aterrizajes / 1 tier1 / +630; imitación 35 / 51 / -11 750; PPO-100 40 / 51 / -12 180.
   - Siguiente paso (pendiente de que el usuario lo autorice, son horas de GPU y el PC no debe suspenderse): `.venv\Scripts\python -m openscope_bots.train --config ../configs/default.json --stage ppo --skip-check --max-updates 100` desde `bots/python`, y comparar en los 18 episodios.
   - Decidir si tiene sentido seguir con PPO sobre la v7 o esperar al reentreno con features v8 (sección 9). **Propuesta:** esperar. Lo que se aprenda ahora se pierde al cambiar la observación, y la imitación no pasa la puerta.
-- [ ] `ENTRENAMIENTO.md` y `entrenar-botB.ps1` **nunca estuvieron en git** y ya no están en el disco: se han perdido. Rehacerlos dentro de `docs/bots/entrenamiento.md` (#8, #10) cuando toque el reentreno v8.
+- [x] `ENTRENAMIENTO.md` y `entrenar-botB.ps1` se perdieron. **Rehechos el 2026-11-26:** la guía es `docs/bots/entrenamiento.md` (actualizada a v8) y el lanzador `bots/entrenar-botB.ps1` (impide la suspensión del equipo con `SetThreadExecutionState`, registro en `bots/runs/botB/entrenamiento-<fecha>.log`, `-Resume`, `-SkipCheck`, `-MaxUpdates`; al acabar evalúa `best.pt` contra el Bot A y lo exporta a ONNX). Comprobado que PowerShell lo analiza sin errores; no se ha ejecutado (es el entrenamiento).
 - [x] `AuditController` codificaba sin `CommandHistory` (recencia 0 en los datos de `--audit`). **Corregido el 2026-11-20:** el auditor guarda su propio `CommandHistory`. Registra las órdenes de los bots por índice de acción y las del jugador por nombre de comando (`GROUP_OF_COMMAND_NAME` en `commandHistory.js`; `InputController` envía `commandNames`). Las registra se acepten o no, como `RlEnvironment`, y lo vacía al cambiar de aeropuerto. Test nuevo en `test/audit/AuditController.spec.js`; 82 tests de bot y auditoría en verde. Los datos de auditoría exportados antes de esta fecha tienen recencia 0: no mezclarlos con los nuevos en el entrenamiento.
 - [x] EGLL no carga en headless: **no es un fallo aislado.** Está desactivada en el menú, como otros 37 aeropuertos con el formato antiguo de mapas (`maps` como objeto y sin `defaultMaps`): ebbr, eddt, egkk, eglc, egll, eham, ekch, espa, gcrr, kdfw, kdtw, kmsp, kphx, kpvd, ksdf, ksan, ktpa, ktus, mdsd, osdi, panc, rjbb, rksi, sbgl, sbgr, tjsj, uudd, vabb, vecc, vobl, vhhh, vidp, wiii, wimm, wmkp, wmkk, wsss y zspd. **Pasa a #7:** regla del validador «formato de mapas antiguo» y, opcionalmente, un conversor automático `maps{}` → `maps[]` + `defaultMaps` para reactivar los que valgan la pena. EGCC sigue como sustituto en la evaluación.
 - [x] **Dato para #4:** AVA 1.4.1 funciona en Node 24.21 (82 tests ejecutados sin problemas). Los 5 errores de ESLint de `InputController.js` ya existían (`prop` global, `location`, destructuring).
@@ -911,19 +922,39 @@ sequenceDiagram
 
 > Decisión del usuario (2026-11-20): primero se construye todo; las comprobaciones, evaluaciones y el entrenamiento van al final.
 
-- [ ] **Regresión del Bot A sin explicar.** Medido el 2026-11-20 con el protocolo de 30 episodios: con redes de seguridad ≈ -10 680, sin redes -10 280; línea base -3945 (commit 773063d0). No lo causa el STCA/TCAS. Por escenario, sin redes: LEMD sur -5050 (base -2050), KLAX -6980 (-4985), EDDM -900 (+240), LEMG +650 (+1100), LEMD norte +2000 (+1750). Sospechoso principal: VEL-002 (`LEVEL_OFF_BAND_FT`). Medir con `LEVEL_OFF_BAND_FT: 0` y, si no es eso, bisecar los cambios del motor (TerrainClearance, Rulebook, SpawnScheduler, AircraftModel). Después aceptar la nueva línea base (`--write-baseline`) de los bots A y C.
-- [ ] LEPA: Bot A 60 min en las dos configuraciones (`--wind 240/10`, `--wind 060/10`), prueba sin bot (`towerController: 'SYSTEM'`) y revisión en el navegador. En `check-airports` cargó pero no hubo despegues ni aterrizajes en la ventana corta: revisar.
-- [ ] Cada aeropuerto nuevo de #14: lo mismo que LEPA, y añadirlo a `bots/configs/airports.json`.
+- [x] **Regresión del Bot A: explicada el 2026-11-26.** Medido el 2026-11-20 con el protocolo de 30 episodios: con redes de seguridad ≈ -10 680, sin redes -10 280; línea base -3945 (commit 773063d0). No lo causa el STCA/TCAS. Por escenario, sin redes: LEMD sur -5050 (base -2050), KLAX -6980 (-4985), EDDM -900 (+240), LEMG +650 (+1100), LEMD norte +2000 (+1750). Sospechoso principal: VEL-002 (`LEVEL_OFF_BAND_FT`). Medir con `LEVEL_OFF_BAND_FT: 0` y, si no es eso, bisecar los cambios del motor (TerrainClearance, Rulebook, SpawnScheduler, AircraftModel). Después aceptar la nueva línea base (`--write-baseline`) de los bots A y C.
+  - Bisección (protocolo de 30 episodios, determinista): código actual con redes **-10 680** (igual que el 20-11, así que lo hecho el 26-11 no la cambia); sin VEL-002 (`LEVEL_OFF_BAND_FT: 0`) y con redes **-16 170** (78 RA: VEL-002 ayuda con las redes); **sin VEL-002 y sin redes -3945, idéntico a la línea base en todas las métricas**. Conclusión: no es un fallo. Toda la diferencia viene de VEL-002 (nivelación realista a 1500 ft/min en los últimos 1000 ft, unos -6300) y de las redes de seguridad (unos -400). El planificador del Bot A predice bien la nivelación (`altitudeTowardLevel`) pero sigue perdiendo separación en esa franja.
+  - Decisión: VEL-002 se queda (realismo, Doc 8168) y se acepta la nueva línea base de los bots A y C (`--write-baseline`, también la rápida del Bot A).
+- [ ] Mejorar el Bot A con VEL-002: margen vertical en la franja de nivelación (conflictResolution), y retunear con CMA-ES (sección 8).
+- [x] **Aeropuertos nuevos volados (2026-11-26)**, Bot A 60 min, semilla 1, sin emergencias, las dos configuraciones de cada uno. Añadidos a `bots/configs/airports.json` (64 aeropuertos):
+
+  | Aeropuerto | Config. por defecto | Otra config. | Notas |
+  |---|---|---|---|
+  | LEPA | +10 (12 aterr., 9 desp.) | 060/10: +180; 240/10: +40 (1 RA) | 1 salida del espacio aéreo con el viento por defecto |
+  | LEBL | +50 (14/12, 1 pérdida) | 240/10: +290; 060/10: +70 (1 pérdida) | Lento en headless (unos 8 min por hora simulada) |
+  | LEBB | +90 (4/5) | 300/10: +90; 120/10: +10 (1 frustrada) | Poco tráfico, como se diseñó |
+  | LFPG | -1160 (22/14, 2 pérdidas, 5 salidas) | 090/10: **-2290 (colisión con el terreno a 990 ft)**; 270/10: -2040 (RA y pérdidas) | El Bot A vuela bajo sobre las colinas del sureste y no gestiona bien 4 pistas: revisar en la evaluación |
+  | EHAM | +180 (15/14) tras los arreglos | 360/10: +300; 200/10: +80 (1 pérdida) | Ver abajo |
+  | WSSS | -140 (14/9) | 200/10: +200; 020/10: -750 (3 frustradas en 02C) | Revisar las frustradas en 02C |
+
+- [x] **EHAM no volaba** (no se había probado volando): (1) 12 rutas de salida usaban como salida el fijo del nombre del SID (KUDAD) cuando el SID termina en otro (WOODY) y el motor lanzaba una excepción; corregido en los datos y en `airport_builder.py`, y nueva regla AP-018. (2) El aeropuerto está a -11 ft y el CTR empieza en 0: las aeronaves en tierra quedaban **por debajo** del espacio aéreo, las salidas no eran controlables (0 despegues con el Bot A) y cada aterrizaje contaba como AIRSPACE_BUST (-3500). Ahora un suelo 0 es la superficie (ASP-003, `AirspaceModel.isPointInside` y `botGeometry.isInsideAirspaceAt`). Sin bot (`towerController: 'SYSTEM'`) ya funcionaba.
+- [ ] LFPG y WSSS 02: mejorar el Bot A en esos aeropuertos (fase de evaluación).
+- [ ] Revisión visual en el navegador de LEPA, LEBL, LEBB, LFPG, EHAM y WSSS (lo que se ve al empezar, etiquetas, mapas).
 - [ ] Copiloto y voz: prueba en el navegador (micrófono en Chrome).
-- [ ] Primer push: ver CI, Pages, Wiki y plantillas en GitHub.
+- [ ] Primer push: ver CI, Pages, Wiki y plantillas en GitHub. (El commit 34fd9866 ya está en `openscope/main`: revisar la pestaña Actions.)
+- [x] Comprobaciones locales (2026-11-26): 1649 tests unitarios, `npm run build`, E2E en Chromium, `mkdocs build --strict` (solo los 3 anclajes heredados de nivel informativo), validadores sin errores, tests de Python.
 
 ## 9. Reentreno del Bot B con features v8 (después de #3, #6 y #13)
 
-- [ ] Reunir los cambios de observación: alertas STCA, TA/RA, MSAW/APW (#3); viento en capa y superficie, visibilidad y LVP, celdas CB cercanas (#6); nivel de salida de los sobrevuelos (#13).
-- [ ] Subir la versión de features a 8 en `featureEncoder.js` y en Python; mover los modelos v7 a `bots/runs/botB/v7_anterior/`.
-- [ ] Si cambia el espacio de acciones (p. ej. una acción de «desvío por meteorología»), actualizar `actionSpace.js`, la máscara y la matriz (#10).
-- [ ] Imitación + puerta contra el Bot A (`check_against_bot_a`) + PPO, con la meteorología dinámica y los sobrevuelos activados en una parte de los episodios (currículo: primero estática, luego dinámica).
-- [ ] Evaluación con el protocolo de 30 episodios y documentación.
+> **Estado 2026-11-26: todo preparado; falta lanzar el entrenamiento (lo hace el usuario: `.ots\entrenar-botB.ps1`).**
+
+- [x] Cambios de observación reunidos en la **versión 8** de `featureEncoder.js` (78 features por aeronave, antes 69; 12 globales, antes 6). Por aeronave: `stca_predicted`, `stca_alert`, `tcas_ta`, `tcas_ra`, `ra_sense` (-1/0/1), `msaw`, `apw`, `cell_distance` (al borde de la tormenta más cercana, /30 NM) y `cell_below_top`. Globales: `gust`, `visibility`, `ceiling`, `low_visibility`, `weather_dynamic`, `cell_count`. El viento de superficie ya estaba (`wind_x`, `wind_y`); el viento por capa no está en la observación del bot, así que no se añadió. Sobrevuelos: descartados.
+- [x] Python lee los tamaños de la especificación (`getEncodingSpec`), así que no hubo que tocar el modelo. Comprobado: `OpenScopeEnv` da tokens (48, 78) y global (12,), versión 8; los 15 tests de Python pasan (incluida la exportación ONNX).
+- [x] Modelos v7 movidos a `bots/runs/botB/v7_anterior/` (bc, dagger, imitation, dataset, ppo_prueba1/2). El dataset v7 se ignoraría igualmente por la versión.
+- [x] Espacio de acciones sin cambios (el desvío por tormenta ya se hace con las acciones de rumbo, y el escudo trata las tormentas como zonas restringidas).
+- [x] Currículo: `dynamic_weather_probability` nuevo en `EnvConfig` y en `RlEnvironment.reset({ weather, safetyNets })`; etapa 1 estática, etapa 2 con un 25 % de episodios dinámicos, etapa 3 con un 50 %. Redes de seguridad siempre activas, como en el juego.
+- [x] Tests: `test/bot/featureEncoderV8.spec.js` (6). Docs: `docs/bots/entrenamiento.md`, `arquitectura.md`, `glosario.md`.
+- [ ] **Lanzar** (usuario): `.ots\entrenar-botB.ps1` desde la raíz (9-10 h; el equipo no se suspende mientras dure). Después, evaluación con el protocolo de 30 episodios y documentar en `docs/bots/bot-b.md`.
 
 ---
 

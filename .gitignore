@@ -24,3 +24,7 @@ site/
 
 # tools/aip: elevation tile cache
 .cache/
+
+# Playwright (npm run test:e2e)
+test-results/
+playwright-report/

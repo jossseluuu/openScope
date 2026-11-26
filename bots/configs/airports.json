@@ -8,6 +8,7 @@
         "eddm",
         "egcc",
         "egnm",
+        "eham",
         "eick",
         "eidw",
         "einn",
@@ -44,8 +45,12 @@
         "ksfo",
         "kslc",
         "kstl",
+        "lebb",
+        "lebl",
         "lemd",
         "lemg",
+        "lepa",
+        "lfpg",
         "lipz",
         "loww",
         "lrop",
@@ -60,7 +65,8 @@
         "rjtt",
         "saez",
         "same",
-        "sawh"
+        "sawh",
+        "wsss"
     ],
     "failed": []
 }

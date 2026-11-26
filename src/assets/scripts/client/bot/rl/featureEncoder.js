@@ -21,6 +21,11 @@ import { COMMAND_GROUPS } from './commandHistory';
  * own training data): how long ago each kind of order was given (`CommandHistory`), the assigned
  * heading and the altitude/speed modes, and each arrival's place in the landing sequence of its
  * runway with the distance to the aircraft ahead and behind.
+ *
+ * Version 8 adds what the engine changes of tasks #3 and #6 put in the observation: per aircraft, the
+ * safety nets (STCA predicted/alert, TCAS TA/RA and the RA sense, MSAW, APW) and the nearest thunderstorm
+ * cell (distance to its edge and whether the aircraft is below its top); globally, the dynamic weather
+ * (gust, visibility, ceiling, low visibility procedures, dynamic mode and number of cells).
  */
 
 /**
@@ -30,7 +35,7 @@ import { COMMAND_GROUPS } from './commandHistory';
  * @type {number}
  * @final
  */
-export const FEATURE_VERSION = 7;
+export const FEATURE_VERSION = 8;
 
 /**
  * @property MAX_AIRCRAFT
@@ -68,7 +73,10 @@ export const FEATURE_NAMES = [
     'cleared_heading_sin', 'cleared_heading_cos', 'cleared_heading_turn',
     'altitude_mode_vnav', 'speed_mode_vnav',
     ...COMMAND_GROUPS.map((group) => `recent_${group}_order`),
-    'landing_order', 'landing_gap_ahead', 'landing_gap_behind'
+    'landing_order', 'landing_gap_ahead', 'landing_gap_behind',
+    // v8: safety nets (#3) and thunderstorm cells (#6)
+    'stca_predicted', 'stca_alert', 'tcas_ta', 'tcas_ra', 'ra_sense', 'msaw', 'apw',
+    'cell_distance', 'cell_below_top'
 ];
 
 /**
@@ -85,7 +93,11 @@ export const FEATURE_COUNT = FEATURE_NAMES.length;
  * @type {array<string>}
  * @final
  */
-export const GLOBAL_FEATURE_NAMES = ['wind_x', 'wind_y', 'aircraft_count', 'controllable_count', 'time', 'emergency_count'];
+export const GLOBAL_FEATURE_NAMES = [
+    'wind_x', 'wind_y', 'aircraft_count', 'controllable_count', 'time', 'emergency_count',
+    // v8: dynamic weather (#6)
+    'gust', 'visibility', 'ceiling', 'low_visibility', 'weather_dynamic', 'cell_count'
+];
 
 /**
  * @property GLOBAL_FEATURE_COUNT
@@ -99,6 +111,14 @@ const RESTRICTED_AREA_HORIZON_SECONDS = 120;
 const LANDING_ORDER_SCALE = 10;
 const LANDING_GAP_SCALE_NM = 10;
 const NO_RECENCY = COMMAND_GROUPS.map(() => 0);
+// thunderstorm cells: distance to the edge in nm (beyond this they look the same); visibility in metres
+// and ceiling in ft (above these they look the same: no restriction)
+const CELL_DISTANCE_SCALE_NM = 30;
+const VISIBILITY_SCALE_M = 10000;
+const CEILING_SCALE_FT = 5000;
+const NO_SAFETY_NET = {
+    stca: 'NONE', tcas: 'CLEAR', raSense: null, msaw: false, apw: null
+};
 
 const clip = (value, limit = 5) => (Number.isFinite(value) ? Math.max(-limit, Math.min(limit, value)) : 0);
 const oneHot = (values, value) => values.map((candidate) => (candidate === value ? 1 : 0));
@@ -181,6 +201,55 @@ export function landingSequence(observation, runwayIndex) {
 }
 
 /**
+ * Nearest thunderstorm cell of the dynamic weather: distance from the aircraft to its edge (0 inside) and
+ * whether the aircraft is below its top
+ *
+ * @function nearestCell
+ * @param aircraft {object}
+ * @param observation {object}
+ * @return {object|null} `{ distance, isBelowTop }`, null without cells
+ */
+export function nearestCell(aircraft, observation) {
+    const { weather } = observation.airport;
+    const cells = weather && Array.isArray(weather.cells) ? weather.cells : [];
+    let best = null;
+
+    cells.forEach((cell) => {
+        const distance = Math.max(0, Math.hypot(aircraft.x - cell.x, aircraft.y - cell.y) - cell.radius);
+
+        if (!best || distance < best.distance) {
+            best = { distance, isBelowTop: aircraft.altitude < cell.top };
+        }
+    });
+
+    return best;
+}
+
+/**
+ * Global weather features (v8): gust, visibility, ceiling, low visibility procedures, dynamic mode, cells
+ *
+ * @function encodeWeather
+ * @param weather {object|undefined} `observation.airport.weather` (missing: clear static weather)
+ * @return {array<number>}
+ */
+export function encodeWeather(weather) {
+    if (!weather) {
+        return [0, 1, 1, 0, 0, 0];
+    }
+
+    const visibility = Number.isFinite(weather.visibility) ? weather.visibility : VISIBILITY_SCALE_M;
+
+    return [
+        clip((weather.gust || 0) / 30, 1),
+        clip(visibility / VISIBILITY_SCALE_M, 1),
+        weather.ceiling === null || weather.ceiling === undefined ? 1 : clip(weather.ceiling / CEILING_SCALE_FT, 1),
+        weather.isLowVisibility ? 1 : 0,
+        weather.mode === 'dynamic' ? 1 : 0,
+        clip((weather.cells || []).length / 5, 1)
+    ];
+}
+
+/**
  * Features of one aircraft
  *
  * @function encodeAircraft
@@ -209,6 +278,9 @@ export function encodeAircraft(aircraft, observation, runwayIndex, history = nul
     const recency = history ? history.recency(aircraft.callsign, observation.time) : NO_RECENCY;
     const place = (sequence || landingSequence(observation, runwayIndex))[aircraft.callsign];
     const gap = (value) => (value === null ? 1 : clip(value / LANDING_GAP_SCALE_NM, 1));
+    const safetyNet = aircraft.safetyNet || NO_SAFETY_NET;
+    const isRa = safetyNet.tcas === 'RA';
+    const cell = aircraft.isOnGround ? null : nearestCell(aircraft, observation);
 
     return [
         ...oneHot(CATEGORIES, aircraft.category),
@@ -257,7 +329,16 @@ export function encodeAircraft(aircraft, observation, runwayIndex, history = nul
         ...recency,
         place ? clip((place.order + 1) / LANDING_ORDER_SCALE, 1) : 0,
         place ? gap(place.gapAhead) : 0,
-        place ? gap(place.gapBehind) : 0
+        place ? gap(place.gapBehind) : 0,
+        safetyNet.stca === 'PREDICTED' ? 1 : 0,
+        safetyNet.stca === 'ALERT' ? 1 : 0,
+        safetyNet.tcas === 'TA' ? 1 : 0,
+        isRa ? 1 : 0,
+        isRa && Number.isFinite(safetyNet.raSense) ? safetyNet.raSense : 0,
+        safetyNet.msaw ? 1 : 0,
+        safetyNet.apw ? 1 : 0,
+        cell ? clip(cell.distance / CELL_DISTANCE_SCALE_NM, 1) : 1,
+        cell && cell.isBelowTop ? 1 : 0
     ];
 }
 
@@ -307,7 +388,8 @@ export function encodeObservation(observation, shield, history = null) {
         observation.aircraft.length / MAX_AIRCRAFT,
         observation.aircraft.filter((aircraft) => aircraft.isControllable).length / MAX_AIRCRAFT,
         clip(observation.time / 3600),
-        clip(observation.aircraft.filter((aircraft) => aircraft.emergency && !aircraft.isOnGround).length / 3, 1)
+        clip(observation.aircraft.filter((aircraft) => aircraft.emergency && !aircraft.isOnGround).length / 3, 1),
+        ...encodeWeather(observation.airport.weather)
     ];
 
     return {

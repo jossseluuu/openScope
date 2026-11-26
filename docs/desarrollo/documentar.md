@@ -25,6 +25,9 @@ flowchart LR
 
 - **La Wiki no se edita a mano.** `wiki-sync.yml` la regenera desde `docs/` en cada push a `main` que toque
   `docs/` o `mkdocs.yml`; cualquier cambio hecho en la Wiki se pierde.
+- **Primera vez:** GitHub no crea el repositorio de la Wiki hasta que alguien guarda su primera página
+  (pestaña Wiki → *Create the first page* → *Save*). Mientras no exista, `wiki-sync.yml` termina en verde
+  con un aviso; después se relanza a mano (Actions → wiki-sync → *Run workflow*).
 - Las páginas generadas (`especificacion/*.md`, `bots/matriz-comandos.md`, `bots/parametros.md`) llevan un
   comentario al principio. Se cambian editando su fuente y ejecutando el generador.
 

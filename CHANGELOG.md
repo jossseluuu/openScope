@@ -1,3 +1,28 @@
+# 7.0.0 (pendiente de publicar)
+Primera versión del fork en español. Resume el trabajo de octubre y noviembre de 2026 (ver `phacer.md`).
+
+### Novedades
+- Aeropuertos nuevos desde el AIP vigente: LEMD, LEMG, LEPA, LEBL, LEBB y LFPG; EHAM y WSSS rehechos desde cero.
+- Bots: Bot A (reglas y metaheurísticas), Bot B (aprendizaje por refuerzo, codificación v8, pendiente de reentrenar) y Bot C (agentes especialistas con supervisores).
+- Emergencias (squawk 7700) con plazo y puntuación propios.
+- Redes de seguridad: STCA, TCAS II (TA/RA), MSAW y APW.
+- Meteorología dinámica: viento por capas con rachas y cambio de pista, niebla y procedimientos de baja visibilidad, tormentas móviles; comandos `metar` y `atis`.
+- Comandos por voz (Web Speech API, inglés y español) y lenguaje natural escrito con confirmación.
+- Copiloto con niveles (avisos, sugerencias, aceptables) y delegación por sector.
+
+### Correcciones
+- EHAM: las aeronaves en tierra quedaban por debajo del CTR (aeropuerto a -11 ft): no eran controlables y cada aterrizaje contaba como salida del espacio aéreo. Un suelo 0 es ahora la superficie (ASP-003).
+- EHAM: 12 rutas de salida usaban una salida que su SID no tiene y el motor fallaba al crear la aeronave.
+- LFPG: las llegadas por ENORI, KOVAK y ROMGO aparecían por encima del espacio aéreo de ese punto.
+- Datos corregidos por el validador en RJAA, LTBA, EGNM, KIAD, EDDF y la aerolínea TTW.
+
+### Calidad y documentación
+- Validador propio de aeropuertos (schema + reglas AP-001 a AP-018), de aeronaves y de aerolíneas; comprobación ligera al cargar un aeropuerto en el navegador; conversor del formato antiguo de mapas.
+- Tests: 1649 unitarios (AVA), simulador headless, regresión de bots contra línea base, Python y navegador (Playwright).
+- CI/CD con GitHub Actions: `ci.yml`, `nightly.yml`, `release.yml`, `pages.yml`, `wiki-sync.yml` y sincronización de etiquetas; plantillas de issues y PR.
+- Documentación en `docs/` (MkDocs en GitHub Pages y Wiki generada), hoja de especificaciones con reglas identificadas, referencia de formatos generada desde los schemas, diagramas Mermaid y ADR.
+
+
 # 6.29.0 (October 1, 2022)
 ### New Features
 - <a href="https://github.com/openscope/openscope/issues/2000" target="_blank">#2000</a> - Add popup info for score changes
