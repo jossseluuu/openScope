@@ -14,6 +14,8 @@ import ScopeCommandModel from './commands/scopeCommand/ScopeCommandModel';
 import EventTracker from './EventTracker';
 import MeasureTool from './measurement/MeasureTool';
 import FixCollection from './navigationLibrary/FixCollection';
+import SpeechRecognitionController from './voice/SpeechRecognitionController';
+import { interpretCommand } from './voice/commandInterpreter';
 import { clamp } from './math/core';
 import { AUDIT_EVENT, EVENT } from './constants/eventNames';
 import { GAME_OPTION_NAMES } from './constants/gameOptionConstants';
@@ -62,6 +64,12 @@ export default class InputController {
         this._mouseDownScreenPosition = [0, 0];
         this.input.isMouseDown = false;
         this.commandBarContext = COMMAND_CONTEXT.AIRCRAFT;
+        // push-to-talk voice commands (F2), written in the command bar for confirmation
+        this._voice = new SpeechRecognitionController({
+            getLanguage: () => (GameController.game.option ? GameController.game.option.getOptionByName(GAME_OPTION_NAMES.VOICE) : 'off'),
+            getContext: () => this._buildVoiceContext(),
+            onInterpreted: (text) => this._proposeCommand(text)
+        });
 
         this._init();
     }
@@ -788,6 +796,15 @@ export default class InputController {
             const parser = new CommandParser(userCommand);
             cmd = parser.parse();
         } catch (error) {
+            // free phraseology ("iberia 1234 turn left heading 270"): propose the command for confirmation
+            const interpretation = interpretCommand(userCommand, this._buildVoiceContext());
+
+            if (interpretation) {
+                this._proposeCommand(interpretation.text);
+
+                return true;
+            }
+
             UiController.ui_log('Command not understood', true);
             throw error;
         }
@@ -800,6 +817,38 @@ export default class InputController {
         this.input.history_item = null;
 
         return this.processTransmitCommand(parsedCommand);
+    }
+
+    /**
+     * What the phraseology interpreter needs: the aircraft on the scope with their radio telephony, and the
+     * fixes of the airport
+     *
+     * @for InputController
+     * @method _buildVoiceContext
+     * @return {object}
+     * @private
+     */
+    _buildVoiceContext() {
+        return {
+            aircraft: this._aircraftController.aircraft.list
+                .filter((aircraftModel) => aircraftModel.isControllable)
+                .map((aircraftModel) => ({ callsign: aircraftModel.callsign, telephony: aircraftModel.airlineCallsign })),
+            fixes: FixCollection._items.map((fixModel) => fixModel.name)
+        };
+    }
+
+    /**
+     * Write an interpreted command in the command bar: the controller checks it and sends it with Enter
+     *
+     * @for InputController
+     * @method _proposeCommand
+     * @param text {string}
+     * @private
+     */
+    _proposeCommand(text) {
+        this.$commandInput.val(text.toLowerCase());
+        this.$commandInput.focus();
+        UiController.ui_log(`did you mean: ${text}? Press Enter to send it`);
     }
 
     /**
@@ -882,6 +931,21 @@ export default class InputController {
 
                 return true;
 
+            case PARSED_COMMAND_NAME.COPILOT:
+                EventBus.trigger(EVENT.COPILOT_COMMAND, { action: 'level', argument: parsedCommand.args[0] });
+
+                return true;
+
+            case PARSED_COMMAND_NAME.DELEGATE:
+                EventBus.trigger(EVENT.COPILOT_COMMAND, { action: 'delegate', argument: parsedCommand.args[0] });
+
+                return true;
+
+            case PARSED_COMMAND_NAME.RECOVER:
+                EventBus.trigger(EVENT.COPILOT_COMMAND, { action: 'recover', argument: parsedCommand.args[0] });
+
+                return true;
+
             case PARSED_COMMAND_NAME.EMERGENCY:
                 EventBus.trigger(EVENT.EMERGENCY_COMMAND, parsedCommand.args[0]);
 
@@ -934,6 +998,19 @@ export default class InputController {
 
                 return true;
             }
+            case PARSED_COMMAND_NAME.METAR: {
+                // current weather of the airport (WeatherController, MET-008)
+                const airportModel = AirportController.airport_get();
+                const { weather } = this._aircraftController.realismController;
+
+                UiController.ui_log(weather.getMetar(airportModel));
+
+                if (weather.state.isLowVisibility) {
+                    UiController.ui_log(`${airportModel.icao.toUpperCase()}: low visibility procedures in force`, true);
+                }
+
+                return true;
+            }
             // TODO: this will be removed entirely, eventually.
             case PARSED_COMMAND_NAME.RATE:
                 UiController.ui_log('this command has been deprecated', true);
@@ -971,6 +1048,15 @@ export default class InputController {
         }
 
         if (match === INVALID_NUMBER) {
+            // perhaps free phraseology with the airline telephony ("iberia 1234 ...")
+            const interpretation = interpretCommand(this.$commandInput.val() || '', this._buildVoiceContext());
+
+            if (interpretation) {
+                this._proposeCommand(interpretation.text);
+
+                return true;
+            }
+
             UiController.ui_log('no such aircraft, say again', true);
 
             return true;
@@ -983,6 +1069,7 @@ export default class InputController {
             source: 'player',
             callsign: aircraft.callsign,
             command: parsedCommand.args.map((args) => args.join(' ')).join(' '),
+            commandNames: parsedCommand.args.map((args) => args[0]),
             reason: '',
             accepted: result !== false,
             message: ''

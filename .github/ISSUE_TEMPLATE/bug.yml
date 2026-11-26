@@ -1,0 +1,103 @@
+name: Error
+description: Algo no funciona como debería en el simulador, un aeropuerto o un bot.
+title: "[Error] "
+labels: ["tipo:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por avisar. Cuanto más concreto sea el informe, antes se podrá reproducir.
+        Si el error depende del azar, la **semilla** y el **aeropuerto** permiten repetir exactamente la misma partida.
+  - type: input
+    id: airport
+    attributes:
+      label: Aeropuerto
+      description: Código ICAO.
+      placeholder: LEMD
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Modo de juego
+      options:
+        - Manual (jugador)
+        - Bot A
+        - Bot B
+        - Bot C
+        - Copiloto
+        - Headless (tools/sim)
+    validations:
+      required: true
+  - type: dropdown
+    id: tower
+    attributes:
+      label: Control de torre
+      description: Opción «Tower Control» del menú.
+      options:
+        - System Controlled (por defecto en el navegador)
+        - User
+        - No lo sé
+    validations:
+      required: true
+  - type: input
+    id: seed
+    attributes:
+      label: Semilla
+      description: Si se conoce (headless, run-bot o URL).
+      placeholder: "4"
+  - type: input
+    id: browser
+    attributes:
+      label: Navegador y versión
+      placeholder: Chrome 131 / Edge 131 / Firefox 133
+  - type: input
+    id: version
+    attributes:
+      label: Versión o commit
+      description: Versión publicada en Pages o hash del commit si se ejecuta en local.
+      placeholder: 773063d0
+  - type: input
+    id: time
+    attributes:
+      label: Tiempo de juego aproximado antes del error
+      placeholder: 15 min
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      placeholder: |
+        1. Cargar LEMD con viento 180/15
+        2. Activar el Bot A
+        3. Esperar a que ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Qué esperabas que pasara
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Qué pasó en realidad
+    validations:
+      required: true
+  - type: textarea
+    id: score
+    attributes:
+      label: Registro de puntuación
+      description: Pega el registro de puntuación del juego o el resumen de run-bot si el error afecta a la puntuación.
+      render: text
+  - type: textarea
+    id: console
+    attributes:
+      label: Errores de la consola del navegador
+      description: F12 → Consola. Pega los mensajes en rojo.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Capturas
+      description: Arrastra aquí imágenes o vídeos.

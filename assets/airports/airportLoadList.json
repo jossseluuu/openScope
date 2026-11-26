@@ -92,10 +92,9 @@
     },
     {
         "icao": "eham",
-        "level": "medium",
+        "level": "hard",
         "name": "Amsterdam Airport Schiphol",
-        "premium": false,
-        "disabled": true
+        "premium": false
     },
     {
         "icao": "eick",
@@ -412,6 +411,18 @@
         "disabled": true
     },
     {
+        "icao": "lebb",
+        "level": "easy",
+        "name": "Bilbao Airport",
+        "premium": false
+    },
+    {
+        "icao": "lebl",
+        "level": "hard",
+        "name": "Josep Tarradellas Barcelona-El Prat Airport",
+        "premium": false
+    },
+    {
         "icao": "lemd",
         "level": "hard",
         "name": "Adolfo Suárez Madrid-Barajas Airport",
@@ -421,6 +432,18 @@
         "icao": "lemg",
         "level": "medium",
         "name": "Málaga-Costa del Sol Airport",
+        "premium": false
+    },
+    {
+        "icao": "lepa",
+        "level": "medium",
+        "name": "Palma de Mallorca Airport",
+        "premium": false
+    },
+    {
+        "icao": "lfpg",
+        "level": "hard",
+        "name": "Paris Charles de Gaulle Airport",
         "premium": false
     },
     {
@@ -669,8 +692,7 @@
         "icao": "wsss",
         "level": "hard",
         "name": "Singapore Changi International Airport",
-        "premium": false,
-        "disabled": true
+        "premium": false
     },
     {
         "icao": "zspd",

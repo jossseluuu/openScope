@@ -11,6 +11,7 @@ import { MEASURE_TOOL_STYLE } from './inputConstants';
  */
 export const GAME_OPTION_NAMES = {
     CONTROL_METHOD: 'controlMethod',
+    COPILOT: 'copilot',
     CHAT_LOG_DURATION: 'chatLogDuration',
     DRAW_PROJECTED_PATHS: 'drawProjectedPaths',
     DRAW_ILS_DISTANCE_SEPARATOR: 'drawIlsDistanceSeparator',
@@ -19,9 +20,12 @@ export const GAME_OPTION_NAMES = {
     MOUSE_CLICK_DRAG: 'mouseClickDrag',
     PROJECTED_TRACK_LINE_LENGTHS: 'ptlLengths',
     RANGE_RINGS: 'rangeRings',
+    SAFETY_NETS: 'safetyNets',
     SOFT_CEILING: 'softCeiling',
     THEME: 'theme',
-    TOWER_CONTROLLER: 'towerController'
+    TOWER_CONTROLLER: 'towerController',
+    VOICE: 'voice',
+    WEATHER: 'weather'
 };
 
 /**
@@ -69,6 +73,90 @@ export const GAME_OPTION_VALUES = [
             {
                 displayLabel: 'User Controlled',
                 value: 'USER'
+            }
+        ]
+    },
+    {
+        name: GAME_OPTION_NAMES.COPILOT,
+        defaultValue: 'off',
+        description: 'Copilot',
+        help: 'Alerts, explained suggestions, or suggestions accepted with F4. Delegate aircraft or sectors with "delegate"',
+        type: 'select',
+        onChangeEventHandler: null,
+        optionList: [
+            {
+                displayLabel: 'Off',
+                value: 'off'
+            },
+            {
+                displayLabel: 'Alerts',
+                value: 'alerts'
+            },
+            {
+                displayLabel: 'Suggestions',
+                value: 'suggest'
+            },
+            {
+                displayLabel: 'Suggestions (F4 to accept)',
+                value: 'accept'
+            }
+        ]
+    },
+    {
+        name: GAME_OPTION_NAMES.VOICE,
+        defaultValue: 'off',
+        description: 'Voice commands (hold F2)',
+        help: 'Speak instructions in ICAO phraseology; they are written in the command bar to confirm with Enter (Chrome or Edge)',
+        type: 'select',
+        onChangeEventHandler: null,
+        optionList: [
+            {
+                displayLabel: 'Off',
+                value: 'off'
+            },
+            {
+                displayLabel: 'English',
+                value: 'en'
+            },
+            {
+                displayLabel: 'Español',
+                value: 'es'
+            }
+        ]
+    },
+    {
+        name: GAME_OPTION_NAMES.WEATHER,
+        defaultValue: 'dynamic',
+        description: 'Weather',
+        help: 'Dynamic: the wind changes with height and over time, fog and thunderstorms come and go. Static: fixed wind',
+        type: 'select',
+        onChangeEventHandler: null,
+        optionList: [
+            {
+                displayLabel: 'Dynamic',
+                value: 'dynamic'
+            },
+            {
+                displayLabel: 'Static',
+                value: 'static'
+            }
+        ]
+    },
+    {
+        name: GAME_OPTION_NAMES.SAFETY_NETS,
+        defaultValue: 'on',
+        description: 'Safety nets (STCA, TCAS, MSAW, APW)',
+        help: 'Conflict alerts on the scope and airborne collision avoidance: aircraft follow TCAS resolution advisories',
+        type: 'select',
+        onChangeEventHandler: null,
+        optionList: [
+            {
+                displayLabel: 'On',
+                value: 'on'
+            },
+            {
+                displayLabel: 'Off',
+                value: 'off'
             }
         ]
     },

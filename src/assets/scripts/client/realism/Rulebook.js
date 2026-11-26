@@ -95,6 +95,29 @@ export const RULE = {
         description: 'takeoff with an arrival too close to the threshold',
         reference: 'ICAO Doc 4444 7.11.3; FAA JO 7110.65 3-9-6'
     },
+    // the airborne collision avoidance system had to act: separation had already been lost or was about to be
+    TCAS_RA: {
+        id: 'TCAS_RA',
+        tier: RULE_TIER.SEPARATION,
+        gameEvent: GAME_EVENTS.TCAS_RA,
+        description: 'TCAS resolution advisory',
+        reference: 'ICAO Annex 10 Vol IV 4; ICAO Doc 4444 15.7.3'
+    },
+    INSTRUCTION_CONTRARY_TO_RA: {
+        id: 'INSTRUCTION_CONTRARY_TO_RA',
+        tier: RULE_TIER.SAFETY,
+        gameEvent: GAME_EVENTS.INSTRUCTION_CONTRARY_TO_RA,
+        description: 'clearance against an active TCAS resolution advisory',
+        reference: 'ICAO Doc 4444 15.7.3.2'
+    },
+    // vectoring an aircraft into a thunderstorm: severe turbulence, hail, lightning
+    WEATHER_PENETRATION: {
+        id: 'WEATHER_PENETRATION',
+        tier: RULE_TIER.SEPARATION,
+        gameEvent: GAME_EVENTS.WEATHER_PENETRATION,
+        description: 'aircraft inside a thunderstorm cell',
+        reference: 'ICAO Doc 4444 8.6.9 (weather deviations); ICAO Doc 9137'
+    },
     RUNWAY_WIND_LIMIT: {
         id: 'RUNWAY_WIND_LIMIT',
         tier: RULE_TIER.PROCEDURE,
@@ -115,6 +138,13 @@ export const RULE = {
         gameEvent: GAME_EVENTS.GO_AROUND,
         description: 'missed approach',
         reference: 'ICAO Doc 8168 Vol I; stabilized approach criteria'
+    },
+    DIVERSION: {
+        id: 'DIVERSION',
+        tier: RULE_TIER.EFFICIENCY,
+        gameEvent: GAME_EVENTS.DIVERSION,
+        description: 'arrival diverted, weather below minimums',
+        reference: 'ICAO Annex 6 Part I 4.4.1 (aerodrome operating minima)'
     }
 };
 

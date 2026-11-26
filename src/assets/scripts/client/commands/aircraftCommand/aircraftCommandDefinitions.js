@@ -67,6 +67,10 @@ const ZERO_ARG_AIRCRAFT_COMMANDS = {
         validate: zeroArgumentsValidator,
         parse: noop
     },
+    metar: {
+        validate: zeroArgumentsValidator,
+        parse: noop
+    },
     auto: {
         validate: zeroArgumentsValidator,
         parse: noop
@@ -88,6 +92,18 @@ const ZERO_ARG_AIRCRAFT_COMMANDS = {
         parse: noop
     },
     bot: {
+        validate: singleArgumentValidator,
+        parse: noop
+    },
+    copilot: {
+        validate: singleArgumentValidator,
+        parse: noop
+    },
+    delegate: {
+        validate: singleArgumentValidator,
+        parse: noop
+    },
+    recover: {
         validate: singleArgumentValidator,
         parse: noop
     },

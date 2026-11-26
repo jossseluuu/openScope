@@ -1,0 +1,22 @@
+name: Documentación
+description: Falta algo en la documentación, está mal o no se entiende.
+title: "[Docs] "
+labels: ["tipo:docs"]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Página o archivo
+      placeholder: docs/bots/bot-a.md
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qué falta o qué está mal
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Propuesta de texto o corrección

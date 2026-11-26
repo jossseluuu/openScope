@@ -1,0 +1,63 @@
+name: wiki-sync
+
+# Regenera la Wiki de GitHub desde docs/ (fuente única, ver docs/adr/0001-docs-as-code.md) en cada push a
+# main que cambie la documentación. La Wiki no se edita a mano: lo que se cambie allí se pierde.
+#
+# Requisito (una sola vez, a mano): crear cualquier página en la pestaña Wiki del repositorio para que exista
+# el repositorio <repo>.wiki.git.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - docs/**
+      - mkdocs.yml
+      - tools/docs/build-wiki.js
+      - .github/workflows/wiki-sync.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki-sync
+  cancel-in-progress: false
+
+jobs:
+  wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Checkout wiki
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build wiki pages from docs/
+        run: node tools/docs/build-wiki.js wiki
+
+      - name: Commit and push
+        working-directory: wiki
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "La Wiki ya está al día."
+            exit 0
+          fi
+          git commit -m "Sincronizada desde docs/ (${GITHUB_SHA::8})"
+          git push

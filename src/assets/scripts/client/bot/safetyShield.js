@@ -115,6 +115,15 @@ export default class SafetyShield {
                     mask[i] = false;
                 }
             }
+
+            // during a TCAS RA the crew follows the RA: no vertical clearance (ICAO Doc 4444 15.7.3, TCA-006)
+            if (aircraft.safetyNet && aircraft.safetyNet.tcas === 'RA') {
+                for (let i = 0; i < ACTION_COUNT; i++) {
+                    if (ACTIONS[i].type === ACTION_TYPE.ALTITUDE || ACTIONS[i].type === ACTION_TYPE.PROCEDURE) {
+                        mask[i] = false;
+                    }
+                }
+            }
         }
 
         return mask;

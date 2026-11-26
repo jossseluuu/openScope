@@ -1,0 +1,50 @@
+name: Aeropuerto nuevo o rehecho
+description: Añadir un aeropuerto o reconstruir uno existente con datos actuales.
+title: "[Aeropuerto] "
+labels: ["area:aeropuertos"]
+body:
+  - type: input
+    id: icao
+    attributes:
+      label: Código ICAO
+      placeholder: LEBL
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Tipo de trabajo
+      options:
+        - Nuevo
+        - Rehacer desde cero
+        - Actualizar el existente
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Fuentes y ciclo AIRAC
+      description: Enlaces al AIP (AD 2, SID, STAR, IAC, ENR 2.1, ENR 3, ENR 4) y ciclo AIRAC usado.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Particularidades
+      description: Configuraciones de pista, terreno, espacio aéreo compartido, restricciones de ruido, toque de queda...
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Lista de comprobación
+      options:
+        - label: Pistas, umbrales, elevación e ILS (con su categoría)
+        - label: Espacio aéreo real (TMA/CTR) con suelos escalonados y bordes soldados
+        - label: Fijos, SID, STAR y aproximaciones
+        - label: Terreno, MVA y zonas restringidas
+        - label: Aerolíneas y flotas actuales (mayúsculas exactas en las flotas)
+        - label: Llegadas escalonadas (arrivalSpawn), salidas y sobrevuelos
+        - label: Bloque de meteorología (climatología)
+        - label: Guía del aeropuerto y entrada en airportLoadList.json
+        - label: Validador sin errores
+        - label: Vuelo headless (check-airports.js) y 6 episodios del Bot A sin pérdidas al aparecer
+        - label: Revisión visual en el navegador

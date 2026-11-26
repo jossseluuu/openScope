@@ -18,3 +18,9 @@ __pycache__/
 .venv/
 bots/runs/
 bots/audits/*.jsonl
+
+# salida local de mkdocs build
+site/
+
+# tools/aip: elevation tile cache
+.cache/

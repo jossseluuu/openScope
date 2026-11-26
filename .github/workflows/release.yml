@@ -1,0 +1,51 @@
+name: release
+
+# Al subir un tag v* (p. ej. v6.30.0) crea una release de GitHub con la build del simulador (ZIP de
+# public/) y, como notas, la sección de CHANGELOG.md de esa versión si existe.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build application
+        run: npm run build
+
+      - name: Package build
+        run: (cd public && zip -qr "../openscope-${GITHUB_REF_NAME}.zip" .)
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          # sección que empieza en "# <versión> (...)" y acaba en el siguiente encabezado de versión ("# ")
+          awk -v v="$version" '
+            /^# / { if (found) exit; if (index($0, v)) { found = 1; next } }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "Release ${GITHUB_REF_NAME}. Ver CHANGELOG.md." > notes.md
+          fi
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" "openscope-${GITHUB_REF_NAME}.zip" --title "$GITHUB_REF_NAME" --notes-file notes.md

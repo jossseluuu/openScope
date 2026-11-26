@@ -1,0 +1,55 @@
+name: Mejora o funcionalidad nueva
+description: Propón algo nuevo para el simulador, los bots o las herramientas.
+title: "[Mejora] "
+labels: ["tipo:mejora"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema o necesidad
+      description: Qué falta o qué se hace mal hoy. Describe el problema, no solo la solución.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Propuesta
+      description: Cómo debería funcionar. Si se basa en normativa real (ICAO, EASA, AIP), indica la fuente.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      multiple: true
+      options:
+        - Motor de simulación
+        - Bots
+        - Aeropuertos
+        - Meteorología
+        - Interfaz
+        - Herramientas / CI
+        - Documentación
+    validations:
+      required: true
+  - type: dropdown
+    id: observation
+    attributes:
+      label: ¿Cambia lo que observan los bots o sus acciones?
+      description: Si cambia BotApi, featureEncoder.js o actionSpace.js, el Bot B tendrá que reentrenarse.
+      options:
+        - "No"
+        - "Sí"
+        - No lo sé
+    validations:
+      required: true
+  - type: input
+    id: rules
+    attributes:
+      label: Reglas afectadas
+      description: Identificadores de la hoja de especificaciones, si existen.
+      placeholder: SEP-002, WAK-003

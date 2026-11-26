@@ -81,6 +81,7 @@ import {
 import { ENVIRONMENT } from '../constants/environmentConstants';
 import { calculateTaxiTimeSeconds } from '../realism/taxiTimes';
 
+
 /**
  * @property FLIGHT_RULES
  * @type {Object}
@@ -203,6 +204,28 @@ export default class AircraftModel {
          * @default 1200
          */
         this.transponderCode = 1200;
+
+        /**
+         * Safety net alerts of this aircraft, set every second by the `SafetyNetController`:
+         * `{ stca, stcaWith, tcas: { state, sense, intruder, ... }, msaw, apw }`
+         *
+         * @for AircraftModel
+         * @property safetyNet
+         * @type {object|null}
+         * @default null
+         */
+        this.safetyNet = null;
+
+        /**
+         * Active TCAS resolution advisory the crew flies instead of the clearance, null otherwise:
+         * `{ sense: 1 climb | -1 descend | 0 level off, effectiveAt, verticalSpeedFpm }`
+         *
+         * @for AircraftModel
+         * @property resolutionAdvisory
+         * @type {object|null}
+         * @default null
+         */
+        this.resolutionAdvisory = null;
 
         /**
          * Emergency declared by the crew (squawk 7700), null otherwise
@@ -2560,6 +2583,15 @@ export default class AircraftModel {
             descentRate = this.model.rate.descent;
         }
 
+        // a descend RA is flown at its own vertical speed (TCA-003)
+        if (this.isFlyingResolutionAdvisory()) {
+            descentRate = Math.min(this.model.rate.descent, this.resolutionAdvisory.verticalSpeedFpm);
+        } else if (altitude_diff <= PERFORMANCE.LEVEL_OFF_BAND_FT && !this.mcp.shouldExpediteAltitudeChange) {
+            // at most 1500 ft/min in the last 1000 ft before the cleared level, as pilots do to avoid
+            // unnecessary TCAS RAs against traffic 1000 ft away (VEL-002)
+            descentRate = Math.min(descentRate, PERFORMANCE.LEVEL_OFF_MAX_RATE_FPM);
+        }
+
         const feetPerSecond = descentRate * TIME.ONE_SECOND_IN_MINUTES;
         const feetDescended = feetPerSecond * TimeKeeper.getDeltaTimeForGameStateAndTimewarp();
 
@@ -2585,6 +2617,14 @@ export default class AircraftModel {
 
         if (this.mcp.shouldExpediteAltitudeChange || this.isTakeoff()) {
             climbRate = this.model.rate.climb;
+        }
+
+        // a climb RA is flown at its own vertical speed (TCA-003)
+        if (this.isFlyingResolutionAdvisory()) {
+            climbRate = Math.min(this.model.rate.climb, this.resolutionAdvisory.verticalSpeedFpm);
+        } else if (abs(altitude_diff) <= PERFORMANCE.LEVEL_OFF_BAND_FT && !this.mcp.shouldExpediteAltitudeChange && !this.isTakeoff()) {
+            // at most 1500 ft/min in the last 1000 ft before the cleared level (VEL-002)
+            climbRate = Math.min(climbRate, PERFORMANCE.LEVEL_OFF_MAX_RATE_FPM);
         }
 
         const feetPerSecond = climbRate * TIME.ONE_SECOND_IN_MINUTES;
@@ -2811,8 +2851,46 @@ export default class AircraftModel {
     update() {
         this.updateFlightPhase();
         this.updateTarget();
+        this._applyResolutionAdvisory();
         this.updatePhysics();
         this._updateAircraftControllability();
+    }
+
+    /**
+     * Whether the crew is flying a TCAS resolution advisory right now (after their reaction time)
+     *
+     * @for AircraftModel
+     * @method isFlyingResolutionAdvisory
+     * @return {boolean}
+     */
+    isFlyingResolutionAdvisory() {
+        return Boolean(this.resolutionAdvisory) &&
+            TimeKeeper.accumulatedDeltaTime >= this.resolutionAdvisory.effectiveAt;
+    }
+
+    /**
+     * A TCAS RA overrides the vertical target of the clearance (ICAO Doc 4444 15.7.3): climb or descend at
+     * the RA vertical speed, or level off. The clearance itself (MCP altitude) is kept, so the aircraft
+     * returns to it once clear of conflict (TCA-003, TCA-004)
+     *
+     * @for AircraftModel
+     * @method _applyResolutionAdvisory
+     * @private
+     */
+    _applyResolutionAdvisory() {
+        if (!this.isFlyingResolutionAdvisory() || this.isOnGround()) {
+            return;
+        }
+
+        const { sense } = this.resolutionAdvisory;
+
+        if (sense > 0) {
+            this.target.altitude = Math.min(this.model.ceiling || Infinity, this.altitude + 500);
+        } else if (sense < 0) {
+            this.target.altitude = this.altitude - 500;
+        } else {
+            this.target.altitude = this.altitude;
+        }
     }
 
     /**

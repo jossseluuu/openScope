@@ -620,6 +620,11 @@ export default class AirportModel {
      * @returns {object<angle, speed>}
      */
     getWindAtAltitude(altitude = this.elevation) {
+        // dynamic weather: layered profile set by the WeatherController (MET-002)
+        if (this.windProfile) {
+            return this.windProfile(altitude);
+        }
+
         const windTravelSpeedAtSurface = this.wind.speed;
         const altitudeAboveSurface = altitude - this.elevation;
         const windIncreaseFactor = altitudeAboveSurface * ENVIRONMENT.WIND_INCREASE_FACTOR_PER_FT;

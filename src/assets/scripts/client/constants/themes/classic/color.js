@@ -7,6 +7,8 @@ export const COLOR = {
     EMERGENCY_RED: 'rgba(255, 48, 48, 1.0)',
     EMERGENCY_RED_05: 'rgba(255, 48, 48, 0.5)',
     EMERGENCY_RED_07: 'rgba(255, 48, 48, 0.7)',
+    // safety net cautions (STCA predicted conflict, TCAS traffic advisory)
+    CAUTION_AMBER: 'rgba(255, 191, 0, 1.0)',
     BLACK_07: 'rgba(0, 0, 0, 0.7)',
     BLUE_02: 'rgba(128, 255, 255, 0.2)',
     BLUE_05: 'rgba(128, 255, 255, 0.5)',

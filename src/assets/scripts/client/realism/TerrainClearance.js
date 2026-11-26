@@ -68,6 +68,20 @@ export default class TerrainClearance {
     }
 
     /**
+     * Highest minimum vectoring altitude anywhere: an aircraft above it cannot be below the MVA, which lets
+     * the MSAW skip the (expensive) terrain lookups
+     *
+     * @for TerrainClearance
+     * @property highestMinimumVectoringAltitude
+     * @type {number}
+     */
+    get highestMinimumVectoringAltitude() {
+        const highestLevel = this._levels.length > 0 ? this._levels[0].level : 0;
+
+        return Math.ceil((highestLevel + TERRAIN_BAND_FT + OBSTACLE_CLEARANCE_FT) / 100) * 100;
+    }
+
+    /**
      * Highest terrain contour at `position`, or within `bufferKm` of it, in ft
      *
      * @for TerrainClearance

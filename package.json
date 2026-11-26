@@ -3,13 +3,11 @@
   "version": "6.29.0-BETA",
   "description": "An ATC simulator in HTML5",
   "engines": {
-    "node": "11.3.0",
-    "npm": "6.4.0"
+    "node": ">=22"
   },
   "scripts": {
     "build": "gulp build --prod",
     "build:dev": "gulp build",
-    "coveralls": "nyc report -r text-lcov | coveralls",
     "gulp": "gulp build",
     "lint-diff": "lint-diff",
     "lint": "eslint src/assets/scripts/client/**",
@@ -18,7 +16,14 @@
     "server": "npm run start",
     "start": "node public/assets/scripts/server/index.js",
     "test": "nyc ava --concurrency=5",
-    "validator": "validator -a"
+    "test:unit": "ava --concurrency=5",
+    "test:headless": "node tools/sim/check-airports.js --minutes 20 --airports lemd,lemg,eddm,klax,egcc --jobs 2 --emergencies 0 --strict",
+    "test:bots": "node tools/sim/regression.js --bot A --quick",
+    "test:py": "cd bots/python && python -m unittest discover -s tests",
+    "validate:airports": "node tools/validate/validate-airports.js",
+    "docs:generate": "node tools/docs/generate-spec.js && node tools/docs/generate-bot-docs.js",
+    "docs:check": "node tools/docs/generate-spec.js --check && node tools/docs/generate-bot-docs.js --check",
+    "docs:mermaid": "node tools/docs/check-mermaid.js"
   },
   "repository": {
     "type": "git",
@@ -91,13 +96,12 @@
     "@babel/preset-env": "7.4.4",
     "@babel/preset-react": "7.0.0",
     "@babel/register": "7.4.4",
-    "@openscope/validator": "latest",
+    "ajv": "8.17.1",
     "ava": "1.4.1",
     "babel-eslint": "10.0.1",
     "babelify": "10.0.0",
     "browser-env": "3.3.0",
     "browserify": "16.2.3",
-    "coveralls": "3.0.3",
     "eslint": "5.16.0",
     "eslint-config-airbnb": "17.1.0",
     "eslint-plugin-import": "2.17.2",
@@ -120,10 +124,11 @@
     "gulp-uglify": "3.0.2",
     "handlebars-helpers": "0.10.0",
     "handlebars-layouts": "3.1.4",
+    "js-yaml": "3.14.1",
     "lint-diff": "1.2.1",
     "merge-stream": "1.0.1",
     "mkdirp": "0.5.1",
-    "nyc": "14.1.0",
+    "nyc": "15.1.0",
     "path": "0.12.7",
     "rimraf": "2.6.3",
     "showdown": "1.9.1",

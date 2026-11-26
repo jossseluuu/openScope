@@ -20,6 +20,15 @@ export const EVENT = {
     BOT_COMMAND: 'bot-command',
 
     /**
+     * The player typed `copilot <level>`, `delegate <target>` or `recover <target>`: `{ action, argument }`
+     *
+     * @memberof EVENT
+     * @property COPILOT_COMMAND
+     * @type {string}
+     */
+    COPILOT_COMMAND: 'copilot-command',
+
+    /**
      * The player typed `audit`: open the bot audit page (`/bot-audit`)
      *
      * @memberof EVENT
@@ -374,6 +383,16 @@ export const AIRCRAFT_EVENT = {
      * @type {string}
      */
     TAKEOFF_CANCELLED: 'takeoff-cancelled',
+
+    /**
+     * Triggered when an aircraft flying a TCAS resolution advisory is given an altitude clearance
+     * against it: `(aircraftModel, clearedAltitude)`
+     *
+     * @memberof AIRCRAFT_EVENT
+     * @property CONTRARY_TO_RA
+     * @type {string}
+     */
+    CONTRARY_TO_RA: 'contrary-to-ra',
 
     /**
      * Trigged when the aircraft enters the approach

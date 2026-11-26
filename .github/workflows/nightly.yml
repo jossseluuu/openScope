@@ -1,0 +1,85 @@
+name: nightly
+
+# Comprobaciones largas que no caben en cada pull request:
+# - todos los aeropuertos activos en el simulador headless;
+# - regresión de los bots A y C con el protocolo completo (30 episodios de 60 min cada uno),
+#   comparada con bots/baselines/. Si un bot empeora, abre una issue.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  airports:
+    name: Todos los aeropuertos (headless, 20 min)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Fly every enabled airport
+        run: node tools/sim/check-airports.js --minutes 20 --jobs 4 --strict | tee airports.txt
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Aeropuertos"
+            echo '```'
+            tail -n 3 airports.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  regression:
+    name: Regresión del Bot ${{ matrix.bot }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        bot: [A, C]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run the evaluation protocol
+        run: node tools/sim/regression.js --bot ${{ matrix.bot }} --jobs 4 --summary-file "$GITHUB_STEP_SUMMARY"
+
+      - name: Open an issue on regression
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          title="[Regresión] Bot ${{ matrix.bot }} empeora en el nightly"
+          # no abrir otra si ya hay una abierta
+          if gh issue list --state open --search "$title in:title" --json number --jq '.[0].number' | grep -q .; then
+            exit 0
+          fi
+          gh issue create \
+            --title "$title" \
+            --label "area:bots" --label "tipo:bug" \
+            --body "El nightly del commit ${GITHUB_SHA::8} empeora frente a bots/baselines/bot${{ matrix.bot }}.json. Detalle: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"

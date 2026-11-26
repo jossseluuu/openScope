@@ -1,11 +1,15 @@
 name: deploy-github-pages
 
-# Construye el simulador y lo publica en GitHub Pages
-# (https://jossseluuu.github.io/openScope/) en cada push a main.
+# Construye el simulador y la documentación (MkDocs, en /docs/) y los publica en GitHub Pages
+# (https://jossseluuu.github.io/openScope/) cuando ci.yml termina bien en main.
 # También se puede lanzar a mano desde la pestaña Actions.
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - ci
+    types:
+      - completed
     branches:
       - main
   workflow_dispatch:
@@ -23,9 +27,18 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # solo si ci.yml pasó en un push a main (no en un PR desde una rama llamada main)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # el commit que ci.yml comprobó
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          # fechas de última modificación de las páginas de documentación
+          fetch-depth: 0
 
       - name: Use Node.js 24
         uses: actions/setup-node@v4
@@ -38,6 +51,19 @@ jobs:
 
       - name: Build application
         run: npm run build
+
+      - name: Use Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      # documentación en https://jossseluuu.github.io/openScope/docs/
+      - name: Build documentation
+        run: |
+          python -m pip install -r docs/requirements.txt
+          mkdocs build --strict --site-dir public/docs
 
       - name: Disable Jekyll processing
         run: touch public/.nojekyll

@@ -12,7 +12,7 @@ For access to the repository, contact Nate Geslin or Erik Quinn via [slack](http
 ## Creating a pull request
 Every pull request on openScope has a corresponding issue that describes the work to be done, and a category that it falls into. If no issue exists for the planned changes, create a new one. Remember to keep each issue and pull request focused and specific, and _keep the PR changes focused on the changes planned by the issue._ Generally, the smaller they are, the sooner they're merged.
 
-__Branch names should take the format of `category/issuenumber`__ (see our [git flow document](documentation/git-flow-process.md) for more information).
+__Branch names should take the format of `category/issuenumber`__ (see our [git flow document](docs/desarrollo/flujo-git.md) for more information).
 
 So we can see what other team members are working on, we push branches to the main repo and open "work-in-progress" pull requests right away. Open up a pull request (using base of `develop`) on the GitHub website with a label of `WIP` (work-in-progress) and go about making your changes.
 
@@ -34,7 +34,7 @@ For all commit messages, please:
 Example: `documentation/723 - Add contribution guidelines file`
 
 ## Additional Information
-More information on our processes and file formats can be found in the [documentation folder](documentation/). If you have any questions, send us a message on [slack](https://join.slack.com/t/openscopeatc/shared_invite/zt-g9wq2mch-B7Z9IltlgxgCBC2dBYPjiw), and we're always happy to help! We are a large, global team, so somebody is always awake and around to help you out.
+More information on our processes and file formats can be found in the [documentation folder](docs/). If you have any questions, send us a message on [slack](https://join.slack.com/t/openscopeatc/shared_invite/zt-g9wq2mch-B7Z9IltlgxgCBC2dBYPjiw), and we're always happy to help! We are a large, global team, so somebody is always awake and around to help you out.
 
 We really appreciate your willingness to put your time into improving openScope! It is thanks to our dedicated contributors that the simulator continues to grow and improve every month.
 

@@ -287,7 +287,19 @@ export const PERFORMANCE = {
      * @type {number}
      * @final
      */
-    DEFAULT_ALTIMETER_IN_INHG: 29.92
+    DEFAULT_ALTIMETER_IN_INHG: 29.92,
+
+    /**
+     * In the last `LEVEL_OFF_BAND_FT` before the cleared level, climbs and descents are flown at
+     * `LEVEL_OFF_MAX_RATE_FPM` or less (ICAO Doc 8168 Vol I, ACAS operating procedures), which avoids
+     * nuisance TCAS RAs against traffic 1000 ft away (VEL-002)
+     *
+     * @property LEVEL_OFF_BAND_FT
+     * @type {number}
+     * @final
+     */
+    LEVEL_OFF_BAND_FT: 1000,
+    LEVEL_OFF_MAX_RATE_FPM: 1500
 };
 
 /**

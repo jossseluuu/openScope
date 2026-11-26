@@ -3,7 +3,7 @@
  *
  * Usage:
  *   node tools/sim/run-bot.js --bot A --airport lemd --minutes 60 --seed 1
- *       [--wind 180/15] [--traffic 1.5] [--emergencies 0.05] [--params params.json] [--verbose]
+ *       [--wind 180/15] [--traffic 1.5] [--emergencies 0.05] [--safety-nets on|off] [--weather static|dynamic] [--params params.json] [--verbose]
  *       [--supervision-log log.jsonl]
  *
  * `--emergencies` is the probability that a flight declares an emergency (default 0.01, as the
@@ -26,6 +26,9 @@ const windText = argValue('--wind', null);
 const trafficScale = Number(argValue('--traffic', 1));
 const emergencyText = argValue('--emergencies', null);
 const emergencyRate = emergencyText === null ? null : Number(emergencyText);
+const safetyNetsText = argValue('--safety-nets', null);
+const safetyNets = safetyNetsText === null ? null : safetyNetsText !== 'off';
+const weather = argValue('--weather', null);
 const parametersFile = argValue('--params', null);
 const verbose = process.argv.includes('--verbose');
 const supervisionLog = argValue('--supervision-log', null);
@@ -48,6 +51,8 @@ const { summary, violations } = runEpisode({
     wind,
     trafficScale,
     emergencyRate,
+    safetyNets,
+    weather,
     onDecision: verbose ? (decisions, observation) => {
         decisions.forEach((decision) => {
             console.log(`${Math.round(observation.time)}s ${decision.callsign} ${decision.command}  (${decision.reason})`);

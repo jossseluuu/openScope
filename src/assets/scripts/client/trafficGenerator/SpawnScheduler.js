@@ -258,6 +258,31 @@ class SpawnScheduler {
     }
 
     /**
+     * Replace the spawn patterns after a runway configuration change (dynamic weather, MET-009): the
+     * timers of the old patterns are destroyed and the new ones are scheduled from now, without any
+     * pre-spawned traffic (no burst of aircraft)
+     *
+     * @for SpawnScheduler
+     * @method switchSpawnPatterns
+     * @param airportJson {object}
+     */
+    switchSpawnPatterns(airportJson) {
+        _forEach(SpawnPatternCollection.spawnPatternModels, (spawnPatternModel) => {
+            if (spawnPatternModel.scheduleId && spawnPatternModel.scheduleId !== INVALID_NUMBER) {
+                GameController.destroyTimer(spawnPatternModel.scheduleId);
+            }
+        });
+
+        SpawnPatternCollection.reset();
+        SpawnPatternCollection.init(airportJson);
+
+        _forEach(SpawnPatternCollection.spawnPatternModels, (spawnPatternModel) => {
+            spawnPatternModel.cycleStart(TimeKeeper.accumulatedDeltaTime);
+            spawnPatternModel.scheduleId = this.createNextSchedule(spawnPatternModel);
+        });
+    }
+
+    /**
      * Registers a new timeout, its callback and callback arguments with the `GameController`
      *
      * @for SpawnScheduler

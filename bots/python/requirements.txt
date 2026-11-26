@@ -1,0 +1,11 @@
+# Dependencias del entrenamiento de los bots (Python 3.11+).
+# Versiones probadas el 2026-11-20 en el venv local (.venv).
+#
+# En local con GPU NVIDIA, instala antes torch con CUDA:
+#   .venv\Scripts\python -m pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+# En CI se instala la versión solo CPU (ver .github/workflows/ci.yml).
+torch==2.11.0
+numpy==2.4.6
+gymnasium==1.4.0
+onnx==1.23.2
+onnxruntime==1.31.1

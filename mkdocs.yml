@@ -1,0 +1,141 @@
+# Documentación del fork de openScope (docs-as-code).
+# Fuente: docs/. Se publica en https://jossseluuu.github.io/openScope/docs/ (pages.yml) y se copia a la
+# Wiki de GitHub (wiki-sync.yml). Vista previa local: mkdocs serve
+site_name: openScope (fork) — Documentación
+site_url: https://jossseluuu.github.io/openScope/docs/
+site_description: Simulador de control de tráfico aéreo con controladores automáticos (bots) y aeropuertos españoles actualizados
+repo_url: https://github.com/jossseluuu/openScope
+repo_name: jossseluuu/openScope
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+strict: true
+
+theme:
+  name: material
+  language: es
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Modo oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+
+plugins:
+  - search:
+      lang: es
+  - git-revision-date-localized:
+      type: date
+      locale: es
+      fallback_to_build_date: true
+      strict: false
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+      # anclajes como los de GitHub (conservan tildes), para que los enlaces valgan en GitHub, MkDocs y la Wiki
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+validation:
+  nav:
+    omitted_files: info
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: info
+    unrecognized_links: info
+
+nav:
+  - Inicio: index.md
+  - Guía del jugador:
+      - Comandos: guia-jugador/comandos.md
+      - Comandos de aeronave: guia-jugador/comandos-aeronave.md
+      - Comandos del radar: guia-jugador/comandos-radar.md
+      - Puntuación: guia-jugador/puntuacion.md
+      - Emergencias: guia-jugador/emergencias.md
+      - Alertas de colisión: guia-jugador/alertas.md
+      - Meteorología: guia-jugador/meteorologia.md
+      - Voz y lenguaje natural: guia-jugador/voz.md
+      - Copiloto: guia-jugador/copiloto.md
+  - Aeropuertos:
+      - Crear un aeropuerto desde el AIP: aeropuertos/crear-aeropuerto.md
+      - Formato de aeropuerto: aeropuertos/formato-aeropuerto.md
+      - Estándares: aeropuertos/estandares.md
+      - Lista de carga: aeropuertos/lista-de-carga.md
+      - Spawn patterns: aeropuertos/spawn-patterns.md
+      - Métodos de spawn patterns: aeropuertos/spawn-patterns-metodos.md
+      - Terreno: aeropuertos/terreno.md
+      - Validador: aeropuertos/validador.md
+      - Guías de aeropuertos: aeropuertos/guias/airport-guide-directory.md
+  - Motor:
+      - Arquitectura: motor/arquitectura.md
+      - Bucle de simulación: motor/bucle.md
+      - Aeronaves: motor/aeronaves.md
+      - Cadena de un comando: motor/comandos.md
+      - Redes de seguridad (STCA, TCAS): motor/stca-tcas.md
+      - Meteorología dinámica: motor/meteorologia.md
+      - Realismo operacional: motor/realismo.md
+      - Separación de aeronaves: motor/separacion-aeronaves.md
+      - Formato de aeronave: motor/formato-aeronave.md
+      - Formato de aerolínea: motor/formato-aerolinea.md
+  - Especificación:
+      - especificacion/index.md
+      - Unidades y atmósfera: especificacion/unidades-atmosfera.md
+      - Aeronaves: especificacion/aeronaves.md
+      - Separación: especificacion/separacion.md
+      - Operaciones: especificacion/operaciones.md
+      - Espacio aéreo y terreno: especificacion/espacio-aereo-terreno.md
+      - Puntuación: especificacion/puntuacion.md
+      - Alertas: especificacion/alertas.md
+      - Meteorología: especificacion/meteorologia.md
+  - Bots:
+      - bots/index.md
+      - Arquitectura: bots/arquitectura.md
+      - Modelo de razonamiento: bots/razonamiento.md
+      - Priorización: bots/priorizacion.md
+      - Niveles de automatización: bots/automatizacion.md
+      - Matriz de comandos: bots/matriz-comandos.md
+      - Bot A: bots/bot-a.md
+      - Bot B: bots/bot-b.md
+      - Bot C: bots/bot-c.md
+      - Parámetros del Bot A: bots/parametros.md
+      - Evaluación: bots/evaluacion.md
+      - Limitaciones: bots/limitaciones.md
+      - Información técnica: bots/informacion.md
+      - Entrenamiento: bots/entrenamiento.md
+      - Glosario: bots/glosario.md
+  - Desarrollo:
+      - Testing: desarrollo/testing.md
+      - CI/CD: desarrollo/ci.md
+      - Documentar: desarrollo/documentar.md
+      - Diagramas: desarrollo/diagramas.md
+      - Procesos: desarrollo/procesos.md
+      - Flujo de git: desarrollo/flujo-git.md
+      - Estándares de JSON Schema: desarrollo/json-schema.md
+      - Entornos: desarrollo/entornos.md
+      - Eventos: desarrollo/eventos.md
+      - Decisiones (ADR): adr/index.md

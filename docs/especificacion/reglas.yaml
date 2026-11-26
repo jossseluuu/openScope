@@ -1,0 +1,770 @@
+# Hoja de especificaciones físicas y reglas de dominio del simulador.
+#
+# Fuente única: las páginas docs/especificacion/*.md se generan desde este archivo con
+#   node tools/docs/generate-spec.js
+# y el test test/spec/reglas.spec.js comprueba que cada regla con `check` coincide con el código.
+#
+# Campos de cada regla:
+#   id        identificador estable (DOMINIO-NNN). El código y los tests lo citan en comentarios.
+#   rule      enunciado en español
+#   value     valor (número, texto o tabla); unit: unidad
+#   source    norma o referencia de la que sale el valor
+#   code      dónde está implementado (ruta desde src/assets/scripts/client/, y nombre)
+#   check     (opcional) comprobación automática: módulo, export, ruta dentro del export y valor esperado
+#   status    implementado | parcial | pendiente | referencia (dato de contexto, no se usa en el motor)
+#   notes     (opcional) aclaraciones, diferencias con la realidad, decisiones
+
+domains:
+  - { id: UNI, title: Unidades y referencias, page: unidades-atmosfera }
+  - { id: ATM, title: Atmósfera y viento, page: unidades-atmosfera }
+  - { id: VEL, title: Velocidades, page: aeronaves }
+  - { id: PER, title: Rendimiento de las aeronaves, page: aeronaves }
+  - { id: APP, title: Aproximación y aterrizaje, page: aeronaves }
+  - { id: SEP, title: Separación radar, page: separacion }
+  - { id: WAK, title: Estela turbulenta, page: separacion }
+  - { id: PAR, title: Pistas paralelas, page: separacion }
+  - { id: DEP, title: Salidas y torre, page: operaciones }
+  - { id: ASP, title: Espacio aéreo, page: espacio-aereo-terreno }
+  - { id: TER, title: Terreno y altitudes mínimas, page: espacio-aereo-terreno }
+  - { id: EMG, title: Emergencias, page: operaciones }
+  - { id: SCO, title: Puntuación y niveles de las reglas, page: puntuacion }
+  - { id: STC, title: STCA (alerta de conflicto en tierra), page: alertas }
+  - { id: TCA, title: TCAS II / ACAS II, page: alertas }
+  - { id: MSW, title: MSAW (aviso de altitud mínima), page: alertas }
+  - { id: APW, title: APW (aviso de proximidad a zona restringida), page: alertas }
+  - { id: MET, title: Meteorología, page: meteorologia }
+
+rules:
+  # ---------------------------------------------------------------- UNI
+  - id: UNI-001
+    rule: Las distancias se muestran en millas náuticas; internamente el motor trabaja en kilómetros
+    value: 1 NM = 1,852 km
+    source: ICAO Anexo 5
+    code: constants/globalConstants.js (PHYSICS_CONSTANTS)
+    check: { module: constants/globalConstants, export: PHYSICS_CONSTANTS, path: EARTH_RADIUS_NM, equals: 3440 }
+    status: implementado
+    notes: El radio terrestre en NM (3440) se usa para las conversiones; en km es 6370,88.
+  - id: UNI-002
+    rule: Las altitudes de las aeronaves son en pies sobre el nivel del mar; los suelos y techos del espacio aéreo, en niveles de vuelo (centenas de pies)
+    value: ft MSL / FL
+    source: ICAO Anexo 5; formato de aeropuerto
+    code: airport/AirspaceModel.js
+    status: implementado
+  - id: UNI-003
+    rule: Los rumbos que ve el jugador son magnéticos; cada aeropuerto declara su declinación (positiva al este)
+    value: magnetic_north
+    unit: grados
+    source: Formato de aeropuerto
+    code: airport/AirportModel.js (magneticNorth)
+    status: implementado
+  - id: UNI-004
+    rule: Las velocidades que se ordenan son indicadas (IAS)
+    value: IAS
+    unit: kt
+    source: ICAO Doc 4444 4.6
+    code: aircraft/AircraftModel.js (speed)
+    status: implementado
+  - id: UNI-005
+    rule: Reglaje altimétrico por defecto (atmósfera estándar)
+    value: 29.92
+    unit: inHg (1013,25 hPa)
+    source: ICAO Doc 7488
+    code: constants/aircraftConstants.js (PERFORMANCE.DEFAULT_ALTIMETER_IN_INHG)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: DEFAULT_ALTIMETER_IN_INHG, equals: 29.92 }
+    status: implementado
+    notes: No hay QNH variable ni altitud de transición; todo se trata como altitud. Llega con la meteorología (#6).
+
+  # ---------------------------------------------------------------- ATM
+  - id: ATM-001
+    rule: La velocidad verdadera (TAS) crece linealmente con la altitud a partir de la indicada
+    value: TAS = IAS × (1 + 0,000016 × altitud)
+    unit: "+1,6 % por cada 1000 ft"
+    source: Aproximación del motor (regla práctica ≈ 2 % por 1000 ft)
+    code: aircraft/AircraftModel.js (updateGroundSpeedPhysics), constants/environmentConstants.js (DENSITY_ALT_INCREASE_FACTOR_PER_FT)
+    check: { module: constants/environmentConstants, export: ENVIRONMENT, path: DENSITY_ALT_INCREASE_FACTOR_PER_FT, equals: 0.000016 }
+    status: parcial
+    notes: >-
+      Auditoría 2026-11-20. El comentario del código dice "0,16 % por mil pies" pero el valor es 1,6 %.
+      Frente a la atmósfera estándar (ISA) se queda corto en altura: a FL240 la TAS real es ≈ IAS × 1,45 y el
+      motor da × 1,38; a FL390 la real es ≈ × 2,0 y el motor da × 1,62. No modela temperatura ni Mach.
+  - id: ATM-002
+    rule: El viento crece con la altitud a partir del de superficie
+    value: "+2 % por cada 1000 ft"
+    source: Aproximación del motor
+    code: airport/AirportModel.js (getWindAtAltitude), constants/environmentConstants.js (WIND_INCREASE_FACTOR_PER_FT)
+    check: { module: constants/environmentConstants, export: ENVIRONMENT, path: WIND_INCREASE_FACTOR_PER_FT, equals: 0.00002 }
+    status: parcial
+    notes: La dirección no cambia con la altura. El perfil por capas llega con la meteorología dinámica (#6).
+  - id: ATM-003
+    rule: El viento se suma como vector a la velocidad verdadera; la aeronave corrige la deriva (ángulo de corrección)
+    value: GS = TAS + viento (vectorial)
+    source: Navegación aérea
+    code: aircraft/AircraftModel.js (updateGroundSpeedPhysics, corrección de deriva)
+    status: implementado
+    notes: En tierra la trayectoria se fija al eje de pista para que el viento no saque a la aeronave.
+  - id: ATM-004
+    rule: Atmósfera estándar internacional (ISA) de referencia
+    value: 15 °C y 1013,25 hPa al nivel del mar; -1,98 °C por 1000 ft; tropopausa a 36 089 ft
+    source: ICAO Doc 7488
+    code: "—"
+    status: referencia
+    notes: No se usa todavía en el motor; servirá para corregir ATM-001.
+
+  # ---------------------------------------------------------------- VEL
+  - id: VEL-001
+    rule: Límite de velocidad por debajo de 10 000 ft
+    value: 250
+    unit: kt IAS
+    source: SERA.6001 y anexo (Europa); FAA 14 CFR 91.117
+    code: aircraft/AircraftModel.js (límite bajo 10 000 ft)
+    status: implementado
+    notes: El motor lo aplica a todas las aeronaves, sin excepciones por clase de espacio aéreo.
+
+  - id: VEL-002
+    rule: En los últimos 1000 ft antes del nivel autorizado, ascensos y descensos a 1500 ft/min como máximo (salvo orden expedita, despegue o RA)
+    value: "1500 ft/min en los últimos 1000 ft"
+    source: ICAO Doc 8168 Vol I (procedimientos ACAS, evitar RA innecesarios con tráfico a 1000 ft); obligatorio para operadores en Europa
+    code: constants/aircraftConstants.js (PERFORMANCE.LEVEL_OFF_BAND_FT, LEVEL_OFF_MAX_RATE_FPM); aircraft/AircraftModel.js; bot/botA/conflictResolution.js (altitudeTowardLevel)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: LEVEL_OFF_MAX_RATE_FPM, equals: 1500 }
+    status: implementado
+    notes: Añadida el 2026-11-20 al activar el TCAS. Sin ella casi todos los RA eran nivelaciones a 1000 ft de otra aeronave (el clásico level-off RA).
+
+  # ---------------------------------------------------------------- PER
+  - id: PER-001
+    rule: Régimen de viraje estándar
+    value: 3
+    unit: °/s
+    source: ICAO Doc 8168 (viraje de régimen 1)
+    code: constants/aircraftConstants.js (PERFORMANCE.TURN_RATE, en rad/s)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: TURN_RATE, equals: 0.0523598776 }
+    status: implementado
+  - id: PER-002
+    rule: Fracción de la tasa máxima de ascenso que se usa normalmente
+    value: 0.7
+    source: Aproximación del motor
+    code: constants/aircraftConstants.js (PERFORMANCE.TYPICAL_CLIMB_FACTOR)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: TYPICAL_CLIMB_FACTOR, equals: 0.7 }
+    status: implementado
+  - id: PER-003
+    rule: Fracción de la tasa máxima de descenso que se usa normalmente
+    value: 0.7
+    source: Aproximación del motor
+    code: constants/aircraftConstants.js (PERFORMANCE.TYPICAL_DESCENT_FACTOR)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: TYPICAL_DESCENT_FACTOR, equals: 0.7 }
+    status: implementado
+  - id: PER-004
+    rule: Factor de deceleración en tierra con frenos
+    value: 3.5
+    source: Aproximación del motor
+    code: constants/aircraftConstants.js (PERFORMANCE.DECELERATION_FACTOR_DUE_TO_GROUND_BRAKING)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: DECELERATION_FACTOR_DUE_TO_GROUND_BRAKING, equals: 3.5 }
+    status: implementado
+  - id: PER-005
+    rule: Altura mínima para iniciar un viraje tras el despegue
+    value: 400
+    unit: ft AGL
+    source: ICAO Doc 8168 Vol II (altura mínima de viraje 120 m / 394 ft)
+    code: constants/aircraftConstants.js (PERFORMANCE.TAKEOFF_TURN_ALTITUDE)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: TAKEOFF_TURN_ALTITUDE, equals: 400 }
+    status: implementado
+  - id: PER-006
+    rule: Distancia de anticipación máxima para virar antes de un punto de recorrido (fly-by)
+    value: 5
+    unit: NM
+    source: Aproximación del motor
+    code: constants/aircraftConstants.js (PERFORMANCE.MAXIMUM_DISTANCE_TO_FLY_BY_WAYPOINT_NM)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: MAXIMUM_DISTANCE_TO_FLY_BY_WAYPOINT_NM, equals: 5 }
+    status: implementado
+
+  # ---------------------------------------------------------------- APP
+  - id: APP-001
+    rule: Una aeronave está establecida en el localizador si está a menos de ~500 ft del eje y con menos de 5° de diferencia de rumbo
+    value: 0,0822894 NM y 5°
+    source: Aproximación del motor
+    code: constants/aircraftConstants.js (PERFORMANCE.MAXIMUM_DISTANCE_CONSIDERED_ESTABLISHED_ON_APPROACH_COURSE_NM, MAXIMUM_ANGLE_CONSIDERED_ESTABLISHED_ON_APPROACH_COURSE)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: MAXIMUM_DISTANCE_CONSIDERED_ESTABLISHED_ON_APPROACH_COURSE_NM, equals: 0.0822894 }
+    status: implementado
+  - id: APP-002
+    rule: Una aeronave está establecida en la senda de planeo si está a menos de 100 ft de ella
+    value: 100
+    unit: ft
+    source: Aproximación del motor
+    code: constants/aircraftConstants.js (PERFORMANCE.MAXIMUM_ALTITUDE_DIFFERENCE_CONSIDERED_ESTABLISHED_ON_GLIDEPATH)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: MAXIMUM_ALTITUDE_DIFFERENCE_CONSIDERED_ESTABLISHED_ON_GLIDEPATH, equals: 100 }
+    status: implementado
+  - id: APP-003
+    rule: Puerta de aproximación estabilizada
+    value: 1000
+    unit: ft sobre el umbral
+    source: Flight Safety Foundation ALAR; criterios de aproximación estabilizada de los operadores
+    code: constants/aircraftConstants.js (PERFORMANCE.STABILIZED_APPROACH_HEIGHT_FT)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: STABILIZED_APPROACH_HEIGHT_FT, equals: 1000 }
+    status: implementado
+    notes: Margen lateral de 0,5 NM (STABILIZED_APPROACH_MARGIN_NM) y velocidad hasta 20 kt sobre la de aterrizaje (realism/RealismController.js, STABILIZED_APPROACH_SPEED_MARGIN_KT). Fuera de criterios, frustrada.
+  - id: APP-004
+    rule: Altitud mínima de descenso de la aproximación instrumental (equivale a la DH de una CAT I)
+    value: 200
+    unit: ft
+    source: ICAO Anexo 6 / Doc 9365 (CAT I, DH 200 ft)
+    code: constants/aircraftConstants.js (PERFORMANCE.INSTRUMENT_APPROACH_MINIMUM_DESCENT_ALTITUDE)
+    check: { module: constants/aircraftConstants, export: PERFORMANCE, path: INSTRUMENT_APPROACH_MINIMUM_DESCENT_ALTITUDE, equals: 200 }
+    status: implementado
+    notes: Las categorías II y III llegan con la visibilidad (#6b).
+  - id: APP-005
+    rule: Si la pista no está libre a 200 ft sobre el umbral, el piloto hace la frustrada
+    value: 200
+    unit: ft
+    source: Altura de decisión típica
+    code: realism/RealismController.js (RUNWAY_CLEAR_DECISION_HEIGHT_FT)
+    status: implementado
+  - id: APP-006
+    rule: Separación radar mínima en la aproximación final
+    value: "EASA 2,5 NM (RECAT-EU, separación radar mínima reducida); ICAO y FAA 3 NM"
+    source: ICAO Doc 4444 8.7.3.2; RECAT-EU; FAA JO 7110.65 5-5-4
+    code: realism/regulatoryProfiles.js (finalApproachSeparationNm)
+    check: { module: realism/regulatoryProfiles, export: REGULATORY_PROFILE, path: EASA.finalApproachSeparationNm, equals: 2.5 }
+    status: implementado
+  - id: APP-007
+    rule: Tiempo de ocupación de pista en el aterrizaje por categoría RECAT-EU (varía entre el 90 % y el 120 % según la salida y el frenado)
+    value: { A: 70, B: 62, C: 58, D: 52, E: 50, F: 45 }
+    unit: s
+    source: Aproximación del motor
+    code: realism/wakeTurbulence.js (LANDING_RUNWAY_OCCUPANCY_SECONDS)
+    check: { module: realism/wakeTurbulence, export: LANDING_RUNWAY_OCCUPANCY_SECONDS, path: A, equals: 70 }
+    status: implementado
+
+  # ---------------------------------------------------------------- SEP
+  - id: SEP-001
+    rule: Separación radar mínima horizontal en área terminal
+    value: 3
+    unit: NM
+    source: ICAO Doc 4444 8.7.3.2 b; FAA JO 7110.65 5-5-4 a
+    code: realism/regulatoryProfiles.js (radarSeparationNm); constants/aircraftConstants.js (SEPARATION.STANDARD_LATERAL_KM = 5,556 km)
+    check: { module: realism/regulatoryProfiles, export: REGULATORY_PROFILE, path: ICAO.radarSeparationNm, equals: 3 }
+    status: implementado
+    notes: En ruta la norma es 5 NM, pero el simulador solo representa áreas terminales.
+  - id: SEP-002
+    rule: Separación vertical mínima
+    value: 1000
+    unit: ft
+    source: ICAO Doc 4444 5.3.2 (RVSM FL290-FL410)
+    code: realism/regulatoryProfiles.js (verticalSeparationFt); constants/aircraftConstants.js (SEPARATION.VERTICAL_FT)
+    check: { module: constants/aircraftConstants, export: SEPARATION, path: VERTICAL_FT, equals: 1000 }
+    status: implementado
+    notes: Tolerancia de 50 ft por la resolución del modo C mientras la aeronave se estabiliza (VERTICAL_SEPARATION_TOLERANCE_FT).
+  - id: SEP-003
+    rule: Por debajo de 1000 ft AGL la separación radar no se aplica; rigen la separación en pista, la de estela y las reglas de salida
+    value: 1000
+    unit: ft AGL
+    source: ICAO Doc 4444 7 (control de aeródromo)
+    code: realism/RealismController.js (RADAR_SEPARATION_MIN_HEIGHT_FT)
+    status: implementado
+  - id: SEP-004
+    rule: Una pareja que entra ya sin separación es pérdida del sector anterior; solo cuenta si sigue así pasados 60 s
+    value: 60
+    unit: s
+    source: Decisión del simulador
+    code: realism/RealismController.js (HANDOVER_GRACE_SECONDS)
+    status: implementado
+  - id: SEP-005
+    rule: Una aeronave nueva solo aparece con margen extra respecto a las demás
+    value: "separación radar + 5 NM, vertical + 1000 ft"
+    source: Decisión del simulador
+    code: realism/RealismController.js (SPAWN_SEPARATION_MARGIN)
+    status: implementado
+  - id: SEP-006
+    rule: Los conflictos se comprueban cada segundo de juego
+    value: 1
+    unit: s
+    source: Decisión del simulador
+    code: realism/RealismController.js (CHECK_INTERVAL_SECONDS)
+    status: implementado
+  - id: SEP-007
+    rule: Separación en la salida entre una salida y una llegada a la misma pista
+    value: 2
+    unit: NM (la llegada al umbral)
+    source: ICAO Doc 4444 7.11.3; FAA JO 7110.65 3-9-6
+    code: realism/regulatoryProfiles.js (arrivalDepartureSeparationNm)
+    check: { module: realism/regulatoryProfiles, export: REGULATORY_PROFILE, path: EASA.arrivalDepartureSeparationNm, equals: 2 }
+    status: implementado
+
+  # ---------------------------------------------------------------- WAK
+  - id: WAK-001
+    rule: Esquema de estela según el perfil normativo del aeropuerto
+    value: "EASA → RECAT-EU; ICAO → categorías ICAO (J/H/M/L); FAA → categorías FAA"
+    source: ICAO Doc 4444 4.9; RECAT-EU (Eurocontrol); FAA JO 7110.65 5-5-4
+    code: realism/regulatoryProfiles.js (wakeScheme)
+    check: { module: realism/regulatoryProfiles, export: REGULATORY_PROFILE, path: EASA.wakeScheme, equals: RECAT_EU }
+    status: implementado
+  - id: WAK-002
+    rule: Separación por estela en la aproximación, RECAT-EU (líder → seguidor; sin valor = solo separación radar)
+    value:
+      A: { A: 3, B: 4, C: 5, D: 5, E: 6, F: 8 }
+      B: { B: 3, C: 4, D: 4, E: 5, F: 7 }
+      C: { C: 3, D: 3, E: 4, F: 6 }
+      D: { F: 5 }
+      E: { F: 4 }
+      F: { F: 3 }
+    unit: NM
+    source: RECAT-EU (Eurocontrol, 2015)
+    code: realism/wakeTurbulence.js (RECAT_EU_ARRIVAL_NM)
+    check: { function: wakeArrival, scheme: RECAT_EU, table: true }
+    status: implementado
+  - id: WAK-003
+    rule: Separación por estela en la salida, RECAT-EU
+    value:
+      A: { B: 100, C: 120, D: 140, E: 160, F: 180 }
+      B: { D: 100, E: 120, F: 140 }
+      C: { D: 80, E: 100, F: 120 }
+      D: { F: 120 }
+      E: { F: 100 }
+      F: { F: 80 }
+    unit: s
+    source: RECAT-EU (Eurocontrol, 2015)
+    code: realism/wakeTurbulence.js (RECAT_EU_DEPARTURE_SECONDS)
+    check: { function: wakeDeparture, scheme: RECAT_EU, table: true }
+    status: implementado
+  - id: WAK-004
+    rule: Separación por estela en la aproximación, ICAO
+    value:
+      J: { H: 6, M: 7, L: 8 }
+      H: { H: 4, M: 5, L: 6 }
+      M: { L: 5 }
+    unit: NM
+    source: ICAO Doc 4444 8.7.3.4
+    code: realism/wakeTurbulence.js (ICAO_ARRIVAL_NM)
+    check: { function: wakeArrival, scheme: ICAO, table: true }
+    status: implementado
+  - id: WAK-005
+    rule: Separación por estela en la salida, ICAO
+    value:
+      J: { H: 120, M: 180, L: 180 }
+      H: { M: 120, L: 120 }
+      M: { L: 120 }
+    unit: s
+    source: ICAO Doc 4444 5.8.3
+    code: realism/wakeTurbulence.js (ICAO_DEPARTURE_SECONDS)
+    check: { function: wakeDeparture, scheme: ICAO, table: true }
+    status: implementado
+  - id: WAK-006
+    rule: Separación por estela en la aproximación, FAA
+    value:
+      SUPER: { HEAVY: 6, B757: 7, LARGE: 7, SMALL: 8 }
+      HEAVY: { HEAVY: 4, B757: 5, LARGE: 5, SMALL: 6 }
+      B757: { SMALL: 4 }
+      LARGE: { SMALL: 4 }
+    unit: NM
+    source: FAA JO 7110.65 5-5-4
+    code: realism/wakeTurbulence.js (FAA_ARRIVAL_NM)
+    check: { function: wakeArrival, scheme: FAA, table: true }
+    status: implementado
+  - id: WAK-007
+    rule: Separación por estela en la salida, FAA
+    value:
+      SUPER: { HEAVY: 180, B757: 180, LARGE: 180, SMALL: 180 }
+      HEAVY: { B757: 120, LARGE: 120, SMALL: 120 }
+      B757: { SMALL: 120 }
+    unit: s
+    source: FAA JO 7110.65 3-9-6
+    code: realism/wakeTurbulence.js (FAA_DEPARTURE_SECONDS)
+    check: { function: wakeDeparture, scheme: FAA, table: true }
+    status: implementado
+  - id: WAK-008
+    rule: Categoría por defecto cuando el archivo de la aeronave no la declara
+    value: "RECAT-EU desde ICAO: J→A, H→B, M→D, L→F. FAA desde ICAO: J→SUPER, H→HEAVY, M→LARGE, L→SMALL"
+    source: Aproximación del motor
+    code: realism/wakeTurbulence.js (getWakeCategory)
+    status: implementado
+
+  # ---------------------------------------------------------------- PAR
+  - id: PAR-001
+    rule: Pistas paralelas a menos de 2500 ft se tratan como una sola pista a efectos de estela
+    value: 2500
+    unit: ft
+    source: ICAO Doc 4444 5.8.2; FAA JO 7110.65 5-8-4
+    code: realism/RealismController.js (DEPENDENT_PARALLEL_RUNWAY_FT)
+    status: implementado
+  - id: PAR-002
+    rule: Aproximaciones paralelas independientes (sin separación entre las dos aeronaves una vez establecidas en sus localizadores) si los ejes están al menos a esta distancia
+    value: "EASA e ICAO 3400 ft (1035 m); FAA 4300 ft"
+    source: ICAO Doc 4444 6.7.3.2.1 (modo 1); FAA JO 7110.65 5-9-7
+    code: realism/regulatoryProfiles.js (independentParallelApproachFt)
+    check: { module: realism/regulatoryProfiles, export: REGULATORY_PROFILE, path: FAA.independentParallelApproachFt, equals: 4300 }
+    status: implementado
+  - id: PAR-003
+    rule: Salidas simultáneas desde pistas paralelas separadas si sus rumbos divergen al menos 15°, dentro de 10 NM del aeropuerto
+    value: "15° / 10 NM"
+    source: ICAO Doc 4444 6.7.3.2.3; FAA JO 7110.65 5-8-3
+    code: realism/regulatoryProfiles.js (parallelDepartureDivergenceDeg); realism/RealismController.js (DEPARTURE_DIVERGENCE_RADIUS_NM)
+    check: { module: realism/regulatoryProfiles, export: REGULATORY_PROFILE, path: ICAO.parallelDepartureDivergenceDeg, equals: 15 }
+    status: implementado
+
+  # ---------------------------------------------------------------- DEP
+  - id: DEP-001
+    rule: Límites de viento para elegir pista
+    value: "cola 5 kt, cruzado 20 kt"
+    source: ICAO Doc 4444 7.2.3 (pistas preferentes por ruido)
+    code: realism/regulatoryProfiles.js (maxTailwindKt, maxCrosswindKt); realism/runwayConfiguration.js
+    check: { module: realism/regulatoryProfiles, export: REGULATORY_PROFILE, path: EASA.maxTailwindKt, equals: 5 }
+    status: implementado
+  - id: DEP-002
+    rule: V1 para cancelar un despegue
+    value: 0,9 × velocidad mínima de la aeronave
+    source: Aproximación del motor (decisión del usuario 2026-10-31)
+    code: realism/takeoffCancel.js (V1_FACTOR)
+    check: { module: realism/takeoffCancel, export: V1_FACTOR, equals: 0.9 }
+    status: implementado
+  - id: DEP-003
+    rule: Tiempos de la cancelación de despegue
+    value: "deceleración 4 kt/s; 45 s para liberar la pista; 120 s hasta estar lista de nuevo; por encima de 80 kt, 60 s más (frenos calientes)"
+    source: Aproximación del motor
+    code: realism/takeoffCancel.js (TAKEOFF_CANCEL)
+    check: { module: realism/takeoffCancel, export: TAKEOFF_CANCEL, path: DECELERATION_KT_PER_SECOND, equals: 4 }
+    status: implementado
+  - id: DEP-004
+    rule: Una cancelación está justificada por una llegada a la misma pista más cerca que el mínimo + 1 NM, o por una emergencia que aterriza en ella en menos de 240 s
+    value: "1 NM / 240 s"
+    source: ICAO Doc 4444 7.9
+    code: realism/takeoffCancel.js (ARRIVAL_MARGIN_NM, EMERGENCY_PROTECTION_SECONDS)
+    status: implementado
+  - id: DEP-005
+    rule: La torre automática libera una salida al menos 90 s después de otro despegue y 120 s después de otro por la misma SID, y no con llegadas a menos del mínimo + 2 NM
+    value: "90 s / 120 s / +2 NM"
+    source: Decisión del simulador
+    code: realism/RealismController.js (AUTO_TOWER_*)
+    status: implementado
+  - id: DEP-006
+    rule: Tiempo de rodaje por defecto hasta la pista (varía entre el 85 % y el 125 %)
+    value: 300
+    unit: s
+    source: Decisión del simulador; cada aeropuerto puede fijarlo por pista (taxiTimes)
+    code: realism/taxiTimes.js (DEFAULT_TAXI_TIME_SECONDS)
+    check: { module: realism/taxiTimes, export: DEFAULT_TAXI_TIME_SECONDS, equals: 300 }
+    status: implementado
+  - id: DEP-007
+    rule: Dos salidas consecutivas de la misma pista con un minuto de separación necesitan rumbos que diverjan al menos 45°
+    value: 45
+    unit: °
+    source: ICAO Doc 4444 5.6 (separación de aeronaves que salen)
+    code: bot/botA (regla de salidas del Bot A)
+    status: implementado
+    notes: Regla que aplican los bots; el motor no la penaliza por sí misma.
+
+  # ---------------------------------------------------------------- ASP
+  - id: ASP-001
+    rule: Una aeronave que sale de todos los polígonos de espacio aéreo (lateralmente o por debajo de su suelo) deja de ser controlable y se elimina
+    value: AIRSPACE_BUST
+    source: Decisión del motor
+    code: aircraft/AircraftController.js; game/GameController.js (AIRSPACE_BUST)
+    status: implementado
+    notes: Para una llegada cuenta -200. Por eso los bots respetan los suelos escalonados.
+  - id: ASP-002
+    rule: Entrar en una zona restringida por debajo de su techo
+    value: RESTRICTED_AREA_ENTRY
+    source: ICAO Anexo 11 2.17
+    code: realism/RealismController.js; game/GameController.js (RESTRICTED_AREA_ENTRY)
+    status: implementado
+
+  # ---------------------------------------------------------------- TER
+  - id: TER-001
+    rule: Altitud mínima de vectorización (MVA) = terreno más alto en 3 NM alrededor + 1000 ft de franqueamiento
+    value: "+1000 ft, radio 3 NM"
+    source: ICAO Doc 8168 Vol II; FAA JO 7210.3 (MVA)
+    code: realism/TerrainClearance.js (OBSTACLE_CLEARANCE_FT, MVA_BUFFER_NM)
+    status: implementado
+  - id: TER-002
+    rule: Se considera violación de altitud mínima cuando la aeronave está más de 100 ft por debajo de la MVA (resolución del modo C)
+    value: 100
+    unit: ft
+    source: Resolución del modo C
+    code: realism/RealismController.js (MINIMUM_ALTITUDE_TOLERANCE_FT)
+    status: implementado
+
+  # ---------------------------------------------------------------- EMG
+  - id: EMG-001
+    rule: Probabilidad de que una llegada declare emergencia (opción del juego)
+    value: "no / rara 1 % (por defecto) / ocasional 3 % / frecuente 10 %"
+    source: Decisión del usuario (2026-10-31)
+    code: realism/EmergencyController.js
+    status: implementado
+    notes: Solo las llegadas declaran emergencias; generador aleatorio propio (semilla + 7700) para no cambiar el tráfico.
+  - id: EMG-002
+    rule: Momento de la declaración, entre 60 y 720 s después de aparecer, salvo si ya está en final corta (autorizada a menos de 12 NM)
+    value: "60-720 s; 12 NM"
+    source: Decisión del simulador
+    code: realism/EmergencyController.js (DECLARATION_WINDOW_SECONDS, SHORT_FINAL_NM)
+    status: implementado
+  - id: EMG-003
+    rule: Plazo para aterrizar una emergencia = estimación de una aproximación directa (200 kt + 240 s de circuito) + 600 s de margen
+    value: "200 kt; 240 s; +600 s"
+    source: Decisión del simulador
+    code: realism/EmergencyController.js (DEADLINE_ESTIMATE, DEADLINE_MARGIN_SECONDS)
+    status: implementado
+  - id: EMG-004
+    rule: Los pilotos en emergencia rechazan esperas y cambios de código transpondedor, y descienden de forma expedita
+    value: "—"
+    source: ICAO Doc 4444 15.1
+    code: realism/EmergencyController.js; bot/actionSpace.js (isExpeditedDescent)
+    status: implementado
+
+  # ---------------------------------------------------------------- SCO
+  - id: SCO-001
+    rule: Niveles de las reglas (prioridad lexicográfica)
+    value: "0 seguridad > 1 separación > 2 procedimiento > 3 eficiencia > 4 entorno"
+    source: Decisión de diseño (rulebook)
+    code: realism/Rulebook.js (RULE_TIER)
+    check: { module: realism/Rulebook, export: RULE_TIER, path: SEPARATION, equals: 1 }
+    status: implementado
+  - id: SCO-002
+    rule: Puntos por evento del juego
+    value:
+      ARRIVAL: 10
+      DEPARTURE: 10
+      EMERGENCY_DECLARED: 0
+      EMERGENCY_LANDING: 50
+      HIGH_CROSSWIND_OPERATION: -5
+      ILLEGAL_APPROACH_CLEARANCE: -10
+      LOCALIZER_INTERCEPT_ABOVE_GLIDESLOPE: -10
+      EXTREME_CROSSWIND_OPERATION: -15
+      HIGH_TAILWIND_OPERATION: -25
+      NOT_CLEARED_ON_ROUTE: -25
+      GO_AROUND: -50
+      DIVERSION: -50
+      TAKEOFF_CANCEL_UNJUSTIFIED: -50
+      EXTREME_TAILWIND_OPERATION: -75
+      WAKE_SEPARATION_LOSS: -100
+      WEATHER_PENETRATION: -100
+      MINIMUM_ALTITUDE_VIOLATION: -150
+      TCAS_RA: -150
+      AIRSPACE_BUST: -200
+      NO_TAKEOFF_SEPARATION: -200
+      RESTRICTED_AREA_ENTRY: -200
+      SEPARATION_LOSS: -200
+      EMERGENCY_DEADLINE_MISSED: -300
+      INSTRUCTION_CONTRARY_TO_RA: -300
+      RUNWAY_INCURSION: -500
+      COLLISION: -1000
+    unit: puntos
+    source: Decisión del simulador
+    code: game/GameController.js (GAME_EVENTS_POINT_VALUES)
+    check: { module: game/GameController, export: GAME_EVENTS_POINT_VALUES, table: true }
+    status: implementado
+    notes: Una pérdida de separación (-200) borra unos 20 movimientos; por eso los bots se juzgan por la puntuación total.
+  - id: SCO-003
+    rule: Reglas del rulebook, su nivel y su referencia normativa
+    value:
+      RUNWAY_INCURSION: "0 · ICAO Doc 4444 7.10.1, 7.11.1; FAA JO 7110.65 3-9-6, 3-10-3"
+      TERRAIN_COLLISION: "0 · ICAO Doc 4444 8.6.5.2"
+      MINIMUM_ALTITUDE: "0 · ICAO Doc 4444 8.6.5.2; FAA JO 7110.65 5-6-1"
+      RADAR_SEPARATION: "1 · ICAO Doc 4444 8.7.3; FAA JO 7110.65 5-5-4"
+      FINAL_APPROACH_SEPARATION: "1 · ICAO Doc 4444 8.7.3.2; RECAT-EU reduced MRS; FAA JO 7110.65 5-5-4"
+      WAKE_ARRIVAL: "1 · ICAO Doc 4444 8.7.3.4; RECAT-EU; FAA JO 7110.65 5-5-4"
+      WAKE_DEPARTURE: "1 · ICAO Doc 4444 5.8.3; RECAT-EU; FAA JO 7110.65 3-9-6"
+      EMERGENCY_DEADLINE: "1 · ICAO Doc 4444 15.1.1, 15.1.3 (priority to aircraft in emergency); FAA JO 7110.65 10-2-5"
+      ARRIVAL_DEPARTURE: "1 · ICAO Doc 4444 7.11.3; FAA JO 7110.65 3-9-6"
+      TCAS_RA: "1 · ICAO Annex 10 Vol IV 4; ICAO Doc 4444 15.7.3"
+      INSTRUCTION_CONTRARY_TO_RA: "0 · ICAO Doc 4444 15.7.3.2"
+      WEATHER_PENETRATION: "1 · ICAO Doc 4444 8.6.9 (weather deviations); ICAO Doc 9137"
+      RUNWAY_WIND_LIMIT: "2 · ICAO Doc 4444 7.2.3"
+      TAKEOFF_CANCEL_UNJUSTIFIED: "2 · ICAO Doc 4444 7.9; cancellation of a takeoff clearance"
+      GO_AROUND: "3 · ICAO Doc 8168 Vol I; stabilized approach criteria"
+      DIVERSION: "3 · ICAO Annex 6 Part I 4.4.1 (aerodrome operating minima)"
+    source: realism/Rulebook.js
+    code: realism/Rulebook.js (RULE)
+    check: { function: rulebookTiers }
+    status: implementado
+  - id: SCO-004
+    rule: Puntuación de los eventos nuevos (valores provisionales, aceptados por defecto el 2026-11-20)
+    value:
+      TCAS_RA: -150
+      INSTRUCTION_CONTRARY_TO_RA: -300
+      WEATHER_PENETRATION: -100
+      DIVERSION: -50
+    unit: puntos
+    source: Propuesta aceptada por defecto el 2026-11-20
+    code: game/GameController.js (GAME_EVENTS_POINT_VALUES)
+    status: implementado
+    notes: Valores provisionales; están también en SCO-002.
+
+  # ---------------------------------------------------------------- STC
+  - id: STC-001
+    rule: Horizonte y paso de la predicción del STCA (lineal, respetando la altitud autorizada)
+    value: "120 s, pasos de 5 s"
+    source: Eurocontrol, especificación STCA (horizonte típico de 2 minutos)
+    code: safety/safetyNetLogic.js (STCA)
+    check: { module: safety/safetyNetLogic, export: STCA, path: HORIZON_SECONDS, equals: 120 }
+    status: implementado
+  - id: STC-002
+    rule: Niveles de alerta del STCA
+    value: "preventiva (ámbar) si la separación se perderá en ≤ 120 s; alerta (rojo) si en ≤ 60 s o ya perdida"
+    source: Eurocontrol, especificación STCA
+    code: safety/safetyNetLogic.js (STCA.ALERT_SECONDS, stcaLevel)
+    check: { module: safety/safetyNetLogic, export: STCA, path: ALERT_SECONDS, equals: 60 }
+    status: implementado
+  - id: STC-003
+    rule: El STCA usa las mínimas del perfil normativo (radar y vertical - 50 ft), solo entre aeronaves controladas por encima de 1000 ft AGL, y no avisa de parejas separadas por otros medios (misma final, paralelas independientes, salidas divergentes)
+    value: "mínimas de SEP-001/SEP-002; exenciones de la regla de separación"
+    source: ICAO Doc 4444 8.7; decisión del simulador
+    code: safety/SafetyNetController.js (_updateStca)
+    status: implementado
+    notes: El STCA no puntúa; avisa. La penalización sigue siendo la pérdida de separación.
+
+  # ---------------------------------------------------------------- TCA
+  - id: TCA-001
+    rule: Umbrales de TCAS II v7.1 por nivel de sensibilidad (tau en s, DMOD en NM, ZTHR y ALIM en ft; TA / RA)
+    value:
+      SL2: "< 1000 ft AGL · tau 20 / — · DMOD 0,30 / — · ZTHR 850 / — · ALIM —"
+      SL3: "1000-2350 ft AGL · tau 25 / 15 · DMOD 0,33 / 0,20 · ZTHR 850 / 600 · ALIM 300"
+      SL4: "2350 ft AGL-5000 ft · tau 30 / 20 · DMOD 0,48 / 0,35 · ZTHR 850 / 600 · ALIM 300"
+      SL5: "5000-10 000 ft · tau 40 / 25 · DMOD 0,75 / 0,55 · ZTHR 850 / 600 · ALIM 350"
+      SL6: "10 000-20 000 ft · tau 45 / 30 · DMOD 1,00 / 0,80 · ZTHR 850 / 600 · ALIM 400"
+      SL7: "20 000-42 000 ft · tau 48 / 35 · DMOD 1,30 / 1,10 · ZTHR 850 / 700 · ALIM 600"
+    source: RTCA DO-185B; Eurocontrol ACAS II Guide (verificar contra la guía antes de cambiarlos)
+    code: safety/safetyNetLogic.js (TCAS_SENSITIVITY_LEVELS)
+    check: { module: safety/safetyNetLogic, export: TCAS_SENSITIVITY_LEVELS, path: "5.tauRa", equals: 35 }
+    status: implementado
+  - id: TCA-002
+    rule: Inhibiciones de RA
+    value: "sin RA por debajo de 1000 ft AGL (solo TA); sin RA de descenso por debajo de 1100 ft AGL; sin RA de ascenso en el techo de la aeronave"
+    source: Eurocontrol ACAS II Guide
+    code: safety/safetyNetLogic.js (TCAS.RA_MINIMUM_HEIGHT_AGL, DESCEND_RA_MINIMUM_HEIGHT_AGL, coordinatedSenses)
+    check: { module: safety/safetyNetLogic, export: TCAS, path: DESCEND_RA_MINIMUM_HEIGHT_AGL, equals: 1100 }
+    status: implementado
+  - id: TCA-003
+    rule: Respuesta del piloto a un RA de ascenso o descenso, tras su tiempo de reacción; un RA de nivelar mantiene la altitud actual
+    value: "1500 ft/min tras 5 s"
+    source: ICAO Doc 8168 Vol I (respuesta a RA); Eurocontrol ACAS II Guide
+    code: safety/safetyNetLogic.js (TCAS.RA_VERTICAL_SPEED_FPM, PILOT_REACTION_SECONDS); aircraft/AircraftModel.js (_applyResolutionAdvisory)
+    check: { module: safety/safetyNetLogic, export: TCAS, path: RA_VERTICAL_SPEED_FPM, equals: 1500 }
+    status: implementado
+  - id: TCA-004
+    rule: Coordinación y fin del RA
+    value: "sentidos complementarios (la de arriba asciende, la de abajo desciende, sin cruzarse); 'clear of conflict' tras 3 s sin amenaza y vuelta a la última autorización"
+    source: ICAO Anexo 10 Vol IV; Doc 4444 15.7.3
+    code: safety/SafetyNetController.js (_updateTcasOf, _clearOfConflict)
+    check: { module: safety/safetyNetLogic, export: TCAS, path: CLEAR_OF_CONFLICT_SECONDS, equals: 3 }
+    status: implementado
+  - id: TCA-005
+    rule: Un RA puntúa una vez por encuentro (la separación ya había fallado antes)
+    value: TCAS_RA
+    source: Decisión del simulador (SCO-004)
+    code: realism/Rulebook.js (TCAS_RA); safety/SafetyNetController.js (_issueRa)
+    status: implementado
+  - id: TCA-006
+    rule: Durante un RA la tripulación rechaza toda orden de altitud ('unable, TCAS RA'); una orden contraria al RA es una violación de seguridad. Los bots no pueden dar órdenes verticales a una aeronave en RA
+    value: INSTRUCTION_CONTRARY_TO_RA
+    source: ICAO Doc 4444 15.7.3.2
+    code: aircraft/AircraftCommander.js (runAltitude); realism/RealismController.js (_onContraryToRa); bot/safetyShield.js
+    status: implementado
+  - id: TCA-007
+    rule: Equipamiento TCAS II
+    value: "todas las aeronaves salvo las de estela ligera (L)"
+    source: Mandato ACAS II en Europa (más de 5700 kg o 19 asientos), aproximado por la categoría de estela
+    code: safety/SafetyNetController.js (hasTcas)
+    status: implementado
+
+  # ---------------------------------------------------------------- MSW / APW
+  - id: MSW-001
+    rule: MSAW avisa si una aeronave controlada estará más de 100 ft por debajo de la MVA en los próximos 30 s (salvo en final y salidas a menos de 10 NM del aeropuerto, y si no está descendiendo)
+    value: "30 s; tolerancia 100 ft"
+    source: FAA JO 7110.65 5-15 (MSAW); Eurocontrol (MSAW)
+    code: safety/safetyNetLogic.js (AREA_WARNINGS, timeBelowMinimumAltitude); safety/SafetyNetController.js
+    check: { module: safety/safetyNetLogic, export: AREA_WARNINGS, path: MSAW_LOOKAHEAD_SECONDS, equals: 30 }
+    status: implementado
+    notes: Solo en aeropuertos con terreno. No puntúa; lo que puntúa es MINIMUM_ALTITUDE_VIOLATION.
+  - id: APW-001
+    rule: APW avisa si una aeronave controlada entrará en una zona restringida por debajo de su techo en los próximos 60 s
+    value: 60 s
+    source: Eurocontrol (Area Proximity Warning)
+    code: safety/safetyNetLogic.js (AREA_WARNINGS, timeToAreaEntry); safety/SafetyNetController.js
+    check: { module: safety/safetyNetLogic, export: AREA_WARNINGS, path: APW_LOOKAHEAD_SECONDS, equals: 60 }
+    status: implementado
+    notes: No puntúa; lo que puntúa es RESTRICTED_AREA_ENTRY.
+
+  # ---------------------------------------------------------------- MET (se rellena con #6)
+  - id: MET-001
+    rule: Categorías de aproximación por visibilidad (DH y RVR mínimos). Una pista admite su categoría (ilsCategory) y las inferiores; sin dato, una pista con ILS es CAT I. Los aviones comerciales vuelan hasta CAT IIIA, los ligeros CAT I
+    value:
+      I: { decisionHeightFt: 200, rvrM: 550 }
+      II: { decisionHeightFt: 100, rvrM: 300 }
+      IIIA: { decisionHeightFt: 50, rvrM: 175 }
+      IIIB: { decisionHeightFt: 20, rvrM: 50 }
+    source: ICAO Anexo 6; Doc 9365 (DH de CAT IIIA/IIIB simplificadas a 50/20 ft)
+    code: weather/weatherLogic.js (APPROACH_CATEGORIES); airport/runway/RunwayModel.js (ilsCategories)
+    check: { module: weather/weatherLogic, export: APPROACH_CATEGORIES, table: true }
+    status: implementado
+  - id: MET-002
+    rule: Perfil vertical de viento de la meteorología dinámica (velocidad = superficie × factor + suma; dirección girada a la derecha con la altura), interpolado entre niveles
+    value:
+      "0 ft": "×1,0 · +0 kt · 0°"
+      "2000 ft": "×1,3 · +3 kt · 20°"
+      "5000 ft": "×1,4 · +8 kt · 30°"
+      "10 000 ft": "×1,2 · +18 kt · 35°"
+      "18 000 ft": "×1,1 · +32 kt · 40°"
+      "24 000 ft": "×1,0 · +45 kt · 45°"
+      "30 000 ft": "×1,0 · +55 kt · 45°"
+      "39 000 ft": "×1,0 · +50 kt · 45°"
+    source: Aproximación del simulador (capa límite y corriente en chorro típicas de latitudes medias)
+    code: weather/weatherLogic.js (WIND_PROFILE, windAtAltitude); airport/AirportModel.js (windProfile)
+    check: { module: weather/weatherLogic, export: WIND_PROFILE, path: "1.veer", equals: 20 }
+    status: implementado
+    notes: Solo en meteorología dinámica; la estática conserva ATM-002.
+  - id: MET-003
+    rule: El viento de superficie evoluciona cada minuto (paseo aleatorio acotado) y da rachas con viento fuerte
+    value: "±2°/min y ±0,6 kt/min, como mucho 40° y 10 kt del inicial; rachas 5-15 kt por encima a partir de 15 kt"
+    source: Aproximación del simulador
+    code: weather/weatherLogic.js (WIND_EVOLUTION, evolveWind)
+    check: { module: weather/weatherLogic, export: WIND_EVOLUTION, path: MAX_DIRECTION_DRIFT_DEG, equals: 40 }
+    status: implementado
+  - id: MET-004
+    rule: Procedimientos de baja visibilidad (LVP) con RVR < 550 m o techo < 200 ft; en LVP la separación mínima en final sube a 4 NM
+    value: "RVR 550 m · techo 200 ft · final 4 NM"
+    source: ICAO Doc 9365 (LVP); separación en final en LVP, decisión del simulador
+    code: weather/weatherLogic.js (LVP); weather/WeatherController.js (finalApproachMinimumNm)
+    check: { module: weather/weatherLogic, export: LVP, path: FINAL_SPACING_NM, equals: 4 }
+    status: implementado
+  - id: MET-005
+    rule: Episodios de niebla (probabilidad por hora según la climatología del aeropuerto, 5 % por defecto); la visibilidad baja a 150-800 m en 15 min, dura 30-60 min y se levanta igual; techo de estratos asociado
+    value: "5 %/h; 150-800 m; 30-60 min"
+    source: Aproximación del simulador; climatología en el JSON del aeropuerto (weather.climatology.fogPerHour)
+    code: weather/weatherLogic.js (EPISODES, fogVisibility, ceilingForVisibility)
+    check: { module: weather/weatherLogic, export: EPISODES, path: DEFAULT_FOG_PER_HOUR, equals: 0.05 }
+    status: implementado
+  - id: MET-006
+    rule: Tormentas (CB) a 15-40 NM del aeropuerto, radio 3-6 NM, cima FL300-FL450, intensidad máxima 3-5; se mueven con el viento a 10 000 ft, crecen en 15 min y viven 45-90 min; como mucho 4 a la vez
+    value: "15 %/h por defecto"
+    source: Aproximación del simulador; climatología (weather.climatology.thunderstormsPerHour)
+    code: weather/weatherLogic.js (createCell, cellAt)
+    check: { module: weather/weatherLogic, export: EPISODES, path: DEFAULT_THUNDERSTORMS_PER_HOUR, equals: 0.15 }
+    status: implementado
+  - id: MET-007
+    rule: No se entra en una celda de intensidad ≥ 3 por debajo de su cima. El piloto pide desvío si va a entrar en menos de 60 s; entrar puntúa WEATHER_PENETRATION. Para los bots, las celdas son zonas restringidas (con 1 NM de margen)
+    value: "intensidad 3; 60 s"
+    source: ICAO Doc 4444 8.6.9 (desvíos por meteorología); ICAO Doc 9137
+    code: weather/WeatherController.js (_checkThunderstorms, getCellAreas); bot/BotApi.js (restrictedAreas)
+    check: { module: weather/weatherLogic, export: EPISODES, path: AVOID_INTENSITY, equals: 3 }
+    status: implementado
+  - id: MET-008
+    rule: METAR del aeropuerto con el comando metar (o atis)
+    value: "METAR LEMD 200930Z 32012KT 9999 NSC 14/08 Q1018"
+    source: ICAO Anexo 3 (formato METAR)
+    code: weather/weatherLogic.js (buildMetar); InputController.js (metar)
+    status: implementado
+  - id: MET-009
+    rule: Si el viento lleva las pistas en uso más allá de sus límites (+2 kt de margen), se cambia a la configuración preferente que cumpla, con sus spawn patterns (sin ráfaga de tráfico)
+    value: "límites de DEP-001 + 2 kt"
+    source: ICAO Doc 4444 7.2.3
+    code: weather/WeatherController.js (_checkRunwayConfiguration); trafficGenerator/SpawnScheduler.js (switchSpawnPatterns)
+    status: implementado
+  - id: MET-010
+    rule: Por debajo de mínimos en la altura de decisión, frustrada; tras 2 frustradas por meteorología, la llegada se desvía a su alternativo (DIVERSION)
+    value: "2 frustradas"
+    source: ICAO Anexo 6 Parte I 4.4.1 (mínimos de utilización de aeródromo)
+    code: weather/WeatherController.js (checkLandingMinima, afterApproach); realism/RealismController.js (_checkDiversions)
+    status: implementado
+  - id: MET-011
+    rule: La meteorología dinámica tiene su propio generador aleatorio (semilla + 8800). En headless es estática salvo --weather dynamic, para que el protocolo de evaluación de los bots siga siendo comparable; en el navegador es dinámica por defecto
+    value: "semilla + 8800"
+    source: Decisión del simulador (ADR 0004)
+    code: weather/WeatherController.js; headless/HeadlessSimulator.js
+    status: implementado

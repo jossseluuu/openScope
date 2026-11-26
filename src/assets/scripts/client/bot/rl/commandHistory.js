@@ -29,6 +29,37 @@ const GROUP_OF_TYPE = {
 };
 
 /**
+ * Group of each aircraft command typed by the player (canonical names from `aircraftCommandMap`),
+ * so the audit can remember the player's orders the same way as the bots' actions
+ *
+ * @property GROUP_OF_COMMAND_NAME
+ * @type {object}
+ * @final
+ */
+export const GROUP_OF_COMMAND_NAME = {
+    heading: 'heading',
+    flyPresentHeading: 'heading',
+    altitude: 'altitude',
+    speed: 'speed',
+    direct: 'route',
+    route: 'route',
+    reroute: 'route',
+    sid: 'route',
+    star: 'route',
+    climbViaSid: 'route',
+    descendViaStar: 'route',
+    hold: 'route',
+    cancelHold: 'route',
+    ils: 'approach',
+    land: 'approach',
+    goAround: 'approach',
+    taxi: 'ground',
+    takeoff: 'ground',
+    abort: 'ground',
+    lineUp: 'ground'
+};
+
+/**
  * Seconds after which an order no longer counts as recent
  *
  * @property RECENT_SECONDS
@@ -66,8 +97,23 @@ export default class CommandHistory {
      * @param time {number}    simulation time in seconds
      */
     record(callsign, action, time) {
-        const group = GROUP_OF_TYPE[ACTIONS[action] && ACTIONS[action].type];
+        this._recordGroup(callsign, GROUP_OF_TYPE[ACTIONS[action] && ACTIONS[action].type], time);
+    }
 
+    /**
+     * Record a typed command, e.g. from the player
+     *
+     * @for CommandHistory
+     * @method recordCommandNames
+     * @param callsign {string}
+     * @param names {array<string>}  canonical command names, e.g. `['heading', 'altitude']`
+     * @param time {number}          simulation time in seconds
+     */
+    recordCommandNames(callsign, names, time) {
+        names.forEach((name) => this._recordGroup(callsign, GROUP_OF_COMMAND_NAME[name], time));
+    }
+
+    _recordGroup(callsign, group, time) {
         if (!group) {
             return;
         }

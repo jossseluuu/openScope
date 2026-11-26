@@ -18,8 +18,8 @@ node tools/sim/run-bot.js --bot A --airport lemd --minutes 60 --seed 1 [--wind 1
 ```
 
 Bot B (reinforcement learning) runs from Python; see
-[documentation/bot-information.md](../../documentation/bot-information.md) and
-[documentation/bot-training.md](../../documentation/bot-training.md).
+[docs/bots/informacion.md](../../docs/bots/informacion.md) and
+[docs/bots/entrenamiento.md](../../docs/bots/entrenamiento.md).
 
 ## Bridge for Python
 
@@ -73,4 +73,4 @@ Each aircraft also reports its wake categories (`wakeCategory` in the airport's
 scheme, `recatEu`, `wakeFaa`), its clearances, the remaining taxi time and the
 minimum vectoring altitude at its position (airports with terrain data only).
 
-The rules are described in [documentation/realism.md](../../documentation/realism.md).
+The rules are described in [docs/motor/realismo.md](../../docs/motor/realismo.md).

@@ -1,6 +1,6 @@
-[![openScope Current Release](https://img.shields.io/github/v/release/openscope/openscope.svg)](https://github.com/openscope/openscope/releases)
-[![Production Build State](https://img.shields.io/github/actions/workflow/status/openscope/openscope/push.yml?branch=master)](https://github.com/openscope/openscope/tree/master)
-[![Coverage Status](https://coveralls.io/repos/github/openscope/openscope/badge.svg?branch=develop)](https://coveralls.io/github/openscope/openscope?branch=develop)
+[![ci](https://github.com/jossseluuu/openScope/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jossseluuu/openScope/actions/workflows/ci.yml)
+[![deploy-github-pages](https://github.com/jossseluuu/openScope/actions/workflows/pages.yml/badge.svg)](https://jossseluuu.github.io/openScope/)
+[![openScope upstream release](https://img.shields.io/github/v/release/openscope/openscope.svg?label=upstream)](https://github.com/openscope/openscope/releases)
 [![Slack Status](https://img.shields.io/badge/slack-join-yellow)](https://join.slack.com/t/openscopeatc/shared_invite/zt-g9wq2mch-B7Z9IltlgxgCBC2dBYPjiw)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE.md)
 
@@ -15,19 +15,19 @@ in Spanish.
 
 - **Realism layer:** per-airport regulatory profiles, radar, wake turbulence and
   parallel-approach separation, terrain clearance and minimum vectoring altitudes,
-  and squawk 7700 emergencies ([emergencias.md](documentation/emergencias.md)).
+  and squawk 7700 emergencies ([emergencias.md](docs/guia-jugador/emergencias.md)).
 - **New airports:** Madrid-Barajas (LEMD) and Málaga (LEMG), from the Spanish AIP
-  ([LEMD guide](documentation/airport-guides/lemd.md),
-  [LEMG guide](documentation/airport-guides/lemg.md)).
+  ([LEMD guide](docs/aeropuertos/guias/lemd.md),
+  [LEMG guide](docs/aeropuertos/guias/lemg.md)).
 - **Headless simulator:** deterministic and faster than real time, driven from Python
   as a Gymnasium-style environment ([tools/sim](tools/sim/README.md)).
-- **Bot A**, expert rules and metaheuristics ([bot-a.md](documentation/bot-a.md)).
+- **Bot A**, expert rules and metaheuristics ([bot-a.md](docs/bots/bot-a.md)).
 - **Bot B**, reinforcement learning with PPO, exported to ONNX for the browser
-  ([bot-b.md](documentation/bot-b.md)).
+  ([bot-b.md](docs/bots/bot-b.md)).
 - **Bot C**, specialist agents with supervisors that audit every instruction
-  ([bot-c.md](documentation/bot-c.md)).
-- Training guide: [bot-training.md](documentation/bot-training.md); shared reference:
-  [bot-information.md](documentation/bot-information.md).
+  ([bot-c.md](docs/bots/bot-c.md)).
+- Training guide: [bot-training.md](docs/bots/entrenamiento.md); shared reference:
+  [bot-information.md](docs/bots/informacion.md).
 
 In the game, type `bot a`, `bot b` or `bot c` in the command bar to hand control to a
 bot, and `bot off` to take it back.
@@ -36,7 +36,7 @@ bot, and `bot off` to take it back.
 
 Visit http://openscope.io to begin playing now!
 
-If you're just getting started, try the tutorial and see the [command reference](documentation/commands.md) for a full list of commands you can use. For information on each airport, see the [airport guide](documentation/airport-guides/airport-guide-directory.md).
+If you're just getting started, try the tutorial and see the [command reference](docs/guia-jugador/comandos.md) for a full list of commands you can use. For information on each airport, see the [airport guide](docs/aeropuertos/guias/airport-guide-directory.md).
 
 Feel free to [join us on slack](https://join.slack.com/t/openscopeatc/shared_invite/zt-g9wq2mch-B7Z9IltlgxgCBC2dBYPjiw) if you have questions, comments or would like to contribute to the project. We can then add you to the organization so you can begin committing to this repo.
 
@@ -79,11 +79,11 @@ We do not use forks. Instead, we add to add all contributors to the openScope or
 
 We use the [GitFlow Branching Model](http://nvie.com/posts/a-successful-git-branching-model) for managing branches.  If you would like to contribute, you will be expected to use appropriate branch names based on this methodology (and we can help if you have questions).
 
-Don't know Javascript?  That's cool, we're always looking for beta testers and/or airport contributors.  If you would like to add a new airport, or help update existing airports, please read the [Airport Format Documentation](documentation/airport-format.md) and [Airport File Standards Documentation](documentation/airport-file-standards.md) to get up to speed on what is expected in that file.
+Don't know Javascript?  That's cool, we're always looking for beta testers and/or airport contributors.  If you would like to add a new airport, or help update existing airports, please read the [Airport Format Documentation](docs/aeropuertos/formato-aeropuerto.md) and [Airport File Standards Documentation](docs/aeropuertos/estandares.md) to get up to speed on what is expected in that file.
 
 ## Privacy Disclosures
 
-We use Google Analytics for gathering data about how our app is used. See [Event Tracking](documentation/event-tracking.md) for more information.
+We use Google Analytics for gathering data about how our app is used. See [Event Tracking](docs/desarrollo/eventos.md) for more information.
 
 ## License
 

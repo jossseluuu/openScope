@@ -1,0 +1,19 @@
+{
+    "description": "Problemas reales ya conocidos que no se pueden corregir sin datos fiables. El validador los muestra como 'conocido' y no hacen fallar la validación. Cada entrada necesita un motivo; bórrala en cuanto se corrija el dato.",
+    "issues": {
+        "kbna": [
+            {
+                "rule": "AP-003",
+                "contains": "HRTUN",
+                "reason": "La transición HRTUN de la STAR CHSNE2 usa un fijo sin definir. Ningún spawn pattern la usa (las llegadas entran por MEM). Falta la coordenada real (FAA)."
+            }
+        ],
+        "kslc": [
+            {
+                "rule": "AP-003",
+                "contains": "CCHIP",
+                "reason": "La STAR SPANE7 usa el fijo CCHIP sin definir. Ningún spawn pattern usa SPANE7. Falta la coordenada real (FAA)."
+            }
+        ]
+    }
+}

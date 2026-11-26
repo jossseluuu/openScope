@@ -4,6 +4,9 @@ import {
 import {
     bearing, distanceInsideAirspace, headingDifference, headingVector, normalizeHeading
 } from '../botGeometry';
+import { PERFORMANCE } from '../../constants/aircraftConstants';
+
+const { LEVEL_OFF_BAND_FT, LEVEL_OFF_MAX_RATE_FPM } = PERFORMANCE;
 
 /**
  * Short-term conflict detection and resolution (CD&R) of Bot A
@@ -142,6 +145,34 @@ export function verticalPlan(aircraft) {
  * @param seconds {number}
  * @return {object} `{ x, y, altitude }`
  */
+/**
+ * Altitude after `seconds` climbing or descending toward `target` as the aircraft model flies it: the
+ * normal rate, then at most 1500 ft/min in the last 1000 ft (VEL-002), unless expedited
+ *
+ * @function altitudeTowardLevel
+ * @param altitude {number}
+ * @param target {number}
+ * @param rate {number} ft/s
+ * @param seconds {number}
+ * @param isExpedited {boolean}
+ * @return {number}
+ */
+export function altitudeTowardLevel(altitude, target, rate, seconds, isExpedited) {
+    const direction = Math.sign(target - altitude);
+    const remaining = Math.abs(target - altitude);
+    const finalRate = isExpedited ? rate : Math.min(rate, LEVEL_OFF_MAX_RATE_FPM / 60);
+    const fastPart = isExpedited ? remaining : Math.max(0, remaining - LEVEL_OFF_BAND_FT);
+    const fastSeconds = fastPart / rate;
+
+    if (seconds <= fastSeconds) {
+        return altitude + direction * rate * seconds;
+    }
+
+    const covered = fastPart + finalRate * (seconds - fastSeconds);
+
+    return covered >= remaining ? target : altitude + direction * covered;
+}
+
 export function predictState(aircraft, seconds) {
     const velocity = headingVector(aircraft.groundTrack);
     const distanceNm = aircraft.groundSpeed * seconds / 3600;
@@ -152,11 +183,12 @@ export function predictState(aircraft, seconds) {
     if (isOnFinal(aircraft)) {
         altitude -= FINAL_DESCENT_FEET_PER_SECOND * seconds;
     } else if (Number.isFinite(target) && target > altitude) {
-        altitude = Math.min(target, altitude + CLIMB_FEET_PER_SECOND * verticalSeconds);
+        altitude = altitudeTowardLevel(altitude, target, CLIMB_FEET_PER_SECOND, verticalSeconds, false);
     } else if (Number.isFinite(target) && target < altitude) {
-        const rate = aircraft.clearance.expedite ? EXPEDITED_DESCENT_FEET_PER_SECOND : DESCENT_FEET_PER_SECOND;
+        const isExpedited = Boolean(aircraft.clearance.expedite);
+        const rate = isExpedited ? EXPEDITED_DESCENT_FEET_PER_SECOND : DESCENT_FEET_PER_SECOND;
 
-        altitude = Math.max(target, altitude - rate * verticalSeconds);
+        altitude = altitudeTowardLevel(altitude, target, rate, verticalSeconds, isExpedited);
     }
 
     return {

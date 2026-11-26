@@ -13,6 +13,10 @@ ava('sets #_options on instantiation', (t) => {
     const expectedResult = [
         'theme',
         'towerController',
+        'copilot',
+        'voice',
+        'weather',
+        'safetyNets',
         'emergencies',
         'controlMethod',
         'drawIlsDistanceSeparator',

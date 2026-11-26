@@ -88,7 +88,31 @@ ava('aliases of emergency', t => {
     test_aliases(t, AIRCRAFT_COMMAND_MAP, 'emergency', ['emergency', 'mayday']);
 });
 
-ava('make sure we test all 11 system commands', t => {
+ava('aliases, noop parser and zeroArgumentsValidator used by metar', t => {
+    const [parse, validate] = extractParseAndValidate(t, 'metar');
+    t.true(parse === noopParse() && validate === zeroArgVal());
+    test_aliases(t, AIRCRAFT_COMMAND_MAP, 'metar', ['metar', 'atis']);
+});
+
+ava('aliases, noop parser and singleArgumentValidator used by copilot', t => {
+    const [parse, validate] = extractParseAndValidate(t, 'copilot');
+    t.true(parse === noopParse() && validate === singleArgVal());
+    test_aliases(t, AIRCRAFT_COMMAND_MAP, 'copilot', ['copilot', 'copiloto']);
+});
+
+ava('aliases, noop parser and singleArgumentValidator used by delegate', t => {
+    const [parse, validate] = extractParseAndValidate(t, 'delegate');
+    t.true(parse === noopParse() && validate === singleArgVal());
+    test_aliases(t, AIRCRAFT_COMMAND_MAP, 'delegate', ['delegate', 'delegar']);
+});
+
+ava('aliases, noop parser and singleArgumentValidator used by recover', t => {
+    const [parse, validate] = extractParseAndValidate(t, 'recover');
+    t.true(parse === noopParse() && validate === singleArgVal());
+    test_aliases(t, AIRCRAFT_COMMAND_MAP, 'recover', ['recover', 'recuperar']);
+});
+
+ava('make sure we test all 15 system commands', t => {
     t.true(Object.values(AIRCRAFT_COMMAND_MAP)
-        .filter(val => val.isSystemCommand).length === 11);
+        .filter(val => val.isSystemCommand).length === 15);
 });

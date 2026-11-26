@@ -29,6 +29,11 @@ export const AIRCRAFT_COMMAND_MAP = {
         functionName: '',
         isSystemCommand: true
     },
+    metar: {
+        aliases: ['metar', 'atis'],
+        functionName: '',
+        isSystemCommand: true
+    },
     airport: {
         aliases: ['airport'],
         functionName: '',
@@ -51,6 +56,21 @@ export const AIRCRAFT_COMMAND_MAP = {
     },
     bot: {
         aliases: ['bot'],
+        functionName: '',
+        isSystemCommand: true
+    },
+    copilot: {
+        aliases: ['copilot', 'copiloto'],
+        functionName: '',
+        isSystemCommand: true
+    },
+    delegate: {
+        aliases: ['delegate', 'delegar'],
+        functionName: '',
+        isSystemCommand: true
+    },
+    recover: {
+        aliases: ['recover', 'recuperar'],
         functionName: '',
         isSystemCommand: true
     },

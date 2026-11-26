@@ -8,7 +8,9 @@
  *
  * Usage:
  *   node tools/sim/check-airports.js [--minutes 20] [--seed 1] [--emergencies 0.05]
- *       [--jobs 7] [--airports lemd,eddm] [--include-disabled] [--write]
+ *       [--jobs 7] [--airports lemd,eddm] [--include-disabled] [--write] [--strict]
+ *
+ * `--strict` exits with code 1 when any airport fails to run (used by CI).
  */
 /* eslint-disable no-console */
 const { spawn } = require('child_process');
@@ -40,6 +42,7 @@ const emergencies = argValue('--emergencies', '0.05');
 const jobs = Number(argValue('--jobs', Math.max(1, os.cpus().length - 1)));
 const includeDisabled = process.argv.includes('--include-disabled');
 const shouldWrite = process.argv.includes('--write');
+const isStrict = process.argv.includes('--strict');
 const loadList = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets', 'airports', 'airportLoadList.json'), 'utf8'));
 const requested = argValue('--airports', null);
 const airports = requested ?
@@ -127,6 +130,10 @@ async function main() {
             failed: failed.map((result) => ({ icao: result.icao, error: result.error }))
         }, null, 4)}\n`);
         console.log(`written ${path.relative(ROOT, OUTPUT)}`);
+    }
+
+    if (isStrict && failed.length > 0) {
+        process.exitCode = 1;
     }
 }
 

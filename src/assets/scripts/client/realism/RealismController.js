@@ -2,6 +2,8 @@ import AirportController from '../airport/AirportController';
 import EmergencyController from './EmergencyController';
 import EventBus from '../lib/EventBus';
 import MetricsCollector from './MetricsCollector';
+import SafetyNetController from '../safety/SafetyNetController';
+import WeatherController from '../weather/WeatherController';
 import Rulebook, { RULE } from './Rulebook';
 import TerrainClearance from './TerrainClearance';
 import TimeKeeper from '../engine/TimeKeeper';
@@ -205,11 +207,16 @@ export default class RealismController {
         this.rulebook = new Rulebook();
         this.metrics = new MetricsCollector();
         this.emergencies = new EmergencyController(this.rulebook);
+        // STCA, TCAS, MSAW and APW (they use this controller's exemptions, terrain and rulebook)
+        this.safetyNets = new SafetyNetController(this);
+        // dynamic wind, fog and thunderstorms (static in headless unless configured)
+        this.weather = new WeatherController(this);
 
         this._onTakeoffHandler = this._onTakeoff.bind(this);
         this._onGoAroundHandler = this._onGoAround.bind(this);
         this._onTakeoffCancelledHandler = this._onTakeoffCancelled.bind(this);
         this._onLineUpHandler = this._onLineUp.bind(this);
+        this._onContraryToRaHandler = this._onContraryToRa.bind(this);
 
         this.reset();
         this.enable();
@@ -224,6 +231,7 @@ export default class RealismController {
         EventBus.on(AIRCRAFT_EVENT.GO_AROUND, this._onGoAroundHandler);
         EventBus.on(AIRCRAFT_EVENT.TAKEOFF_CANCELLED, this._onTakeoffCancelledHandler);
         EventBus.on(AIRCRAFT_EVENT.LINE_UP, this._onLineUpHandler);
+        EventBus.on(AIRCRAFT_EVENT.CONTRARY_TO_RA, this._onContraryToRaHandler);
     }
 
     /**
@@ -235,6 +243,7 @@ export default class RealismController {
         EventBus.off(AIRCRAFT_EVENT.GO_AROUND, this._onGoAroundHandler);
         EventBus.off(AIRCRAFT_EVENT.TAKEOFF_CANCELLED, this._onTakeoffCancelledHandler);
         EventBus.off(AIRCRAFT_EVENT.LINE_UP, this._onLineUpHandler);
+        EventBus.off(AIRCRAFT_EVENT.CONTRARY_TO_RA, this._onContraryToRaHandler);
     }
 
     /**
@@ -264,6 +273,8 @@ export default class RealismController {
         this.rulebook.reset();
         this.metrics.reset(time);
         this.emergencies.reset();
+        this.safetyNets.reset();
+        this.weather.reset();
     }
 
     /**
@@ -299,6 +310,9 @@ export default class RealismController {
             this._checkRadarSeparation(aircraftList, airportModel, elapsed, time);
             this._checkFinalApproachSeparation(aircraftList, airportModel);
             this._checkTerrain(aircraftList, airportModel);
+            this.weather.update(aircraftList, airportModel, time);
+            this._checkDiversions(aircraftList);
+            this.safetyNets.update(aircraftList, airportModel, time);
             this.emergencies.update(aircraftList, time);
             this.metrics.update(time, aircraftList);
         }
@@ -490,7 +504,7 @@ export default class RealismController {
             separationMinima: profile ? {
                 radarNm: profile.radarSeparationNm,
                 verticalFt: profile.verticalSeparationFt,
-                finalApproachNm: profile.finalApproachSeparationNm,
+                finalApproachNm: this.weather.finalApproachMinimumNm(profile),
                 arrivalDepartureNm: profile.arrivalDepartureSeparationNm,
                 maxTailwindKt: profile.maxTailwindKt,
                 maxCrosswindKt: profile.maxCrosswindKt,
@@ -644,6 +658,15 @@ export default class RealismController {
                 }
             }
 
+            // low visibility: the runway must be in sight at the decision height (MET-010)
+            const minimaReason = this.weather.checkLandingMinima(aircraftModel, runwayModel, height);
+
+            if (minimaReason) {
+                this._goAround(aircraftModel, minimaReason);
+
+                continue;
+            }
+
             if (height <= RUNWAY_CLEAR_DECISION_HEIGHT_FT && this.isRunwayOccupied(runwayModel, aircraftModel)) {
                 const occupant = this.getRunwayOccupants(runwayModel, aircraftModel)[0];
 
@@ -673,6 +696,22 @@ export default class RealismController {
         }
 
         return null;
+    }
+
+    /**
+     * Arrivals that missed twice for the weather divert and leave the simulation (MET-010)
+     *
+     * @for RealismController
+     * @method _checkDiversions
+     * @param aircraftList {array<AircraftModel>}
+     * @private
+     */
+    _checkDiversions(aircraftList) {
+        aircraftList
+            .filter((aircraftModel) => aircraftModel.isArrival() && !aircraftModel.isOnGround() &&
+                aircraftModel.flightPhase !== FLIGHT_PHASE.APPROACH && aircraftModel.flightPhase !== FLIGHT_PHASE.LANDING)
+            .filter((aircraftModel) => this.weather.afterApproach(aircraftModel))
+            .forEach((aircraftModel) => this._aircraftController.aircraft_remove(aircraftModel));
     }
 
     /**
@@ -746,6 +785,23 @@ export default class RealismController {
         this._checkRunwayWind(aircraftModel, runwayModel, airportModel, 'landed', false);
         this.metrics.recordLanding(aircraftModel, time);
         this.emergencies.onTouchdown(aircraftModel, time);
+    }
+
+    /**
+     * A clearance against an active TCAS resolution advisory (TCA-006)
+     *
+     * @for RealismController
+     * @method _onContraryToRa
+     * @param aircraftModel {AircraftModel}
+     * @param clearedAltitude {number}
+     * @private
+     */
+    _onContraryToRa(aircraftModel, clearedAltitude) {
+        this.rulebook.record(
+            RULE.INSTRUCTION_CONTRARY_TO_RA,
+            [aircraftModel.callsign],
+            `cleared to ${Math.round(clearedAltitude)} ft during a TCAS RA at ${Math.round(aircraftModel.altitude)} ft`
+        );
     }
 
     /**
@@ -1445,7 +1501,7 @@ export default class RealismController {
                 const isVerticallySeparated = abs(leaderModel.altitude - followerModel.altitude) >= profile.verticalSeparationFt;
                 const pair = `${leaderModel.id}|${followerModel.id}`;
 
-                if (spacing < profile.finalApproachSeparationNm && !isVerticallySeparated) {
+                if (spacing < this.weather.finalApproachMinimumNm(profile) && !isVerticallySeparated) {
                     activeLosses[`final:${pair}`] = true;
 
                     if (!this._finalApproachLosses[`final:${pair}`]) {
@@ -1453,7 +1509,7 @@ export default class RealismController {
                             RULE.FINAL_APPROACH_SEPARATION,
                             [followerModel.callsign, leaderModel.callsign],
                             `${spacing.toFixed(1)} nm behind ${leaderModel.callsign} on final ${runwayName} ` +
-                            `(minimum ${profile.finalApproachSeparationNm} nm)`
+                            `(minimum ${this.weather.finalApproachMinimumNm(profile)} nm)`
                         );
                     }
                 } else if (spacing < wakeMinimum) {

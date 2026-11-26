@@ -7,7 +7,7 @@ import { SELECTORS } from '../constants/selectors';
  * documents to html. This is retrieved via ajax request and
  * stored in memory until needed
  *
- * _Original documentation can be found in `documentation/airport-guides`_
+ * _Original documentation can be found in `docs/aeropuertos/guias`_
  *
  * @class AirportGuideView
  */

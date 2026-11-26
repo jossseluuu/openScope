@@ -1,0 +1,859 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "http://openscope.io/assets/airports/schema/airport.schema.json",
+    "title": "Archivo de aeropuerto de openScope",
+    "description": "Estructura de assets/airports/<icao>.json tal como la lee el motor (AirportModel y modelos relacionados). La coherencia entre partes (fijos usados que existen, pistas recíprocas, rutas, etc.) la comprueban las reglas de tools/validate/rules/.",
+    "type": "object",
+    "required": [
+        "radio",
+        "icao",
+        "iata",
+        "magnetic_north",
+        "ctr_radius",
+        "ctr_ceiling",
+        "initial_alt",
+        "position",
+        "has_terrain",
+        "wind",
+        "arrivalRunway",
+        "departureRunway",
+        "defaultMaps",
+        "airspace",
+        "fixes",
+        "runways",
+        "sids",
+        "spawnPatterns",
+        "maps"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "airac": {
+            "description": "Ciclo AIRAC del que se tomaron los datos (AAMM, p. ej. 2511)",
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 9913
+        },
+        "radio": {
+            "type": "object",
+            "required": [
+                "twr",
+                "app",
+                "dep"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "twr": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "app": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "dep": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            }
+        },
+        "icao": {
+            "description": "Identificador ICAO en mayúsculas",
+            "type": "string",
+            "pattern": "^[A-Z]{4}$"
+        },
+        "iata": {
+            "type": "string",
+            "pattern": "^([A-Z0-9]{3})?$"
+        },
+        "magnetic_north": {
+            "description": "Declinación magnética en grados (positivo = este)",
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+        },
+        "ctr_radius": {
+            "description": "Radio del área simulada, en km",
+            "type": "number",
+            "exclusiveMinimum": 0
+        },
+        "ctr_ceiling": {
+            "description": "Techo del área simulada, en ft",
+            "type": "number",
+            "exclusiveMinimum": 0
+        },
+        "initial_alt": {
+            "description": "Altitud inicial de las salidas, en ft",
+            "type": "number",
+            "exclusiveMinimum": 0
+        },
+        "position": {
+            "$ref": "#/$defs/latLonElevation"
+        },
+        "rangeRings": {
+            "type": "object",
+            "required": [
+                "enabled",
+                "center",
+                "radius_nm"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "center": {
+                    "$ref": "#/$defs/latLon"
+                },
+                "radius_nm": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                }
+            }
+        },
+        "has_terrain": {
+            "type": "boolean"
+        },
+        "wind": {
+            "type": "object",
+            "required": [
+                "angle",
+                "speed"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "angle": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 360
+                },
+                "speed": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                }
+            }
+        },
+        "regulatoryProfile": {
+            "type": "string",
+            "enum": [
+                "EASA",
+                "FAA",
+                "ICAO"
+            ]
+        },
+        "arrivalRunway": {
+            "$ref": "#/$defs/runwayName"
+        },
+        "departureRunway": {
+            "$ref": "#/$defs/runwayName"
+        },
+        "runwayConfigurations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "arrivalRunway",
+                    "departureRunway",
+                    "runways"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "arrivalRunway": {
+                        "$ref": "#/$defs/runwayName"
+                    },
+                    "departureRunway": {
+                        "$ref": "#/$defs/runwayName"
+                    },
+                    "runways": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "$ref": "#/$defs/runwayName"
+                        }
+                    }
+                }
+            }
+        },
+        "taxiTimes": {
+            "description": "Tiempo de rodaje sin esperas hasta cada pista de salida, en segundos",
+            "type": "object",
+            "propertyNames": {
+                "$ref": "#/$defs/runwayName"
+            },
+            "additionalProperties": {
+                "type": "number",
+                "exclusiveMinimum": 0
+            }
+        },
+        "arrivalSpawn": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "preSpawn": {
+                    "type": "boolean"
+                },
+                "minimumIntervalSeconds": {
+                    "type": "number",
+                    "minimum": 0
+                }
+            }
+        },
+        "defaultMaps": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "string",
+                "minLength": 1
+            }
+        },
+        "airspace": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/$defs/airspace"
+            }
+        },
+        "fixes": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+                "$ref": "#/$defs/fix"
+            }
+        },
+        "restricted": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/restricted"
+            }
+        },
+        "runways": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/$defs/runwayPair"
+            }
+        },
+        "airways": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            }
+        },
+        "sids": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/$defs/sid"
+            }
+        },
+        "stars": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/$defs/star"
+            }
+        },
+        "spawnPatterns": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/$defs/spawnPattern"
+            }
+        },
+        "maps": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/$defs/map"
+            }
+        },
+        "weather": {
+            "type": "object",
+            "description": "Climatología para la meteorología dinámica (MET-005, MET-006)",
+            "additionalProperties": false,
+            "properties": {
+                "climatology": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "fogPerHour": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                        },
+                        "thunderstormsPerHour": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 2
+                        },
+                        "temperature": {
+                            "type": "number",
+                            "minimum": -40,
+                            "maximum": 50
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "$defs": {
+        "coordinate": {
+            "description": "Latitud o longitud: número decimal, o texto N/S/E/W en grados decimales, grados y minutos (N40d56.811) o grados, minutos y segundos (N40d56m48.65)",
+            "oneOf": [
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^([NSEW]?-?[0-9]{1,3}(\\.[0-9]+)?|[NSEW][0-9]{1,3}d[0-9]{1,2}(\\.[0-9]+)?(m[0-9]{1,2}(\\.[0-9]+)?)?)$"
+                }
+            ]
+        },
+        "elevation": {
+            "description": "Elevación: número o texto con unidad opcional (sin unidad = pies), p. ej. \"866ft\", \"12.5m\" o \"19000\"",
+            "oneOf": [
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?(ft|m)?$"
+                }
+            ]
+        },
+        "latLon": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+                "$ref": "#/$defs/coordinate"
+            }
+        },
+        "latLonElevation": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "items": [
+                {
+                    "$ref": "#/$defs/coordinate"
+                },
+                {
+                    "$ref": "#/$defs/coordinate"
+                },
+                {
+                    "$ref": "#/$defs/elevation"
+                }
+            ],
+            "additionalItems": false
+        },
+        "polygon": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+                "$ref": "#/$defs/latLon"
+            }
+        },
+        "runwayName": {
+            "description": "Nombre de pista: 01-36 con L, C o R opcional",
+            "type": "string",
+            "pattern": "^(0?[1-9]|[12][0-9]|3[0-6])[LCR]?$"
+        },
+        "fix": {
+            "description": "[latitud, longitud] o [latitud, longitud, pronunciación]",
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "items": [
+                {
+                    "$ref": "#/$defs/coordinate"
+                },
+                {
+                    "$ref": "#/$defs/coordinate"
+                },
+                {
+                    "type": "string"
+                }
+            ],
+            "additionalItems": false
+        },
+        "airspace": {
+            "type": "object",
+            "required": [
+                "floor",
+                "ceiling",
+                "airspace_class",
+                "poly"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "_name": {
+                    "type": "string",
+                    "description": "Nombre informativo (no lo lee el motor)"
+                },
+                "floor": {
+                    "description": "Suelo en niveles de vuelo (centenas de ft)",
+                    "type": "number",
+                    "minimum": 0
+                },
+                "ceiling": {
+                    "description": "Techo en niveles de vuelo (centenas de ft)",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "airspace_class": {
+                    "type": "string",
+                    "enum": [
+                        "A",
+                        "B",
+                        "C",
+                        "D",
+                        "E",
+                        "F",
+                        "G"
+                    ]
+                },
+                "poly": {
+                    "$ref": "#/$defs/polygon"
+                },
+                "labelPositions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/latLon"
+                    }
+                }
+            }
+        },
+        "restricted": {
+            "type": "object",
+            "required": [
+                "height",
+                "poly"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "height": {
+                    "description": "Techo de la zona: elevación con unidad, o \"Infinity\" (sin techo)",
+                    "oneOf": [
+                        {
+                            "$ref": "#/$defs/elevation"
+                        },
+                        {
+                            "type": "string",
+                            "const": "Infinity"
+                        }
+                    ]
+                },
+                "poly": {
+                    "$ref": "#/$defs/polygon"
+                },
+                "labelPositions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/latLon"
+                    }
+                }
+            }
+        },
+        "runwayPair": {
+            "type": "object",
+            "required": [
+                "name",
+                "end"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "$ref": "#/$defs/runwayName"
+                    }
+                },
+                "end": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "$ref": "#/$defs/latLonElevation"
+                    }
+                },
+                "ils": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "boolean"
+                    }
+                },
+                "ils_distance": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "number",
+                        "minimum": 0
+                    }
+                },
+                "loc_maxDist": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "number",
+                        "minimum": 0
+                    }
+                },
+                "glideslope": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10
+                    }
+                },
+                "ils_gs_maxHeight": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "number",
+                        "minimum": 0
+                    }
+                },
+                "sepFromAdjacent": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "number",
+                        "minimum": 0
+                    }
+                },
+                "delay": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "number",
+                        "minimum": 0
+                    }
+                },
+                "ilsCategory": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "Categoría ILS de cada extremo (MET-001); null si no tiene",
+                    "items": {
+                        "oneOf": [
+                            {
+                                "type": "null"
+                            },
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "I",
+                                    "II",
+                                    "IIIA",
+                                    "IIIB"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "leg": {
+            "description": "Elemento de un segmento de procedimiento: nombre de fijo (con ^ sobrevuelo, @ espera, # rumbo) o [fijo, restricciones]",
+            "oneOf": [
+                {
+                    "type": "string",
+                    "minLength": 1
+                },
+                {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                }
+            ]
+        },
+        "segment": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/leg"
+            }
+        },
+        "segmentMap": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/$defs/segment"
+            }
+        },
+        "drawLines": {
+            "type": "array",
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            }
+        },
+        "sid": {
+            "type": "object",
+            "required": [
+                "icao",
+                "name",
+                "rwy",
+                "exitPoints",
+                "draw"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "icao": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "name": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "suffix": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "altitude": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "rwy": {
+                    "type": "object",
+                    "$ref": "#/$defs/segmentMap",
+                    "minProperties": 1
+                },
+                "body": {
+                    "$ref": "#/$defs/segment"
+                },
+                "exitPoints": {
+                    "type": "object",
+                    "$ref": "#/$defs/segmentMap",
+                    "minProperties": 1
+                },
+                "draw": {
+                    "$ref": "#/$defs/drawLines"
+                }
+            }
+        },
+        "star": {
+            "type": "object",
+            "required": [
+                "icao",
+                "name",
+                "entryPoints",
+                "body",
+                "rwy",
+                "draw"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "icao": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "name": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "entryPoints": {
+                    "$ref": "#/$defs/segmentMap"
+                },
+                "body": {
+                    "$ref": "#/$defs/segment"
+                },
+                "rwy": {
+                    "$ref": "#/$defs/segmentMap"
+                },
+                "draw": {
+                    "$ref": "#/$defs/drawLines"
+                },
+                "holds": {
+                    "type": "object"
+                }
+            }
+        },
+        "spawnPattern": {
+            "type": "object",
+            "required": [
+                "origin",
+                "destination",
+                "category",
+                "route",
+                "method",
+                "rate",
+                "airlines"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "origin": {
+                    "type": "string"
+                },
+                "destination": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "arrival",
+                        "departure",
+                        "overflight"
+                    ]
+                },
+                "route": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "altitude": {
+                    "oneOf": [
+                        {
+                            "type": "number",
+                            "minimum": 0
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^([0-9]+(\\.[0-9]+)?)?$"
+                        },
+                        {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                                "type": "number",
+                                "minimum": 0
+                            }
+                        }
+                    ],
+                    "description": "Altitud de aparición en ft: número, [mínimo, máximo], texto numérico, o vacío (salidas)"
+                },
+                "speed": {
+                    "oneOf": [
+                        {
+                            "type": "number",
+                            "minimum": 0
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^([0-9]+(\\.[0-9]+)?)?$"
+                        }
+                    ]
+                },
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "random",
+                        "cyclic",
+                        "surge",
+                        "wave"
+                    ]
+                },
+                "rate": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "offset": {
+                    "type": "number"
+                },
+                "period": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "variation": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "entrail": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "number",
+                        "minimum": 0
+                    }
+                },
+                "commands": {
+                    "type": "object"
+                },
+                "runwayConfiguration": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "airlines": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": [
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            {
+                                "type": "number",
+                                "minimum": 0
+                            }
+                        ],
+                        "additionalItems": false
+                    }
+                }
+            }
+        },
+        "map": {
+            "type": "object",
+            "required": [
+                "name",
+                "lines"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "lines": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "minItems": 4,
+                        "maxItems": 4,
+                        "items": {
+                            "$ref": "#/$defs/coordinate"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

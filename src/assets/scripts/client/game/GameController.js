@@ -32,9 +32,17 @@ export const GAME_EVENTS_POINT_VALUES = {
     HIGH_CROSSWIND_OPERATION: -5,
     HIGH_TAILWIND_OPERATION: -25,
     ILLEGAL_APPROACH_CLEARANCE: -10,
+    // a clearance against an active TCAS resolution advisory (ICAO Doc 4444 15.7.3.2); provisional, SCO-004
+    INSTRUCTION_CONTRARY_TO_RA: -300,
     LOCALIZER_INTERCEPT_ABOVE_GLIDESLOPE: -10,
     NOT_CLEARED_ON_ROUTE: -25,
     SEPARATION_LOSS: -200,
+    // a TCAS resolution advisory: separation had already failed before it; provisional, SCO-004
+    TCAS_RA: -150,
+    // an aircraft flew into a thunderstorm cell (MET-007); provisional, SCO-004
+    WEATHER_PENETRATION: -100,
+    // an arrival diverted after missed approaches below minimums (MET-010); provisional, SCO-004
+    DIVERSION: -50,
     TAKEOFF_CANCEL_UNJUSTIFIED: -50,
     NO_TAKEOFF_SEPARATION: -200,
     RESTRICTED_AREA_ENTRY: -200,
@@ -138,7 +146,39 @@ export const GAME_EVENTS = {
      * @property TAKEOFF_CANCEL_UNJUSTIFIED
      * @type {string}
      */
-    TAKEOFF_CANCEL_UNJUSTIFIED: 'TAKEOFF_CANCEL_UNJUSTIFIED'
+    TAKEOFF_CANCEL_UNJUSTIFIED: 'TAKEOFF_CANCEL_UNJUSTIFIED',
+    /**
+     * An aircraft received a TCAS resolution advisory (TCA-005)
+     *
+     * @memberof GAME_EVENTS
+     * @property TCAS_RA
+     * @type {string}
+     */
+    TCAS_RA: 'TCAS_RA',
+    /**
+     * An aircraft in a TCAS resolution advisory was given a clearance against it (TCA-006)
+     *
+     * @memberof GAME_EVENTS
+     * @property INSTRUCTION_CONTRARY_TO_RA
+     * @type {string}
+     */
+    INSTRUCTION_CONTRARY_TO_RA: 'INSTRUCTION_CONTRARY_TO_RA',
+    /**
+     * An aircraft entered a thunderstorm cell (MET-007)
+     *
+     * @memberof GAME_EVENTS
+     * @property WEATHER_PENETRATION
+     * @type {string}
+     */
+    WEATHER_PENETRATION: 'WEATHER_PENETRATION',
+    /**
+     * An arrival diverted to its alternate after missed approaches below minimums (MET-010)
+     *
+     * @memberof GAME_EVENTS
+     * @property DIVERSION
+     * @type {string}
+     */
+    DIVERSION: 'DIVERSION'
 };
 
 /**
@@ -167,7 +207,11 @@ const GAME_EVENTS_DESCRIPTION = {
     RESTRICTED_AREA_ENTRY: 'Aircraft entered a restricted area',
     RUNWAY_INCURSION: 'Aircraft used an occupied runway',
     WAKE_SEPARATION_LOSS: 'Aircraft violated wake turbulence separation',
-    MINIMUM_ALTITUDE_VIOLATION: 'Aircraft descended below the minimum vectoring altitude'
+    MINIMUM_ALTITUDE_VIOLATION: 'Aircraft descended below the minimum vectoring altitude',
+    TCAS_RA: 'Aircraft received a TCAS resolution advisory',
+    INSTRUCTION_CONTRARY_TO_RA: 'Clearance contrary to a TCAS resolution advisory',
+    WEATHER_PENETRATION: 'Aircraft flew into a thunderstorm',
+    DIVERSION: 'Aircraft diverted, weather below minimums'
 };
 
 /**

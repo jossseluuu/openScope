@@ -64,18 +64,22 @@ function summarize(observation, violations, commandCount) {
  * @param [options.wind] {object}
  * @param [options.trafficScale] {number}
  * @param [options.emergencyRate] {number|null}  probability per flight of an emergency
+ * @param [options.safetyNets] {boolean|null}  STCA, TCAS, MSAW and APW (default on)
+ * @param [options.weather] {string|null}  static (default) or dynamic
  * @param [options.simulator] {HeadlessSimulator}
  * @param [options.onDecision] {function}  called with `(decisions, observation)`
  * @return {object} summary
  */
 function runEpisode({
-    bot, airport, seed, minutes, wind = null, trafficScale = 1, emergencyRate = null, simulator = null, onDecision = null
+    bot, airport, seed, minutes, wind = null, trafficScale = 1, emergencyRate = null, safetyNets = null, weather = null, simulator = null, onDecision = null
 }) {
     const sim = simulator || new HeadlessSimulator({ assetsPath: ASSETS_PATH });
     const interval = (bot.parameters && bot.parameters.decisionIntervalSeconds) || 5;
     const violations = [];
     let commandCount = 0;
-    let observation = sim.reset(airport, seed, { wind, trafficScale, emergencyRate });
+    let observation = sim.reset(airport, seed, {
+        wind, trafficScale, emergencyRate, safetyNets, weather
+    });
 
     bot.reset();
 

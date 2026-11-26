@@ -38,6 +38,10 @@ import {
     TIME
 } from '../constants/globalConstants';
 import { GAME_OPTION_NAMES } from '../constants/gameOptionConstants';
+import { safetyNetTag } from '../safety/SafetyNetController';
+import { EPISODES as WEATHER_EPISODES, cellPolygon } from '../weather/weatherLogic';
+
+const WEATHER_AVOID_INTENSITY = WEATHER_EPISODES.AVOID_INTENSITY;
 import { PROCEDURE_TYPE } from '../constants/routeConstants';
 import { leftPad } from '../utilities/generalUtilities';
 import {
@@ -427,6 +431,7 @@ export default class CanvasController {
         const dynamicCanvasCtx = this._getCanvasContextByName(CANVAS_NAME.DYNAMIC);
 
         this._clearCanvasContext(dynamicCanvasCtx);
+        this._drawWeatherCells(dynamicCanvasCtx);
         this._drawSelectedAircraftCompass(dynamicCanvasCtx);
         this._drawRadarTargetList(dynamicCanvasCtx);
         this._drawAircraftDataBlocks(dynamicCanvasCtx);
@@ -1651,6 +1656,15 @@ export default class CanvasController {
             fillStyle = this.theme.DATA_BLOCK.TEXT_EMERGENCY;
         }
 
+        // STCA, TCAS, MSAW and APW: the data block turns amber (caution) or red (alert)
+        const safetyTag = safetyNetTag(aircraftModel);
+
+        if (safetyTag && !aircraftModel.emergency) {
+            fillStyle = safetyTag.severity === 'alert' ?
+                this.theme.DATA_BLOCK.TEXT_SAFETY_ALERT :
+                this.theme.DATA_BLOCK.TEXT_SAFETY_CAUTION;
+        }
+
         cc.fillStyle = fillStyle;
 
         // Draw full datablock text
@@ -1658,6 +1672,14 @@ export default class CanvasController {
         cc.textAlign = 'left';
         cc.fillText(row1text, -this.theme.DATA_BLOCK.HALF_WIDTH + paddingLR, -gap / 2 - lineheight);
         cc.fillText(row2text, -this.theme.DATA_BLOCK.HALF_WIDTH + paddingLR, gap / 2 + lineheight);
+
+        // the alert name above the data block
+        if (safetyTag) {
+            cc.fillStyle = safetyTag.severity === 'alert' ?
+                this.theme.DATA_BLOCK.TEXT_SAFETY_ALERT :
+                this.theme.DATA_BLOCK.TEXT_SAFETY_CAUTION;
+            cc.fillText(safetyTag.text, -this.theme.DATA_BLOCK.HALF_WIDTH + paddingLR, -gap / 2 - lineheight * 3.5);
+        }
         cc.font = BASE_CANVAS_FONT;
 
         cc.restore();
@@ -2302,6 +2324,47 @@ export default class CanvasController {
                 cc.fillText(height, ...altLineCanvasPosition);
             }
         }
+
+        cc.restore();
+    }
+
+    /**
+     * Thunderstorm cells of the dynamic weather, as weather radar returns: amber below the intensity that
+     * must be avoided, red from it, with the top as a flight level (MET-006, MET-007)
+     *
+     * @for CanvasController
+     * @method _drawWeatherCells
+     * @param cc {HTMLCanvasContext}
+     * @private
+     */
+    _drawWeatherCells(cc) {
+        const realismController = this._aircraftController && this._aircraftController.realismController;
+        const cells = realismController && realismController.weather ? realismController.weather.state.cells : [];
+
+        if (!cells || cells.length === 0) {
+            return;
+        }
+
+        cc.save();
+        this._ccTranslateFromCanvasOriginToAirportCenter(cc);
+        cc.lineWidth = 2;
+        cc.font = BASE_CANVAS_FONT;
+        cc.textAlign = 'center';
+        cc.textBaseline = 'middle';
+
+        cells.forEach((cell) => {
+            const isSevere = cell.intensity >= WEATHER_AVOID_INTENSITY;
+            const color = isSevere ? this.theme.DATA_BLOCK.TEXT_SAFETY_ALERT : this.theme.DATA_BLOCK.TEXT_SAFETY_CAUTION;
+            const polygon = cellPolygon(cell).map((point) => [point.x * 1.852, point.y * 1.852]);
+            const label = CanvasStageModel.calculateRoundedCanvasPositionFromRelativePosition([cell.x * 1.852, cell.y * 1.852]);
+
+            cc.strokeStyle = color;
+            cc.fillStyle = color;
+            cc.globalAlpha = 0.15 + 0.05 * cell.intensity;
+            this._drawRelativePoly(cc, polygon, true);
+            cc.globalAlpha = 1;
+            cc.fillText(`CB FL${Math.round(cell.top / 100)}`, ...label);
+        });
 
         cc.restore();
     }

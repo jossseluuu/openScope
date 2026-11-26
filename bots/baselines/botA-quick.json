@@ -1,0 +1,192 @@
+{
+    "description": "Bot A on the evaluation protocol (tools/sim/regression.js)",
+    "commit": "773063d0",
+    "created": "2026-11-20",
+    "protocol": {
+        "scenarios": [
+            {
+                "name": "lemd-n",
+                "airport": "lemd",
+                "wind": null
+            },
+            {
+                "name": "lemd-s",
+                "airport": "lemd",
+                "wind": "180/15"
+            },
+            {
+                "name": "eddm",
+                "airport": "eddm",
+                "wind": null
+            },
+            {
+                "name": "lemg",
+                "airport": "lemg",
+                "wind": null
+            },
+            {
+                "name": "klax",
+                "airport": "klax",
+                "wind": null
+            }
+        ],
+        "seeds": [
+            4,
+            5
+        ],
+        "minutes": 60,
+        "emergencies": 0
+    },
+    "totals": {
+        "score": -1020,
+        "landings": 165,
+        "departures": 169,
+        "separationLosses": 13,
+        "wakeLosses": 2,
+        "airspaceBusts": 0,
+        "tier0": 0,
+        "tier1": 15
+    },
+    "episodes": [
+        {
+            "name": "eddm",
+            "airport": "eddm",
+            "wind": null,
+            "seed": 4,
+            "score": -145,
+            "landings": 14,
+            "departures": 14,
+            "separationLosses": 2,
+            "wakeLosses": 0,
+            "airspaceBusts": 0,
+            "tier0": 0,
+            "tier1": 2
+        },
+        {
+            "name": "eddm",
+            "airport": "eddm",
+            "wind": null,
+            "seed": 5,
+            "score": -330,
+            "landings": 12,
+            "departures": 16,
+            "separationLosses": 3,
+            "wakeLosses": 0,
+            "airspaceBusts": 0,
+            "tier0": 0,
+            "tier1": 3
+        },
+        {
+            "name": "klax",
+            "airport": "klax",
+            "wind": null,
+            "seed": 4,
+            "score": -535,
+            "landings": 21,
+            "departures": 23,
+            "separationLosses": 1,
+            "wakeLosses": 1,
+            "airspaceBusts": 0,
+            "tier0": 0,
+            "tier1": 2
+        },
+        {
+            "name": "klax",
+            "airport": "klax",
+            "wind": null,
+            "seed": 5,
+            "score": -550,
+            "landings": 21,
+            "departures": 24,
+            "separationLosses": 1,
+            "wakeLosses": 0,
+            "airspaceBusts": 0,
+            "tier0": 0,
+            "tier1": 1
+        },
+        {
+            "name": "lemd-n",
+            "airport": "lemd",
+            "wind": null,
+            "seed": 4,
+            "score": 380,
+            "landings": 21,
+            "departures": 17,
+            "separationLosses": 0,
+            "wakeLosses": 0,
+            "airspaceBusts": 0,
+            "tier0": 0,
+            "tier1": 0
+        },
+        {
+            "name": "lemd-n",
+            "airport": "lemd",
+            "wind": null,
+            "seed": 5,
+            "score": 110,
+            "landings": 20,
+            "departures": 22,
+            "separationLosses": 1,
+            "wakeLosses": 1,
+            "airspaceBusts": 0,
+            "tier0": 0,
+            "tier1": 2
+        },
+        {
+            "name": "lemd-s",
+            "airport": "lemd",
+            "wind": "180/15",
+            "seed": 4,
+            "score": 180,
+            "landings": 19,
+            "departures": 20,
+            "separationLosses": 1,
+            "wakeLosses": 0,
+            "airspaceBusts": 0,
+            "tier0": 0,
+            "tier1": 1
+        },
+        {
+            "name": "lemd-s",
+            "airport": "lemd",
+            "wind": "180/15",
+            "seed": 5,
+            "score": -410,
+            "landings": 18,
+            "departures": 21,
+            "separationLosses": 4,
+            "wakeLosses": 0,
+            "airspaceBusts": 0,
+            "tier0": 0,
+            "tier1": 4
+        },
+        {
+            "name": "lemg",
+            "airport": "lemg",
+            "wind": null,
+            "seed": 4,
+            "score": 90,
+            "landings": 7,
+            "departures": 5,
+            "separationLosses": 0,
+            "wakeLosses": 0,
+            "airspaceBusts": 0,
+            "tier0": 0,
+            "tier1": 0
+        },
+        {
+            "name": "lemg",
+            "airport": "lemg",
+            "wind": null,
+            "seed": 5,
+            "score": 190,
+            "landings": 12,
+            "departures": 7,
+            "separationLosses": 0,
+            "wakeLosses": 0,
+            "airspaceBusts": 0,
+            "tier0": 0,
+            "tier1": 0
+        }
+    ]
+}

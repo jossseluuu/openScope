@@ -51,3 +51,30 @@ ava('the export starts with a header that describes the encoding', (t) => {
     t.true(Number.isInteger(header.featureVersion));
     t.is(header.actionNames.length, header.actionCount);
 });
+
+ava('orders given by a bot or typed by the player are remembered for the recency features', (t) => {
+    const audit = createAudit();
+    const time = { now: 100 };
+
+    sinon.stub(TimeKeeper, 'accumulatedDeltaTime').get(() => time.now);
+    audit._onCommand({
+        source: 'bot A', callsign: 'IBE1', command: 'fh 270', action: 1, accepted: true
+    });
+    audit._onCommand({
+        source: 'player', callsign: 'RYR2', command: 'altitude 50 speed 180', commandNames: ['altitude', 'speed'], accepted: true
+    });
+    time.now = 190;
+
+    const [heading, altitude, speed] = audit._history.recency('IBE1', 190);
+    const player = audit._history.recency('RYR2', 190);
+
+    t.true(heading > 0 && heading < 1);
+    t.is(altitude, 0);
+    t.is(speed, 0);
+    t.is(player[0], 0);
+    t.true(player[1] > 0);
+    t.true(player[2] > 0);
+    // a new airport forgets them
+    audit.reset();
+    t.deepEqual(audit._history.recency('IBE1', 190), [0, 0, 0, 0, 0, 0]);
+});

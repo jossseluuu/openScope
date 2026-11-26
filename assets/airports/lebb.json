@@ -1,0 +1,4130 @@
+{
+    "airac": 2610,
+    "radio": {
+        "twr": "Bilbao Tower",
+        "app": "Bilbao Approach",
+        "dep": "Bilbao Departure"
+    },
+    "icao": "LEBB",
+    "iata": "BIO",
+    "magnetic_north": -1,
+    "ctr_radius": 60,
+    "ctr_ceiling": 14500,
+    "initial_alt": 6000,
+    "position": [
+        "N43d18m04.00",
+        "W2d54m38.00",
+        "136ft"
+    ],
+    "rangeRings": {
+        "enabled": true,
+        "center": [
+            "N43d18m04.00",
+            "W2d54m38.00"
+        ],
+        "radius_nm": 5
+    },
+    "has_terrain": true,
+    "wind": {
+        "angle": 300,
+        "speed": 8
+    },
+    "arrivalRunway": "30",
+    "departureRunway": "30",
+    "runwayConfigurations": [
+        {
+            "name": "west",
+            "arrivalRunway": "30",
+            "departureRunway": "30",
+            "runways": [
+                "30"
+            ]
+        },
+        {
+            "name": "east",
+            "arrivalRunway": "12",
+            "departureRunway": "12",
+            "runways": [
+                "12"
+            ]
+        }
+    ],
+    "taxiTimes": {
+        "30": 300,
+        "12": 300
+    },
+    "arrivalSpawn": {
+        "preSpawn": false,
+        "minimumIntervalSeconds": 180
+    },
+    "weather": {
+        "climatology": {
+            "fogPerHour": 0.05,
+            "thunderstormsPerHour": 0.06,
+            "temperature": 16
+        }
+    },
+    "defaultMaps": [
+        "Base Map"
+    ],
+    "airspace": [
+        {
+            "floor": 0,
+            "ceiling": 145,
+            "airspace_class": "D",
+            "poly": [
+                [
+                    "N43.681111",
+                    "W3.406389"
+                ],
+                [
+                    "N43.683333",
+                    "W2.590556"
+                ],
+                [
+                    "N43.258333",
+                    "W2.127222"
+                ],
+                [
+                    "N42.976667",
+                    "W1.823056"
+                ],
+                [
+                    "N42.883333",
+                    "W1.966667"
+                ],
+                [
+                    "N42.803889",
+                    "W2.088333"
+                ],
+                [
+                    "N42.966667",
+                    "W2.433333"
+                ],
+                [
+                    "N43.083333",
+                    "W2.683333"
+                ],
+                [
+                    "N42.810000",
+                    "W3.105556"
+                ],
+                [
+                    "N43.051389",
+                    "W3.443611"
+                ],
+                [
+                    "N43.166667",
+                    "W3.316667"
+                ],
+                [
+                    "N43.579722",
+                    "W3.316667"
+                ]
+            ]
+        },
+        {
+            "floor": 95,
+            "ceiling": 145,
+            "airspace_class": "D",
+            "poly": [
+                [
+                    "N43.083333",
+                    "W2.683333"
+                ],
+                [
+                    "N42.966667",
+                    "W2.433333"
+                ],
+                [
+                    "N42.803889",
+                    "W2.088333"
+                ],
+                [
+                    "N42.810000",
+                    "W3.105556"
+                ]
+            ]
+        }
+    ],
+    "fixes": {
+        "ALBIZ": [
+            "N43d12m45.00",
+            "W2d37m54.00"
+        ],
+        "AMPUR": [
+            "N43d19m24.00",
+            "W3d25m49.00"
+        ],
+        "AMTOS": [
+            "N42d59m06.60",
+            "W3d13m36.70"
+        ],
+        "ARBIN": [
+            "N42d40m47.00",
+            "W2d36m50.00"
+        ],
+        "ASPES": [
+            "N43d29m56.30",
+            "W3d09m29.70"
+        ],
+        "BADRU": [
+            "N43d44m11.00",
+            "W2d47m48.00"
+        ],
+        "BAGAS": [
+            "N43d05m54.00",
+            "W2d05m41.00"
+        ],
+        "BAPOR": [
+            "N43d40m18.00",
+            "W2d43m28.00"
+        ],
+        "BB11E": [
+            "N43d12m45.50",
+            "W2d40m13.40"
+        ],
+        "BB13W": [
+            "N43d24m11.60",
+            "W3d11m26.10"
+        ],
+        "BB400": [
+            "N43d17m46.00",
+            "W2d51m08.10"
+        ],
+        "BB401": [
+            "N43d07m55.30",
+            "W2d51m00.90"
+        ],
+        "BB402": [
+            "N43d09m14.40",
+            "W3d04m08.00"
+        ],
+        "BB403": [
+            "N43d22m53.90",
+            "W2d42m28.90"
+        ],
+        "BB404": [
+            "N43d29m01.20",
+            "W2d52m22.60"
+        ],
+        "BB405": [
+            "N43d29m01.10",
+            "W2d58m39.80"
+        ],
+        "BB406": [
+            "N43d27m02.10",
+            "W3d04m36.70"
+        ],
+        "BB500": [
+            "N43d21m56.60",
+            "W3d05m14.80"
+        ],
+        "BB501": [
+            "N43d31m08.20",
+            "W2d54m39.30"
+        ],
+        "BB602": [
+            "N43d28m02.40",
+            "W2d58m22.70"
+        ],
+        "BB605": [
+            "N43d18m25.20",
+            "W2d41m08.20"
+        ],
+        "BB606": [
+            "N43d14m40.20",
+            "W3d08m20.80"
+        ],
+        "BB607": [
+            "N43d10m03.60",
+            "W3d03m21.10"
+        ],
+        "BB700": [
+            "N43d12m15.60",
+            "W2d38m52.50"
+        ],
+        "BB800": [
+            "N43d06m11.00",
+            "W3d10m08.90"
+        ],
+        "BB802": [
+            "N43d28m25.80",
+            "W3d03m52.00"
+        ],
+        "BB803": [
+            "N43d25m33.50",
+            "W3d15m06.70"
+        ],
+        "BB804": [
+            "N43d15m14.20",
+            "W2d46m56.10"
+        ],
+        "BB900": [
+            "N43d04m56.90",
+            "W2d22m39.30"
+        ],
+        "BB901": [
+            "N43d12m15.20",
+            "W2d27m22.20"
+        ],
+        "BB902": [
+            "N43d16m39.80",
+            "W2d29m35.60"
+        ],
+        "BB903": [
+            "N43d13m56.80",
+            "W2d22m16.40"
+        ],
+        "BB904": [
+            "N43d19m12.50",
+            "W2d57m45.20"
+        ],
+        "BELEN": [
+            "N43d54m51.00",
+            "W2d44m19.00"
+        ],
+        "BLV": [
+            "N43d18m15.10",
+            "W2d55m31.30"
+        ],
+        "CALCE": [
+            "N43d21m45.80",
+            "W3d19m00.00"
+        ],
+        "CEGAM": [
+            "N42d59m01.40",
+            "W2d14m10.90"
+        ],
+        "DGO": [
+            "N42d27m12.30",
+            "W2d52m50.10"
+        ],
+        "DIRXA": [
+            "N43d07m42.50",
+            "W2d26m36.80"
+        ],
+        "DOSUL": [
+            "N43d40m50.00",
+            "W3d19m00.00"
+        ],
+        "ICASO": [
+            "N43d18m33.60",
+            "W2d19m28.30"
+        ],
+        "IDKER": [
+            "N43d38m38.00",
+            "W3d39m43.00"
+        ],
+        "IFASA": [
+            "N43d10m26.60",
+            "W2d33m58.30"
+        ],
+        "KUTEL": [
+            "N43d28m51.00",
+            "W3d21m27.00"
+        ],
+        "KUXUN": [
+            "N43d29m07.00",
+            "W3d19m11.00"
+        ],
+        "LOPNA": [
+            "N42d38m19.00",
+            "W2d57m39.00"
+        ],
+        "LORTU": [
+            "N43d23m54.00",
+            "W3d42m33.00"
+        ],
+        "LUKEP": [
+            "N43d14m57.00",
+            "W2d46m11.00"
+        ],
+        "MAPAX": [
+            "N43d41m01.50",
+            "W3d02m38.70"
+        ],
+        "NURVI": [
+            "N43d17m33.00",
+            "W3d19m01.00"
+        ],
+        "OLMET": [
+            "N43d20m22.60",
+            "W3d16m33.00"
+        ],
+        "OLUMI": [
+            "N43d22m15.00",
+            "W3d05m01.00"
+        ],
+        "OXERA": [
+            "N43d14m10.00",
+            "W2d45m11.00"
+        ],
+        "POPUL": [
+            "N43d56m55.00",
+            "W2d50m25.00"
+        ],
+        "PPN": [
+            "N42d44m01.50",
+            "W1d42m07.20"
+        ],
+        "RESVA": [
+            "N43d25m18.00",
+            "W3d26m35.00"
+        ],
+        "ROLES": [
+            "N43d05m57.00",
+            "W3d23m28.00"
+        ],
+        "SANTU": [
+            "N43d19m22.10",
+            "W3d07m00.30"
+        ],
+        "SNR": [
+            "N43d26m59.20",
+            "W3d54m08.70"
+        ],
+        "SORPO": [
+            "N43d21m08.00",
+            "W3d32m15.00"
+        ],
+        "SSN": [
+            "N43d18m40.30",
+            "W1d49m49.40"
+        ],
+        "SUNIR": [
+            "N43d23m03.50",
+            "W3d07m32.30"
+        ],
+        "UDALA": [
+            "N43d06m37.00",
+            "W2d30m38.00"
+        ],
+        "ULOFI": [
+            "N43d25m59.00",
+            "W3d13m57.00"
+        ],
+        "UVAKE": [
+            "N43d10m47.00",
+            "W2d31m37.00"
+        ],
+        "VAMIS": [
+            "N43d10m16.00",
+            "W3d30m33.00"
+        ],
+        "VFD": [
+            "N42d52m50.30",
+            "W2d43m27.70"
+        ],
+        "VRA": [
+            "N42d43m54.80",
+            "W2d51m56.10"
+        ],
+        "XIZCA": [
+            "N43d39m18.10",
+            "W2d49m15.40"
+        ],
+        "XORNA": [
+            "N43d48m45.00",
+            "W3d27m06.00"
+        ],
+        "ZURIA": [
+            "N42d49m03.00",
+            "W2d26m59.00"
+        ],
+        "_AMTOS_X": [
+            "N42d40m29.91",
+            "W3d45m39.59"
+        ],
+        "_CALCE_X": [
+            "N43d29m58.11",
+            "W3d58m42.41"
+        ],
+        "_DOSUL_X": [
+            "N44d02m54.19",
+            "W3d47m08.60"
+        ],
+        "_MAPAX_X": [
+            "N44d08m16.72",
+            "W3d19m59.01"
+        ],
+        "_PPN_X": [
+            "N42d27m13.58",
+            "W1d08m23.37"
+        ],
+        "_SSN_X": [
+            "N43d21m25.52",
+            "W1d08m46.82"
+        ],
+        "_XIZCA_X": [
+            "N44d09m09.37",
+            "W2d53m03.37"
+        ]
+    },
+    "runways": [
+        {
+            "name": [
+                "12",
+                "30"
+            ],
+            "end": [
+                [
+                    "N43d18m22.87",
+                    "W2d55m29.75",
+                    "119ft"
+                ],
+                [
+                    "N43d17m51.75",
+                    "W2d54m04.86",
+                    "128ft"
+                ]
+            ],
+            "ils": [
+                true,
+                true
+            ],
+            "ilsCategory": [
+                "I",
+                "I"
+            ]
+        },
+        {
+            "name": [
+                "10",
+                "28"
+            ],
+            "end": [
+                [
+                    "N43d18m11.73",
+                    "W2d56m09.30",
+                    "116ft"
+                ],
+                [
+                    "N43d18m06.65",
+                    "W2d55m09.59",
+                    "118ft"
+                ]
+            ],
+            "ils": [
+                false,
+                false
+            ],
+            "ilsCategory": [
+                null,
+                null
+            ]
+        }
+    ],
+    "sids": {
+        "AMTOS5A": {
+            "icao": "AMTOS5A",
+            "name": "AMTOS5A",
+            "rwy": {
+                "LEBB30": [
+                    "BB500"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "AMTOS": [
+                    [
+                        "AMTOS",
+                        "A100+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "BB500",
+                    "AMTOS*"
+                ]
+            ]
+        },
+        "CALCE7A": {
+            "icao": "CALCE7A",
+            "name": "CALCE7A",
+            "rwy": {
+                "LEBB30": [
+                    "BB500"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "CALCE": [
+                    [
+                        "CALCE",
+                        "A80+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "BB500",
+                    "CALCE*"
+                ]
+            ]
+        },
+        "DOSUL5A": {
+            "icao": "DOSUL5A",
+            "name": "DOSUL5A",
+            "rwy": {
+                "LEBB30": [
+                    "BB500"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "DOSUL": [
+                    [
+                        "DOSUL",
+                        "A100+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "BB500",
+                    "DOSUL*"
+                ]
+            ]
+        },
+        "MAPAX5A": {
+            "icao": "MAPAX5A",
+            "name": "MAPAX5A",
+            "rwy": {
+                "LEBB30": [
+                    "BB500"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "MAPAX": [
+                    [
+                        "MAPAX",
+                        "A100+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "BB500",
+                    "MAPAX*"
+                ]
+            ]
+        },
+        "PPN4E": {
+            "icao": "PPN4E",
+            "name": "PPN4E",
+            "rwy": {
+                "LEBB30": [
+                    "BB500",
+                    "BB501",
+                    "ICASO"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "PPN": [
+                    "PPN"
+                ]
+            },
+            "draw": [
+                [
+                    "BB500",
+                    "BB501",
+                    "ICASO",
+                    "PPN*"
+                ]
+            ]
+        },
+        "SSN4A": {
+            "icao": "SSN4A",
+            "name": "SSN4A",
+            "rwy": {
+                "LEBB30": [
+                    "BB500",
+                    "BB501",
+                    "ICASO"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "SSN": [
+                    "SSN"
+                ]
+            },
+            "draw": [
+                [
+                    "BB500",
+                    "BB501",
+                    "ICASO",
+                    "SSN*"
+                ]
+            ]
+        },
+        "XIZCA1A": {
+            "icao": "XIZCA1A",
+            "name": "XIZCA1A",
+            "rwy": {
+                "LEBB30": [
+                    "BB500"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "XIZCA": [
+                    [
+                        "XIZCA",
+                        "A100+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "BB500",
+                    "XIZCA*"
+                ]
+            ]
+        },
+        "AMTOS6B": {
+            "icao": "AMTOS6B",
+            "name": "AMTOS6B",
+            "rwy": {
+                "LEBB12": [
+                    "LUKEP"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "AMTOS": [
+                    [
+                        "AMTOS",
+                        "A100+|S210-"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "LUKEP",
+                    "AMTOS*"
+                ]
+            ]
+        },
+        "CALCE6B": {
+            "icao": "CALCE6B",
+            "name": "CALCE6B",
+            "rwy": {
+                "LEBB12": [
+                    "LUKEP"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "CALCE": [
+                    [
+                        "CALCE",
+                        "A80+|S220-"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "LUKEP",
+                    "CALCE*"
+                ]
+            ]
+        },
+        "DOSUL5B": {
+            "icao": "DOSUL5B",
+            "name": "DOSUL5B",
+            "rwy": {
+                "LEBB12": [
+                    "LUKEP"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "DOSUL": [
+                    [
+                        "DOSUL",
+                        "A100+|S230-"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "LUKEP",
+                    "DOSUL*"
+                ]
+            ]
+        },
+        "MAPAX5B": {
+            "icao": "MAPAX5B",
+            "name": "MAPAX5B",
+            "rwy": {
+                "LEBB12": [
+                    "LUKEP"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "MAPAX": [
+                    [
+                        "MAPAX",
+                        "A100+|S230-"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "LUKEP",
+                    "MAPAX*"
+                ]
+            ]
+        },
+        "PPN3H": {
+            "icao": "PPN3H",
+            "name": "PPN3H",
+            "rwy": {
+                "LEBB12": [
+                    "BB700"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "PPN": [
+                    "PPN"
+                ]
+            },
+            "draw": [
+                [
+                    "BB700",
+                    "PPN*"
+                ]
+            ]
+        },
+        "SSN4B": {
+            "icao": "SSN4B",
+            "name": "SSN4B",
+            "rwy": {
+                "LEBB12": [
+                    "LUKEP"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "SSN": [
+                    "SSN"
+                ]
+            },
+            "draw": [
+                [
+                    "LUKEP",
+                    "SSN*"
+                ]
+            ]
+        },
+        "XIZCA1B": {
+            "icao": "XIZCA1B",
+            "name": "XIZCA1B",
+            "rwy": {
+                "LEBB12": [
+                    "LUKEP"
+                ]
+            },
+            "body": [],
+            "exitPoints": {
+                "XIZCA": [
+                    [
+                        "XIZCA",
+                        "A100+|S230-"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "LUKEP",
+                    "XIZCA*"
+                ]
+            ]
+        }
+    },
+    "stars": {
+        "DGO2Q": {
+            "icao": "DGO2Q",
+            "name": "DGO2Q",
+            "entryPoints": {
+                "DGO": [
+                    [
+                        "DGO",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                "CEGAM",
+                [
+                    "BB900",
+                    "A70+"
+                ],
+                [
+                    "DIRXA",
+                    "A60+"
+                ]
+            ],
+            "rwy": {
+                "LEBB30": [
+                    [
+                        "IFASA",
+                        "A49+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "DGO*",
+                    "CEGAM",
+                    "BB900",
+                    "DIRXA"
+                ],
+                [
+                    "DIRXA",
+                    "IFASA"
+                ]
+            ]
+        },
+        "DOSUL5Q": {
+            "icao": "DOSUL5Q",
+            "name": "DOSUL5Q",
+            "entryPoints": {
+                "DOSUL": [
+                    [
+                        "DOSUL",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                "BLV",
+                [
+                    "IFASA",
+                    "A60+"
+                ]
+            ],
+            "rwy": {
+                "LEBB30": []
+            },
+            "draw": [
+                [
+                    "DOSUL*",
+                    "BLV",
+                    "IFASA"
+                ]
+            ]
+        },
+        "MAPAX4Q": {
+            "icao": "MAPAX4Q",
+            "name": "MAPAX4Q",
+            "entryPoints": {
+                "MAPAX": [
+                    [
+                        "MAPAX",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                "BB901",
+                [
+                    "IFASA",
+                    "A60+"
+                ]
+            ],
+            "rwy": {
+                "LEBB30": []
+            },
+            "draw": [
+                [
+                    "MAPAX*",
+                    "BB901",
+                    "IFASA"
+                ]
+            ]
+        },
+        "PPN1Q": {
+            "icao": "PPN1Q",
+            "name": "PPN1Q",
+            "entryPoints": {
+                "PPN": [
+                    [
+                        "PPN",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                [
+                    "CEGAM",
+                    "A65+"
+                ],
+                [
+                    "DIRXA",
+                    "A60+"
+                ]
+            ],
+            "rwy": {
+                "LEBB30": [
+                    [
+                        "IFASA",
+                        "A49+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "PPN*",
+                    "CEGAM",
+                    "DIRXA"
+                ],
+                [
+                    "DIRXA",
+                    "IFASA"
+                ]
+            ]
+        },
+        "SNR5Q": {
+            "icao": "SNR5Q",
+            "name": "SNR5Q",
+            "entryPoints": {
+                "SNR": [
+                    [
+                        "SNR",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                [
+                    "CALCE",
+                    "A80+"
+                ],
+                "BLV",
+                [
+                    "IFASA",
+                    "A60+"
+                ]
+            ],
+            "rwy": {
+                "LEBB30": []
+            },
+            "draw": [
+                [
+                    "SNR*",
+                    "CALCE",
+                    "BLV",
+                    "IFASA"
+                ]
+            ]
+        },
+        "SSN1Q": {
+            "icao": "SSN1Q",
+            "name": "SSN1Q",
+            "entryPoints": {
+                "SSN": [
+                    [
+                        "SSN",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                "CEGAM",
+                [
+                    "DIRXA",
+                    "A60+"
+                ]
+            ],
+            "rwy": {
+                "LEBB30": [
+                    [
+                        "IFASA",
+                        "A49+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "SSN*",
+                    "CEGAM",
+                    "DIRXA"
+                ],
+                [
+                    "DIRXA",
+                    "IFASA"
+                ]
+            ]
+        },
+        "DGO1V": {
+            "icao": "DGO1V",
+            "name": "DGO1V",
+            "entryPoints": {
+                "DGO": [
+                    [
+                        "DGO",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                [
+                    "BLV",
+                    "A60+"
+                ],
+                [
+                    "ASPES",
+                    "A40+"
+                ]
+            ],
+            "rwy": {
+                "LEBB12": [
+                    [
+                        "BB803",
+                        "S230-"
+                    ],
+                    [
+                        "BB13W",
+                        "A35+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "DGO*",
+                    "BLV",
+                    "ASPES"
+                ],
+                [
+                    "ASPES",
+                    "BB803",
+                    "BB13W"
+                ]
+            ]
+        },
+        "DGO3W": {
+            "icao": "DGO3W",
+            "name": "DGO3W",
+            "entryPoints": {
+                "DGO": [
+                    [
+                        "DGO",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                [
+                    "BB800",
+                    "A58+"
+                ],
+                [
+                    "OLMET",
+                    "A45+"
+                ],
+                [
+                    "SUNIR",
+                    "A40+"
+                ]
+            ],
+            "rwy": {
+                "LEBB12": [
+                    [
+                        "BB802",
+                        "S230-"
+                    ],
+                    "ASPES",
+                    "BB803",
+                    [
+                        "BB13W",
+                        "A35+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "DGO*",
+                    "BB800",
+                    "OLMET",
+                    "SUNIR"
+                ],
+                [
+                    "SUNIR",
+                    "BB802",
+                    "ASPES",
+                    "BB803",
+                    "BB13W"
+                ]
+            ]
+        },
+        "DGO3Z": {
+            "icao": "DGO3Z",
+            "name": "DGO3Z",
+            "entryPoints": {
+                "DGO": [
+                    [
+                        "DGO",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                [
+                    "BB800",
+                    "A58+"
+                ],
+                [
+                    "OLMET",
+                    "A45+"
+                ]
+            ],
+            "rwy": {
+                "LEBB12": [
+                    [
+                        "BB803",
+                        "S230-"
+                    ],
+                    [
+                        "BB13W",
+                        "A35+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "DGO*",
+                    "BB800",
+                    "OLMET"
+                ],
+                [
+                    "OLMET",
+                    "BB803",
+                    "BB13W"
+                ]
+            ]
+        },
+        "DOSUL4T": {
+            "icao": "DOSUL4T",
+            "name": "DOSUL4T",
+            "entryPoints": {
+                "DOSUL": [
+                    [
+                        "DOSUL",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                [
+                    "ASPES",
+                    "A40+"
+                ]
+            ],
+            "rwy": {
+                "LEBB12": [
+                    [
+                        "BB803",
+                        "S230-"
+                    ],
+                    [
+                        "BB13W",
+                        "A35+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "DOSUL*",
+                    "ASPES"
+                ],
+                [
+                    "ASPES",
+                    "BB803",
+                    "BB13W"
+                ]
+            ]
+        },
+        "MAPAX4T": {
+            "icao": "MAPAX4T",
+            "name": "MAPAX4T",
+            "entryPoints": {
+                "MAPAX": [
+                    [
+                        "MAPAX",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                [
+                    "ASPES",
+                    "A40+"
+                ]
+            ],
+            "rwy": {
+                "LEBB12": [
+                    [
+                        "BB803",
+                        "S230-"
+                    ],
+                    [
+                        "BB13W",
+                        "A35+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "MAPAX*",
+                    "ASPES"
+                ],
+                [
+                    "ASPES",
+                    "BB803",
+                    "BB13W"
+                ]
+            ]
+        },
+        "SNR5T": {
+            "icao": "SNR5T",
+            "name": "SNR5T",
+            "entryPoints": {
+                "SNR": [
+                    [
+                        "SNR",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                [
+                    "KUXUN",
+                    "A40+"
+                ]
+            ],
+            "rwy": {
+                "LEBB12": [
+                    [
+                        "BB803",
+                        "S230-"
+                    ],
+                    [
+                        "BB13W",
+                        "A35+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "SNR*",
+                    "KUXUN"
+                ],
+                [
+                    "KUXUN",
+                    "BB803",
+                    "BB13W"
+                ]
+            ]
+        },
+        "SNR2W": {
+            "icao": "SNR2W",
+            "name": "SNR2W",
+            "entryPoints": {
+                "SNR": [
+                    [
+                        "SNR",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                "KUXUN",
+                [
+                    "SUNIR",
+                    "A40+"
+                ]
+            ],
+            "rwy": {
+                "LEBB12": [
+                    [
+                        "BB802",
+                        "S230-"
+                    ],
+                    "ASPES",
+                    "BB803",
+                    [
+                        "BB13W",
+                        "A35+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "SNR*",
+                    "KUXUN",
+                    "SUNIR"
+                ],
+                [
+                    "SUNIR",
+                    "BB802",
+                    "ASPES",
+                    "BB803",
+                    "BB13W"
+                ]
+            ]
+        },
+        "SSN1V": {
+            "icao": "SSN1V",
+            "name": "SSN1V",
+            "entryPoints": {
+                "SSN": [
+                    [
+                        "SSN",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                [
+                    "ICASO",
+                    "A65+"
+                ],
+                [
+                    "ASPES",
+                    "A40+"
+                ]
+            ],
+            "rwy": {
+                "LEBB12": [
+                    [
+                        "BB803",
+                        "S230-"
+                    ],
+                    [
+                        "BB13W",
+                        "A35+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "SSN*",
+                    "ICASO",
+                    "ASPES"
+                ],
+                [
+                    "ASPES",
+                    "BB803",
+                    "BB13W"
+                ]
+            ]
+        },
+        "PPN1V": {
+            "icao": "PPN1V",
+            "name": "PPN1V",
+            "entryPoints": {
+                "PPN": [
+                    [
+                        "PPN",
+                        "A100+"
+                    ]
+                ]
+            },
+            "body": [
+                [
+                    "ICASO",
+                    "A65+"
+                ],
+                [
+                    "ASPES",
+                    "A40+"
+                ]
+            ],
+            "rwy": {
+                "LEBB12": [
+                    [
+                        "BB803",
+                        "S230-"
+                    ],
+                    [
+                        "BB13W",
+                        "A35+"
+                    ]
+                ]
+            },
+            "draw": [
+                [
+                    "PPN*",
+                    "ICASO",
+                    "ASPES"
+                ],
+                [
+                    "ASPES",
+                    "BB803",
+                    "BB13W"
+                ]
+            ]
+        }
+    },
+    "spawnPatterns": [
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "DGO.DGO2Q.LEBB30",
+            "altitude": [
+                11000,
+                14000
+            ],
+            "speed": 280,
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 2.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "SSN.SSN1Q.LEBB30",
+            "altitude": [
+                11000,
+                14000
+            ],
+            "speed": 280,
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 2.0,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "PPN.PPN1Q.LEBB30",
+            "altitude": [
+                11000,
+                14000
+            ],
+            "speed": 280,
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 1.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "MAPAX.MAPAX4Q.LEBB30",
+            "altitude": [
+                10000,
+                12000
+            ],
+            "speed": 250,
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 1.0,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "DOSUL.DOSUL5Q.LEBB30",
+            "altitude": [
+                10000,
+                12000
+            ],
+            "speed": 250,
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 0.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "SNR.SNR5Q.LEBB30",
+            "altitude": [
+                11000,
+                14000
+            ],
+            "speed": 250,
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 0.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "DGO.DGO1V.LEBB12",
+            "altitude": [
+                11000,
+                14000
+            ],
+            "speed": 280,
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 2.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "SSN.SSN1V.LEBB12",
+            "altitude": [
+                11000,
+                14000
+            ],
+            "speed": 280,
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 2.0,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "PPN.PPN1V.LEBB12",
+            "altitude": [
+                11000,
+                14000
+            ],
+            "speed": 280,
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 1.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "MAPAX.MAPAX4T.LEBB12",
+            "altitude": [
+                10000,
+                12000
+            ],
+            "speed": 250,
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 1.0,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "DOSUL.DOSUL4T.LEBB12",
+            "altitude": [
+                10000,
+                12000
+            ],
+            "speed": 250,
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 0.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "",
+            "destination": "LEBB",
+            "category": "arrival",
+            "route": "SNR.SNR2W.LEBB12",
+            "altitude": [
+                11000,
+                14000
+            ],
+            "speed": 250,
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 0.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB30.AMTOS5A.AMTOS.._AMTOS_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 2.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB30.SSN4A.SSN.._SSN_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 1.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB30.PPN4E.PPN.._PPN_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 1.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB30.XIZCA1A.XIZCA.._XIZCA_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 1.0,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB30.MAPAX5A.MAPAX.._MAPAX_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 0.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB30.DOSUL5A.DOSUL.._DOSUL_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 0.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB30.CALCE7A.CALCE.._CALCE_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "west",
+            "rate": 0.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB12.AMTOS6B.AMTOS.._AMTOS_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 2.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB12.SSN4B.SSN.._SSN_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 1.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB12.PPN3H.PPN.._PPN_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 1.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB12.XIZCA1B.XIZCA.._XIZCA_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 1.0,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB12.MAPAX5B.MAPAX.._MAPAX_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 0.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB12.DOSUL5B.DOSUL.._DOSUL_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 0.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    8
+                ],
+                [
+                    "dlh/short",
+                    4
+                ],
+                [
+                    "ezy",
+                    4
+                ],
+                [
+                    "afr/short",
+                    3
+                ],
+                [
+                    "klm/short",
+                    3
+                ],
+                [
+                    "baw/short",
+                    2
+                ],
+                [
+                    "tap/short",
+                    2
+                ],
+                [
+                    "bel/short",
+                    2
+                ],
+                [
+                    "swr/short",
+                    1
+                ],
+                [
+                    "ein/short",
+                    1
+                ],
+                [
+                    "voe/short",
+                    2
+                ],
+                [
+                    "ryr",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        },
+        {
+            "origin": "LEBB",
+            "destination": "",
+            "category": "departure",
+            "route": "LEBB12.CALCE6B.CALCE.._CALCE_X",
+            "altitude": "",
+            "speed": "",
+            "method": "random",
+            "runwayConfiguration": "east",
+            "rate": 0.5,
+            "airlines": [
+                [
+                    "vlg/short",
+                    16
+                ],
+                [
+                    "ibe/short",
+                    6
+                ],
+                [
+                    "ane",
+                    6
+                ],
+                [
+                    "voe/short",
+                    6
+                ],
+                [
+                    "aea/short",
+                    3
+                ],
+                [
+                    "ibs",
+                    2
+                ],
+                [
+                    "ec/fastGA",
+                    1
+                ]
+            ]
+        }
+    ],
+    "maps": [
+        {
+            "name": "Base Map",
+            "lines": [
+                [
+                    "N43.396288",
+                    "W1.700821",
+                    "N43.391048",
+                    "W1.735153"
+                ],
+                [
+                    "N43.391048",
+                    "W1.735153",
+                    "N43.381439",
+                    "W1.763992"
+                ],
+                [
+                    "N43.381439",
+                    "W1.763992",
+                    "N43.373861",
+                    "W1.776352"
+                ],
+                [
+                    "N43.373861",
+                    "W1.776352",
+                    "N43.376057",
+                    "W1.781845"
+                ],
+                [
+                    "N43.376057",
+                    "W1.781845",
+                    "N43.394638",
+                    "W1.791458"
+                ],
+                [
+                    "N43.394638",
+                    "W1.791458",
+                    "N43.397004",
+                    "W1.809311"
+                ],
+                [
+                    "N43.397004",
+                    "W1.809311",
+                    "N43.373413",
+                    "W1.871109"
+                ],
+                [
+                    "N43.373413",
+                    "W1.871109",
+                    "N43.363628",
+                    "W1.885266"
+                ],
+                [
+                    "N43.363628",
+                    "W1.885266",
+                    "N43.352645",
+                    "W1.893382"
+                ],
+                [
+                    "N43.352645",
+                    "W1.893382",
+                    "N43.349649",
+                    "W1.900826"
+                ],
+                [
+                    "N43.349649",
+                    "W1.900826",
+                    "N43.351646",
+                    "W1.909637"
+                ],
+                [
+                    "N43.351646",
+                    "W1.909637",
+                    "N43.365625",
+                    "W1.919991"
+                ],
+                [
+                    "N43.365625",
+                    "W1.919991",
+                    "N43.363511",
+                    "W1.961746"
+                ],
+                [
+                    "N43.363511",
+                    "W1.961746",
+                    "N43.357637",
+                    "W1.972076"
+                ],
+                [
+                    "N43.357637",
+                    "W1.972076",
+                    "N43.336665",
+                    "W1.983150"
+                ],
+                [
+                    "N43.336665",
+                    "W1.983150",
+                    "N43.327037",
+                    "W1.983719"
+                ],
+                [
+                    "N43.327037",
+                    "W1.983719",
+                    "N43.328084",
+                    "W1.990585"
+                ],
+                [
+                    "N43.328084",
+                    "W1.990585",
+                    "N43.322713",
+                    "W1.994705"
+                ],
+                [
+                    "N43.322713",
+                    "W1.994705",
+                    "N43.333914",
+                    "W2.019424"
+                ],
+                [
+                    "N43.333914",
+                    "W2.019424",
+                    "N43.344882",
+                    "W2.033157"
+                ],
+                [
+                    "N43.344882",
+                    "W2.033157",
+                    "N43.337664",
+                    "W2.051776"
+                ],
+                [
+                    "N43.337664",
+                    "W2.051776",
+                    "N43.325677",
+                    "W2.046888"
+                ],
+                [
+                    "N43.325677",
+                    "W2.046888",
+                    "N43.318026",
+                    "W2.052383"
+                ],
+                [
+                    "N43.318026",
+                    "W2.052383",
+                    "N43.315274",
+                    "W2.108688"
+                ],
+                [
+                    "N43.315274",
+                    "W2.108688",
+                    "N43.301696",
+                    "W2.118528"
+                ],
+                [
+                    "N43.301696",
+                    "W2.118528",
+                    "N43.297936",
+                    "W2.125168"
+                ],
+                [
+                    "N43.297936",
+                    "W2.125168",
+                    "N43.300533",
+                    "W2.137527"
+                ],
+                [
+                    "N43.300533",
+                    "W2.137527",
+                    "N43.297698",
+                    "W2.153688"
+                ],
+                [
+                    "N43.297698",
+                    "W2.153688",
+                    "N43.301696",
+                    "W2.155246"
+                ],
+                [
+                    "N43.301696",
+                    "W2.155246",
+                    "N43.305693",
+                    "W2.148902"
+                ],
+                [
+                    "N43.305693",
+                    "W2.148902",
+                    "N43.306693",
+                    "W2.157862"
+                ],
+                [
+                    "N43.306693",
+                    "W2.157862",
+                    "N43.301696",
+                    "W2.165371"
+                ],
+                [
+                    "N43.301696",
+                    "W2.165371",
+                    "N43.295699",
+                    "W2.165594"
+                ],
+                [
+                    "N43.295699",
+                    "W2.165594",
+                    "N43.290701",
+                    "W2.161217"
+                ],
+                [
+                    "N43.290701",
+                    "W2.161217",
+                    "N43.289356",
+                    "W2.166367"
+                ],
+                [
+                    "N43.289356",
+                    "W2.166367",
+                    "N43.296699",
+                    "W2.179898"
+                ],
+                [
+                    "N43.296699",
+                    "W2.179898",
+                    "N43.306693",
+                    "W2.180714"
+                ],
+                [
+                    "N43.306693",
+                    "W2.180714",
+                    "N43.316531",
+                    "W2.195206"
+                ],
+                [
+                    "N43.316531",
+                    "W2.195206",
+                    "N43.313446",
+                    "W2.214432"
+                ],
+                [
+                    "N43.313446",
+                    "W2.214432",
+                    "N43.314192",
+                    "W2.247391"
+                ],
+                [
+                    "N43.314192",
+                    "W2.247391",
+                    "N43.311689",
+                    "W2.251304"
+                ],
+                [
+                    "N43.311689",
+                    "W2.251304",
+                    "N43.304694",
+                    "W2.253045"
+                ],
+                [
+                    "N43.304694",
+                    "W2.253045",
+                    "N43.302886",
+                    "W2.261124"
+                ],
+                [
+                    "N43.302886",
+                    "W2.261124",
+                    "N43.305926",
+                    "W2.267990"
+                ],
+                [
+                    "N43.305926",
+                    "W2.267990",
+                    "N43.301789",
+                    "W2.281723"
+                ],
+                [
+                    "N43.301789",
+                    "W2.281723",
+                    "N43.300652",
+                    "W2.310562"
+                ],
+                [
+                    "N43.300652",
+                    "W2.310562",
+                    "N43.315107",
+                    "W2.332535"
+                ],
+                [
+                    "N43.315107",
+                    "W2.332535",
+                    "N43.311628",
+                    "W2.347641"
+                ],
+                [
+                    "N43.311628",
+                    "W2.347641",
+                    "N43.316282",
+                    "W2.360001"
+                ],
+                [
+                    "N43.316282",
+                    "W2.360001",
+                    "N43.316966",
+                    "W2.379227"
+                ],
+                [
+                    "N43.316966",
+                    "W2.379227",
+                    "N43.331661",
+                    "W2.394333"
+                ],
+                [
+                    "N43.331661",
+                    "W2.394333",
+                    "N43.329758",
+                    "W2.412186"
+                ],
+                [
+                    "N43.329758",
+                    "W2.412186",
+                    "N43.343641",
+                    "W2.428665"
+                ],
+                [
+                    "N43.343641",
+                    "W2.428665",
+                    "N43.347566",
+                    "W2.462997"
+                ],
+                [
+                    "N43.347566",
+                    "W2.462997",
+                    "N43.363956",
+                    "W2.475357"
+                ],
+                [
+                    "N43.363956",
+                    "W2.475357",
+                    "N43.366451",
+                    "W2.490463"
+                ],
+                [
+                    "N43.366451",
+                    "W2.490463",
+                    "N43.375937",
+                    "W2.502823"
+                ],
+                [
+                    "N43.375937",
+                    "W2.502823",
+                    "N43.378228",
+                    "W2.509689"
+                ],
+                [
+                    "N43.378228",
+                    "W2.509689",
+                    "N43.376107",
+                    "W2.538528"
+                ],
+                [
+                    "N43.376107",
+                    "W2.538528",
+                    "N43.377604",
+                    "W2.534361"
+                ],
+                [
+                    "N43.377604",
+                    "W2.534361",
+                    "N43.384591",
+                    "W2.550833"
+                ],
+                [
+                    "N43.384591",
+                    "W2.550833",
+                    "N43.398673",
+                    "W2.555008"
+                ],
+                [
+                    "N43.398673",
+                    "W2.555008",
+                    "N43.399304",
+                    "W2.587967"
+                ],
+                [
+                    "N43.399304",
+                    "W2.587967",
+                    "N43.391702",
+                    "W2.596207"
+                ],
+                [
+                    "N43.391702",
+                    "W2.596207",
+                    "N43.394633",
+                    "W2.605820"
+                ],
+                [
+                    "N43.394633",
+                    "W2.605820",
+                    "N43.396566",
+                    "W2.600707"
+                ],
+                [
+                    "N43.396566",
+                    "W2.600707",
+                    "N43.399768",
+                    "W2.601700"
+                ],
+                [
+                    "N43.399768",
+                    "W2.601700",
+                    "N43.401041",
+                    "W2.627792"
+                ],
+                [
+                    "N43.401041",
+                    "W2.627792",
+                    "N43.408532",
+                    "W2.633286"
+                ],
+                [
+                    "N43.408532",
+                    "W2.633286",
+                    "N43.406544",
+                    "W2.634845"
+                ],
+                [
+                    "N43.406544",
+                    "W2.634845",
+                    "N43.415076",
+                    "W2.630539"
+                ],
+                [
+                    "N43.415076",
+                    "W2.630539",
+                    "N43.419375",
+                    "W2.612686"
+                ],
+                [
+                    "N43.419375",
+                    "W2.612686",
+                    "N43.418515",
+                    "W2.593682"
+                ],
+                [
+                    "N43.418515",
+                    "W2.593682",
+                    "N43.422709",
+                    "W2.596207"
+                ],
+                [
+                    "N43.422709",
+                    "W2.596207",
+                    "N43.421296",
+                    "W2.609940"
+                ],
+                [
+                    "N43.421296",
+                    "W2.609940",
+                    "N43.427407",
+                    "W2.622299"
+                ],
+                [
+                    "N43.427407",
+                    "W2.622299",
+                    "N43.426174",
+                    "W2.638779"
+                ],
+                [
+                    "N43.426174",
+                    "W2.638779",
+                    "N43.417055",
+                    "W2.670364"
+                ],
+                [
+                    "N43.417055",
+                    "W2.670364",
+                    "N43.413527",
+                    "W2.671598"
+                ],
+                [
+                    "N43.413527",
+                    "W2.671598",
+                    "N43.408367",
+                    "W2.685471"
+                ],
+                [
+                    "N43.408367",
+                    "W2.685471",
+                    "N43.423502",
+                    "W2.702607"
+                ],
+                [
+                    "N43.423502",
+                    "W2.702607",
+                    "N43.435470",
+                    "W2.700236"
+                ],
+                [
+                    "N43.435470",
+                    "W2.700236",
+                    "N43.442571",
+                    "W2.704697"
+                ],
+                [
+                    "N43.442571",
+                    "W2.704697",
+                    "N43.439770",
+                    "W2.711563"
+                ],
+                [
+                    "N43.439770",
+                    "W2.711563",
+                    "N43.427927",
+                    "W2.717056"
+                ],
+                [
+                    "N43.427927",
+                    "W2.717056",
+                    "N43.428873",
+                    "W2.730789"
+                ],
+                [
+                    "N43.428873",
+                    "W2.730789",
+                    "N43.435470",
+                    "W2.733010"
+                ],
+                [
+                    "N43.435470",
+                    "W2.733010",
+                    "N43.444366",
+                    "W2.730789"
+                ],
+                [
+                    "N43.444366",
+                    "W2.730789",
+                    "N43.457405",
+                    "W2.717636"
+                ],
+                [
+                    "N43.457405",
+                    "W2.717636",
+                    "N43.461730",
+                    "W2.723923"
+                ],
+                [
+                    "N43.461730",
+                    "W2.723923",
+                    "N43.465690",
+                    "W2.743149"
+                ],
+                [
+                    "N43.465690",
+                    "W2.743149",
+                    "N43.463654",
+                    "W2.752762"
+                ],
+                [
+                    "N43.463654",
+                    "W2.752762",
+                    "N43.453453",
+                    "W2.766495"
+                ],
+                [
+                    "N43.453453",
+                    "W2.766495",
+                    "N43.446179",
+                    "W2.798080"
+                ],
+                [
+                    "N43.446179",
+                    "W2.798080",
+                    "N43.448244",
+                    "W2.824173"
+                ],
+                [
+                    "N43.448244",
+                    "W2.824173",
+                    "N43.437465",
+                    "W2.833135"
+                ],
+                [
+                    "N43.437465",
+                    "W2.833135",
+                    "N43.435059",
+                    "W2.840652"
+                ],
+                [
+                    "N43.435059",
+                    "W2.840652",
+                    "N43.435470",
+                    "W2.866392"
+                ],
+                [
+                    "N43.435470",
+                    "W2.866392",
+                    "N43.445274",
+                    "W2.880478"
+                ],
+                [
+                    "N43.445274",
+                    "W2.880478",
+                    "N43.449047",
+                    "W2.892838"
+                ],
+                [
+                    "N43.449047",
+                    "W2.892838",
+                    "N43.445563",
+                    "W2.945023"
+                ],
+                [
+                    "N43.445563",
+                    "W2.945023",
+                    "N43.440456",
+                    "W2.950247"
+                ],
+                [
+                    "N43.440456",
+                    "W2.950247",
+                    "N43.430484",
+                    "W2.951202"
+                ],
+                [
+                    "N43.430484",
+                    "W2.951202",
+                    "N43.424500",
+                    "W2.956240"
+                ],
+                [
+                    "N43.424500",
+                    "W2.956240",
+                    "N43.417767",
+                    "W2.953262"
+                ],
+                [
+                    "N43.417767",
+                    "W2.953262",
+                    "N43.413953",
+                    "W2.982101"
+                ],
+                [
+                    "N43.413953",
+                    "W2.982101",
+                    "N43.385589",
+                    "W3.014998"
+                ],
+                [
+                    "N43.385589",
+                    "W3.014998",
+                    "N43.381431",
+                    "W3.031540"
+                ],
+                [
+                    "N43.381431",
+                    "W3.031540",
+                    "N43.374610",
+                    "W3.037916"
+                ],
+                [
+                    "N43.374610",
+                    "W3.037916",
+                    "N43.351646",
+                    "W3.033764"
+                ],
+                [
+                    "N43.351646",
+                    "W3.033764",
+                    "N43.348949",
+                    "W3.016434"
+                ],
+                [
+                    "N43.348949",
+                    "W3.016434",
+                    "N43.345654",
+                    "W3.013498"
+                ],
+                [
+                    "N43.345654",
+                    "W3.013498",
+                    "N43.341659",
+                    "W3.013399"
+                ],
+                [
+                    "N43.341659",
+                    "W3.013399",
+                    "N43.340661",
+                    "W3.016499"
+                ],
+                [
+                    "N43.340661",
+                    "W3.016499",
+                    "N43.336665",
+                    "W3.012873"
+                ],
+                [
+                    "N43.336665",
+                    "W3.012873",
+                    "N43.329174",
+                    "W3.026047"
+                ],
+                [
+                    "N43.329174",
+                    "W3.026047",
+                    "N43.338663",
+                    "W3.031787"
+                ],
+                [
+                    "N43.338663",
+                    "W3.031787",
+                    "N43.345374",
+                    "W3.031540"
+                ],
+                [
+                    "N43.345374",
+                    "W3.031540",
+                    "N43.346435",
+                    "W3.037033"
+                ],
+                [
+                    "N43.346435",
+                    "W3.037033",
+                    "N43.342217",
+                    "W3.039780"
+                ],
+                [
+                    "N43.342217",
+                    "W3.039780",
+                    "N43.344656",
+                    "W3.041573"
+                ],
+                [
+                    "N43.344656",
+                    "W3.041573",
+                    "N43.349986",
+                    "W3.038406"
+                ],
+                [
+                    "N43.349986",
+                    "W3.038406",
+                    "N43.351840",
+                    "W3.069992"
+                ],
+                [
+                    "N43.351840",
+                    "W3.069992",
+                    "N43.356639",
+                    "W3.074002"
+                ],
+                [
+                    "N43.356639",
+                    "W3.074002",
+                    "N43.361631",
+                    "W3.063695"
+                ],
+                [
+                    "N43.361631",
+                    "W3.063695",
+                    "N43.361833",
+                    "W3.072739"
+                ],
+                [
+                    "N43.361833",
+                    "W3.072739",
+                    "N43.357738",
+                    "W3.074112"
+                ],
+                [
+                    "N43.357738",
+                    "W3.074112",
+                    "N43.364260",
+                    "W3.082352"
+                ],
+                [
+                    "N43.364260",
+                    "W3.082352",
+                    "N43.367622",
+                    "W3.098444"
+                ],
+                [
+                    "N43.367622",
+                    "W3.098444",
+                    "N43.370617",
+                    "W3.094776"
+                ],
+                [
+                    "N43.370617",
+                    "W3.094776",
+                    "N43.370649",
+                    "W3.098831"
+                ],
+                [
+                    "N43.370649",
+                    "W3.098831",
+                    "N43.367719",
+                    "W3.100204"
+                ],
+                [
+                    "N43.367719",
+                    "W3.100204",
+                    "N43.366037",
+                    "W3.112564"
+                ],
+                [
+                    "N43.366037",
+                    "W3.112564",
+                    "N43.356405",
+                    "W3.122177"
+                ],
+                [
+                    "N43.356405",
+                    "W3.122177",
+                    "N43.361936",
+                    "W3.140030"
+                ],
+                [
+                    "N43.361936",
+                    "W3.140030",
+                    "N43.361812",
+                    "W3.159256"
+                ],
+                [
+                    "N43.361812",
+                    "W3.159256",
+                    "N43.367322",
+                    "W3.182602"
+                ],
+                [
+                    "N43.367322",
+                    "W3.182602",
+                    "N43.373602",
+                    "W3.192215"
+                ],
+                [
+                    "N43.373602",
+                    "W3.192215",
+                    "N43.367622",
+                    "W3.193108"
+                ],
+                [
+                    "N43.367622",
+                    "W3.193108",
+                    "N43.365625",
+                    "W3.188333"
+                ],
+                [
+                    "N43.365625",
+                    "W3.188333",
+                    "N43.364788",
+                    "W3.192215"
+                ],
+                [
+                    "N43.364788",
+                    "W3.192215",
+                    "N43.368620",
+                    "W3.196192"
+                ],
+                [
+                    "N43.368620",
+                    "W3.196192",
+                    "N43.373611",
+                    "W3.194387"
+                ],
+                [
+                    "N43.373611",
+                    "W3.194387",
+                    "N43.383868",
+                    "W3.208694"
+                ],
+                [
+                    "N43.383868",
+                    "W3.208694",
+                    "N43.395568",
+                    "W3.217581"
+                ],
+                [
+                    "N43.395568",
+                    "W3.217581",
+                    "N43.397564",
+                    "W3.232727"
+                ],
+                [
+                    "N43.397564",
+                    "W3.232727",
+                    "N43.398562",
+                    "W3.227523"
+                ],
+                [
+                    "N43.398562",
+                    "W3.227523",
+                    "N43.407811",
+                    "W3.247147"
+                ],
+                [
+                    "N43.407811",
+                    "W3.247147",
+                    "N43.408645",
+                    "W3.269119"
+                ],
+                [
+                    "N43.408645",
+                    "W3.269119",
+                    "N43.415891",
+                    "W3.281479"
+                ],
+                [
+                    "N43.415891",
+                    "W3.281479",
+                    "N43.414670",
+                    "W3.313065"
+                ],
+                [
+                    "N43.414670",
+                    "W3.313065",
+                    "N43.426035",
+                    "W3.329544"
+                ],
+                [
+                    "N43.426035",
+                    "W3.329544",
+                    "N43.424226",
+                    "W3.344650"
+                ],
+                [
+                    "N43.424226",
+                    "W3.344650",
+                    "N43.414603",
+                    "W3.362503"
+                ],
+                [
+                    "N43.414603",
+                    "W3.362503",
+                    "N43.429149",
+                    "W3.376236"
+                ],
+                [
+                    "N43.429149",
+                    "W3.376236",
+                    "N43.430734",
+                    "W3.406448"
+                ],
+                [
+                    "N43.430734",
+                    "W3.406448",
+                    "N43.428489",
+                    "W3.410989"
+                ],
+                [
+                    "N43.428489",
+                    "W3.410989",
+                    "N43.415772",
+                    "W3.416061"
+                ],
+                [
+                    "N43.415772",
+                    "W3.416061",
+                    "N43.411631",
+                    "W3.429794"
+                ],
+                [
+                    "N43.411631",
+                    "W3.429794",
+                    "N43.415523",
+                    "W3.434319"
+                ],
+                [
+                    "N43.415523",
+                    "W3.434319",
+                    "N43.423918",
+                    "W3.432541"
+                ],
+                [
+                    "N43.423918",
+                    "W3.432541",
+                    "N43.418121",
+                    "W3.438034"
+                ],
+                [
+                    "N43.418121",
+                    "W3.438034",
+                    "N43.432478",
+                    "W3.448218"
+                ],
+                [
+                    "N43.432478",
+                    "W3.448218",
+                    "N43.434798",
+                    "W3.418808"
+                ],
+                [
+                    "N43.434798",
+                    "W3.418808",
+                    "N43.456408",
+                    "W3.417863"
+                ],
+                [
+                    "N43.456408",
+                    "W3.417863",
+                    "N43.463353",
+                    "W3.421555"
+                ],
+                [
+                    "N43.463353",
+                    "W3.421555",
+                    "N43.469366",
+                    "W3.435499"
+                ],
+                [
+                    "N43.469366",
+                    "W3.435499",
+                    "N43.479132",
+                    "W3.443527"
+                ],
+                [
+                    "N43.479132",
+                    "W3.443527",
+                    "N43.479603",
+                    "W3.461380"
+                ],
+                [
+                    "N43.479603",
+                    "W3.461380",
+                    "N43.474349",
+                    "W3.466105"
+                ],
+                [
+                    "N43.474349",
+                    "W3.466105",
+                    "N43.464642",
+                    "W3.466873"
+                ],
+                [
+                    "N43.464642",
+                    "W3.466873",
+                    "N43.464520",
+                    "W3.472366"
+                ],
+                [
+                    "N43.464520",
+                    "W3.472366",
+                    "N43.474349",
+                    "W3.473457"
+                ],
+                [
+                    "N43.474349",
+                    "W3.473457",
+                    "N43.480328",
+                    "W3.478365"
+                ],
+                [
+                    "N43.480328",
+                    "W3.478365",
+                    "N43.485310",
+                    "W3.513163"
+                ],
+                [
+                    "N43.485310",
+                    "W3.513163",
+                    "N43.493281",
+                    "W3.510536"
+                ],
+                [
+                    "N43.493281",
+                    "W3.510536",
+                    "N43.496270",
+                    "W3.518098"
+                ],
+                [
+                    "N43.496270",
+                    "W3.518098",
+                    "N43.499258",
+                    "W3.508743"
+                ],
+                [
+                    "N43.499258",
+                    "W3.508743",
+                    "N43.504529",
+                    "W3.512192"
+                ],
+                [
+                    "N43.504529",
+                    "W3.512192",
+                    "N43.504239",
+                    "W3.519666"
+                ],
+                [
+                    "N43.504239",
+                    "W3.519666",
+                    "N43.498262",
+                    "W3.519412"
+                ],
+                [
+                    "N43.498262",
+                    "W3.519412",
+                    "N43.495655",
+                    "W3.523178"
+                ],
+                [
+                    "N43.495655",
+                    "W3.523178",
+                    "N43.497299",
+                    "W3.530045"
+                ],
+                [
+                    "N43.497299",
+                    "W3.530045",
+                    "N43.509219",
+                    "W3.538994"
+                ],
+                [
+                    "N43.509219",
+                    "W3.538994",
+                    "N43.512391",
+                    "W3.545151"
+                ],
+                [
+                    "N43.512391",
+                    "W3.545151",
+                    "N43.516454",
+                    "W3.586349"
+                ],
+                [
+                    "N43.516454",
+                    "W3.586349",
+                    "N43.513559",
+                    "W3.597336"
+                ],
+                [
+                    "N43.313846",
+                    "W2.945373",
+                    "N43.321336",
+                    "W2.965820"
+                ],
+                [
+                    "N43.328822",
+                    "W2.986272",
+                    "N43.336304",
+                    "W3.006729"
+                ],
+                [
+                    "N43.343782",
+                    "W3.027191",
+                    "N43.351257",
+                    "W3.047658"
+                ],
+                [
+                    "N43.358729",
+                    "W3.068130",
+                    "N43.366197",
+                    "W3.088608"
+                ],
+                [
+                    "N43.373661",
+                    "W3.109090",
+                    "N43.381121",
+                    "W3.129577"
+                ],
+                [
+                    "N43.388578",
+                    "W3.150070",
+                    "N43.396031",
+                    "W3.170567"
+                ],
+                [
+                    "N43.403480",
+                    "W3.191070",
+                    "N43.410926",
+                    "W3.211577"
+                ],
+                [
+                    "N43.290216",
+                    "W2.880913",
+                    "N43.282719",
+                    "W2.860481"
+                ],
+                [
+                    "N43.275219",
+                    "W2.840054",
+                    "N43.267716",
+                    "W2.819632"
+                ],
+                [
+                    "N43.260209",
+                    "W2.799216",
+                    "N43.252698",
+                    "W2.778804"
+                ],
+                [
+                    "N43.245183",
+                    "W2.758397",
+                    "N43.237665",
+                    "W2.737995"
+                ],
+                [
+                    "N43.230144",
+                    "W2.717599",
+                    "N43.222618",
+                    "W2.697207"
+                ],
+                [
+                    "N43.215089",
+                    "W2.676821",
+                    "N43.207557",
+                    "W2.656439"
+                ],
+                [
+                    "N43.200021",
+                    "W2.636062",
+                    "N43.192481",
+                    "W2.615691"
+                ]
+            ]
+        }
+    ]
+}

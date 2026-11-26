@@ -1,0 +1,21 @@
+# Actualizaciones automáticas.
+# - GitHub Actions: semanal.
+# - npm: solo avisos de seguridad (las dependencias del motor son antiguas y se actualizan a mano),
+#   por eso open-pull-requests-limit es 0 para las actualizaciones de versión normales.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - "area:ci"
+      - "dependencies"
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    labels:
+      - "dependencies"

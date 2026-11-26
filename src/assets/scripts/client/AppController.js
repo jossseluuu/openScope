@@ -4,6 +4,7 @@ import AircraftController from './aircraft/AircraftController';
 import AuditBroadcaster from './audit/AuditBroadcaster';
 import AuditController from './audit/AuditController';
 import BotController from './bot/BotController';
+import CopilotController from './copilot/CopilotController';
 import AirlineController from './airline/AirlineController';
 import AirportController from './airport/AirportController';
 import AirportGuideViewController from './airportGuide/AirportGuideViewController';
@@ -180,6 +181,8 @@ export default class AppController {
         this.aircraftController = new AircraftController(aircraftTypeDefinitionList, this.airlineController, this.scopeModel);
         this.scoreController = new ScoreController(this.aircraftController);
         this.botController = new BotController(this.aircraftController);
+        // suggestions and delegation for the player, with Bot C's planner
+        this.copilotController = new CopilotController(this.aircraftController, this.botController);
         this.auditController = new AuditController(this.aircraftController, this.botController);
 
         SpawnScheduler.init(this.aircraftController);
@@ -257,6 +260,7 @@ export default class AppController {
         GameController.update_pre();
         this.aircraftController.update();
         this.botController.update();
+        this.copilotController.update();
         this.auditController.update();
     }
 

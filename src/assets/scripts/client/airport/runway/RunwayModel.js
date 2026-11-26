@@ -238,6 +238,16 @@ export default class RunwayModel extends BaseModel {
             this.ils.enabled = data.ils[end];
         }
 
+        // ILS category of this end (`I`, `II`, `IIIA`, `IIIB`): a runway allows its category and the lower ones.
+        // Without it, an ILS runway is CAT I (MET-001)
+        this.ilsCategories = null;
+
+        if (data.ilsCategory && data.ilsCategory[end]) {
+            const order = ['I', 'II', 'IIIA', 'IIIB'];
+
+            this.ilsCategories = order.slice(0, order.indexOf(data.ilsCategory[end]) + 1);
+        }
+
         if (data.ils_distance) {
             this.ils.loc_maxDist = km(data.ils_distance[end]);
         }

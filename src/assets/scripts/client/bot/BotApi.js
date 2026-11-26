@@ -222,7 +222,13 @@ export default class BotApi {
             arrivalRunway: airportModel.arrivalRunwayModel?.name ?? null,
             departureRunway: airportModel.departureRunwayModel?.name ?? null,
             airspace: this._getAirspaceObservation(airportModel),
-            restrictedAreas: this._getRestrictedAreasObservation(airportModel),
+            // thunderstorm cells of the dynamic weather are restricted areas too: no entry below their top
+            restrictedAreas: [
+                ...this._getRestrictedAreasObservation(airportModel),
+                ...this._aircraftController.realismController.weather.getCellAreas()
+            ],
+            // visibility, ceiling, low visibility procedures, gusts and cells (WeatherController)
+            weather: this._aircraftController.realismController.weather.getObservation(),
             runways: _map(airportModel.runways, ([runwayModel, oppositeRunwayModel]) => [
                 this._buildRunwayObservation(runwayModel),
                 this._buildRunwayObservation(oppositeRunwayModel)
@@ -586,6 +592,28 @@ export default class BotApi {
     }
 
     /**
+     * Safety net alerts of an aircraft: `{ stca, tcas, raSense, msaw, apw }`
+     *
+     * @for BotApi
+     * @method _buildSafetyNetObservation
+     * @param aircraftModel {AircraftModel}
+     * @return {object}
+     * @private
+     */
+    _buildSafetyNetObservation(aircraftModel) {
+        const safetyNet = aircraftModel.safetyNet || {};
+        const tcas = safetyNet.tcas || { state: 'CLEAR' };
+
+        return {
+            stca: safetyNet.stca || 'NONE',
+            tcas: tcas.state,
+            raSense: tcas.state === 'RA' ? tcas.sense : null,
+            msaw: Boolean(safetyNet.msaw),
+            apw: safetyNet.apw || null
+        };
+    }
+
+    /**
      * @for BotApi
      * @method _buildAircraftObservation
      * @param aircraftModel {AircraftModel}
@@ -652,6 +680,8 @@ export default class BotApi {
             squawk: String(aircraftModel.transponderCode),
             // squawk 7700: must land with priority before `deadline`
             emergency: this._buildEmergencyObservation(aircraftModel),
+            // STCA level, TCAS state and RA sense, MSAW, APW (SafetyNetController); not yet in Bot B's features
+            safetyNet: this._buildSafetyNetObservation(aircraftModel),
             conflicts: Object.keys(aircraftModel.conflicts),
             speedLimits: { min: model.speed.min, landing: model.speed.landing, max: model.speed.max },
             takeoffDecisionSpeed: round(takeoffDecisionSpeed(model.speed)),

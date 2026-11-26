@@ -1,5 +1,6 @@
 import BotA from '../bot/botA/BotA';
 import BotApi from '../bot/BotApi';
+import CommandHistory from '../bot/rl/commandHistory';
 import EventBus from '../lib/EventBus';
 import SafetyShield from '../bot/safetyShield';
 import TimeKeeper from '../engine/TimeKeeper';
@@ -135,6 +136,8 @@ export default class AuditController {
         this._nextSampleTime = 0;
         this._nextId = 0;
         this._shadowBot = new BotA();
+        // orders given so far, so the recorded steps carry the same recency features as training
+        this._history = new CommandHistory();
     }
 
     /**
@@ -406,7 +409,8 @@ export default class AuditController {
      * @private
      */
     _recordStep(observation, source, botADecisions) {
-        const encoded = encodeObservation(observation, this._shield);
+        this._history.forgetGone(observation);
+        const encoded = encodeObservation(observation, this._shield, this._history);
         const count = encoded.tokenMask.reduce((sum, value) => sum + value, 0);
 
         if (count === 0) {
@@ -445,6 +449,14 @@ export default class AuditController {
 
     _onCommand(event) {
         const aircraft = (this.observation ? this.observation.aircraft : []).find((item) => item.callsign === event.callsign);
+        const time = TimeKeeper.accumulatedDeltaTime;
+
+        // recorded whether accepted or not, as the training environment does
+        if (Number.isInteger(event.action)) {
+            this._history.record(event.callsign, event.action, time);
+        } else if (Array.isArray(event.commandNames)) {
+            this._history.recordCommandNames(event.callsign, event.commandNames, time);
+        }
 
         this._nextId += 1;
         this.decisions.push({

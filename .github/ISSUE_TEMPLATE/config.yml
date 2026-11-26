@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentación
+    url: https://jossseluuu.github.io/openScope/docs/
+    about: Antes de abrir una issue, revisa la documentación del simulador, de los aeropuertos y de los bots.
+  - name: Simulador en línea
+    url: https://jossseluuu.github.io/openScope/
+    about: Versión publicada de la rama main, para comprobar si el problema sigue ocurriendo.

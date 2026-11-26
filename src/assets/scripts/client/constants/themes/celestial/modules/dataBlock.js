@@ -248,6 +248,24 @@ export const DATA_BLOCK_THEME = {
     TEXT_EMERGENCY: COLOR.EMERGENCY_RED,
 
     /**
+     * Text color of an aircraft with a safety net alert (STCA alert, TCAS RA, MSAW, APW)
+     *
+     * @memberof THEME.DATA_BLOCK
+     * @property TEXT_SAFETY_ALERT
+     * @type {string}
+     */
+    TEXT_SAFETY_ALERT: COLOR.EMERGENCY_RED,
+
+    /**
+     * Text color of an aircraft with a safety net caution (STCA predicted conflict, TCAS TA)
+     *
+     * @memberof THEME.DATA_BLOCK
+     * @property TEXT_SAFETY_CAUTION
+     * @type {string}
+     */
+    TEXT_SAFETY_CAUTION: COLOR.CAUTION_AMBER,
+
+    /**
      * Width of the data block
      *
      * @memberof DATA_BLOCK_THEME

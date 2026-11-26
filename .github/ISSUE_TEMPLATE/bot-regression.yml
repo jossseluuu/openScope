@@ -1,0 +1,47 @@
+name: Regresión de un bot
+description: Un bot puntúa peor que antes, o un cambio lo ha empeorado.
+title: "[Regresión] "
+labels: ["area:bots", "tipo:bug"]
+body:
+  - type: dropdown
+    id: bot
+    attributes:
+      label: Bot
+      options:
+        - Bot A
+        - Bot B
+        - Bot C
+    validations:
+      required: true
+  - type: input
+    id: commits
+    attributes:
+      label: Versión buena y versión mala
+      description: Commits o versiones comparados.
+      placeholder: a030eeb8 → 773063d0
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Resultados del protocolo
+      description: |
+        Protocolo de 30 episodios: semillas 4-9 × LEMD N, LEMD S (180/15), EDDM, LEMG, KLAX, emergencias 0.
+        Se juzga por la puntuación total.
+      value: |
+        | Métrica | Antes | Después |
+        |---|---|---|
+        | Puntuación total | | |
+        | Aterrizajes | | |
+        | Despegues | | |
+        | Pérdidas de separación radar | | |
+        | Pérdidas de estela | | |
+        | Violaciones de espacio aéreo | | |
+        | Tier 0 | | |
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Episodios y aeropuertos donde más empeora
+      description: Comando run-bot usado, aeropuertos o semillas concretas y lo que se observa.

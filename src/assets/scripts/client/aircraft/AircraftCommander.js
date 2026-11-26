@@ -15,6 +15,7 @@ import {
 import { AIRCRAFT_EVENT, EVENT } from '../constants/eventNames';
 import { EMERGENCY_SQUAWK, RESERVED_EMERGENCY_SQUAWKS } from '../realism/EmergencyController';
 import { takeoffDecisionSpeed } from '../realism/takeoffCancel';
+import { isContraryToRa } from '../safety/safetyNetLogic';
 import { radians_normalize } from '../math/circle';
 import { round } from '../math/core';
 import { AIRCRAFT_COMMAND_MAP } from '../commands/aircraftCommand/aircraftCommandMap';
@@ -248,6 +249,16 @@ export default class AircraftCommander {
     runAltitude(aircraft, data) {
         const altitudeRequested = data[0];
         const expediteRequested = data[1];
+
+        // during a TCAS resolution advisory the crew follows the RA, not ATC (ICAO Doc 4444 15.7.3);
+        // a clearance against it is a safety violation (TCA-006)
+        if (aircraft.resolutionAdvisory) {
+            if (isContraryToRa(aircraft.resolutionAdvisory.sense, aircraft.altitude, altitudeRequested)) {
+                this._eventBus.trigger(AIRCRAFT_EVENT.CONTRARY_TO_RA, aircraft, altitudeRequested);
+            }
+
+            return [false, 'unable, TCAS RA'];
+        }
         const shouldUseSoftCeiling = GameController.game.option.getOptionByName('softCeiling') === 'yes';
         const airport = AirportController.airport_get();
 

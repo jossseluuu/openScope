@@ -1893,14 +1893,14 @@
             "entryPoints": {
                 "KERAX": ["KERAX"]
             },
-            "body": ["GED", "tau"],
+            "body": ["GED", "TAU"],
             "rwy": {
                 "EDDF07L": [],
                 "EDDF07C": [],
                 "EDDF07R": []
             },
             "draw": [
-                ["KERAX", "GED", "tau"]
+                ["KERAX", "GED", "TAU"]
             ]
         },
         "PETI3E": {

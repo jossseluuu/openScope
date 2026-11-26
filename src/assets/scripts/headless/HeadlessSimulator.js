@@ -97,10 +97,14 @@ export default class HeadlessSimulator {
      *                                  airport's default; the runway configuration is chosen from it
      * @param [options.trafficScale] {number}  multiplies the rate of every spawn pattern
      * @param [options.emergencyRate] {number|null}  probability that a flight declares an emergency
+     * @param [options.safetyNets] {boolean|null}  STCA, TCAS, MSAW and APW (default on)
+     * @param [options.weather] {string|null}  'static' (default) or 'dynamic'
      *                                               (null: the game option's default, 1%)
      * @return {object} observation
      */
-    reset(airportIcao, seed = 0, { wind = null, trafficScale = 1, emergencyRate = null } = {}) {
+    reset(airportIcao, seed = 0, {
+        wind = null, trafficScale = 1, emergencyRate = null, safetyNets = null, weather = null
+    } = {}) {
         const icao = airportIcao.toLowerCase();
         const airportJson = this._loadAirportJson(icao);
 
@@ -144,6 +148,10 @@ export default class HeadlessSimulator {
         // emergencies draw from their own generator, seeded with the episode, so they are
         // reproducible and do not change the rest of the traffic
         this.aircraftController.realismController.emergencies.configure({ seed: seed + 7700, rate: emergencyRate });
+        // STCA, TCAS, MSAW and APW: on unless the episode turns them off
+        this.aircraftController.realismController.safetyNets.configure({ enabled: safetyNets === null ? true : Boolean(safetyNets) });
+        // static weather unless asked: keeps the bot evaluation protocol comparable (own generator, seed + 8800)
+        this.aircraftController.realismController.weather.configure({ mode: weather || 'static', seed });
         window.aircraftController = this.aircraftController;
         SpawnScheduler.init(this.aircraftController);
 
